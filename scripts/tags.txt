@@ -1,0 +1,46 @@
+Groceries
+Restaurants
+Fast Food
+Snacks
+Food Delivery
+Alcohol
+Gas
+Public Transit
+Ride Sharing
+Parking
+Airline Tickets
+Clothing
+Electronics
+Apartment Items
+Online Shopping
+Health & Beauty
+Gifts
+Appliances
+Books
+Subscriptions
+Movies
+Concerts
+Events
+Travel/Leisure
+Hobbies
+Sports & Fitness
+Amusement Parks
+Rent
+Utilities
+Repairs & Maintenance
+Internet
+Gas
+Trash/Sewer
+Doctor's Visit
+Training/Certifications
+Investments
+Software Subscriptions
+Haircuts
+Beauty Products
+Skincare
+College Supplies
+Flights
+Hotels
+Rental Cars
+Taxis & Rideshare
+Gifts for Family/Friends
