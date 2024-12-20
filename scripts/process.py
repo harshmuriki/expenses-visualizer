@@ -4,7 +4,6 @@ from openai import OpenAI
 
 # Set your OpenAI API key
 client = OpenAI()
-OpenAI.api_key = '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'
 
 
 class Item:
