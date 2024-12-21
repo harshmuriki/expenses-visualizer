@@ -25,12 +25,12 @@ def upload_csv():
 
     # print(alltags, allparenttags)
 
-    doc = process.Document(df, alltags=alltags, allparenttags=allparenttags)
-    hierarchical_data = doc.to_hierarchical_dict()
-    print(hierarchical_data)
+    # doc = process.Document(df, alltags=alltags, allparenttags=allparenttags)
+    # hierarchical_data = doc.to_hierarchical_dict()
+    # print(hierarchical_data)
     # print(df)
     
-    return hierarchical_data
+    # return hierarchical_data
 
 
     # Process df as needed (classification, etc.)
