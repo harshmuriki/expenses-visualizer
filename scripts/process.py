@@ -4,6 +4,7 @@ from openai import OpenAI
 
 # Set your OpenAI API key
 client = OpenAI()
+OpenAI.api_key = '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'
 
 
 class Item:
@@ -136,20 +137,20 @@ class Document:
         return root
 
 
-# Example usage (adjust the path to your CSV):
-df = pd.read_csv(
-    r"C:\Users\harsh\OneDrive - Georgia Institute of Technology\Documents\Georgia Tech\Payments All\activity.csv")
+# # Example usage (adjust the path to your CSV):
+# df = pd.read_csv(
+#     r"C:\Users\harsh\OneDrive - Georgia Institute of Technology\Documents\Georgia Tech\Payments All\activity.csv")
 
-with open(r"C:\Users\harsh\OneDrive - Georgia Institute of Technology\Documents\Projects\expenses-visualizer\scripts\tags.txt", "r") as file:
-    alltags = [line.strip() for line in file.readlines()]
+# with open(r"C:\Users\harsh\OneDrive - Georgia Institute of Technology\Documents\Projects\expenses-visualizer\scripts\tags.txt", "r") as file:
+#     alltags = [line.strip() for line in file.readlines()]
 
-with open(r"C:\Users\harsh\OneDrive - Georgia Institute of Technology\Documents\Projects\expenses-visualizer\scripts\parenttags.txt", "r") as file:
-    allparenttags = [line.strip() for line in file.readlines()]
+# with open(r"C:\Users\harsh\OneDrive - Georgia Institute of Technology\Documents\Projects\expenses-visualizer\scripts\parenttags.txt", "r") as file:
+#     allparenttags = [line.strip() for line in file.readlines()]
 
-# print(alltags, allparenttags)
+# # print(alltags, allparenttags)
 
-doc = Document(df, alltags=alltags, allparenttags=allparenttags)
-doc.convert_doc_to_items()
-# doc.show_items()
-hierarchical_data = doc.to_hierarchical_dict()
-print(hierarchical_data)
+# doc = Document(df, alltags=alltags, allparenttags=allparenttags)
+# doc.convert_doc_to_items()
+# # doc.show_items()
+# hierarchical_data = doc.to_hierarchical_dict()
+# print(hierarchical_data)
