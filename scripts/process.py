@@ -91,7 +91,7 @@ class Document:
     def show_items(self):
         for item in self.items:
             print(item)
-            
+
     def to_hierarchical_dict(self):
         # Create a structure like:
         # { parenttag: { tag: [items...] } }
@@ -137,20 +137,26 @@ class Document:
         return root
 
 
-# # Example usage (adjust the path to your CSV):
-# df = pd.read_csv(
-#     r"C:\Users\harsh\OneDrive - Georgia Institute of Technology\Documents\Georgia Tech\Payments All\activity.csv")
+def main():
 
-# with open(r"C:\Users\harsh\OneDrive - Georgia Institute of Technology\Documents\Projects\expenses-visualizer\scripts\tags.txt", "r") as file:
-#     alltags = [line.strip() for line in file.readlines()]
+    # Example usage (adjust the path to your CSV):
+    df = pd.read_csv(
+        r"C:\Users\harsh\OneDrive - Georgia Institute of Technology\Documents\Georgia Tech\Payments All\activity.csv")
 
-# with open(r"C:\Users\harsh\OneDrive - Georgia Institute of Technology\Documents\Projects\expenses-visualizer\scripts\parenttags.txt", "r") as file:
-#     allparenttags = [line.strip() for line in file.readlines()]
+    with open(r"C:\Users\harsh\OneDrive - Georgia Institute of Technology\Documents\Projects\expenses-visualizer\scripts\tags.txt", "r") as file:
+        alltags = [line.strip() for line in file.readlines()]
 
-# # print(alltags, allparenttags)
+    with open(r"C:\Users\harsh\OneDrive - Georgia Institute of Technology\Documents\Projects\expenses-visualizer\scripts\parenttags.txt", "r") as file:
+        allparenttags = [line.strip() for line in file.readlines()]
 
-# doc = Document(df, alltags=alltags, allparenttags=allparenttags)
-# doc.convert_doc_to_items()
-# # doc.show_items()
-# hierarchical_data = doc.to_hierarchical_dict()
-# print(hierarchical_data)
+    # print(alltags, allparenttags)
+
+    doc = Document(df, alltags=alltags, allparenttags=allparenttags)
+    doc.convert_doc_to_items()
+    # doc.show_items()
+    hierarchical_data = doc.to_hierarchical_dict()
+    print(hierarchical_data)
+
+
+if __name__ == "__main__":
+    main()
