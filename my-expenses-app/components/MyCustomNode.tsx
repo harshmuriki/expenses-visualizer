@@ -8,6 +8,8 @@ interface MyCustomNodeProps {
   index: number;
   payload: { name: string; value?: number; [key: string]: any };
   containerWidth: number;
+  isExpanded: boolean; // New prop to indicate if the node is expanded
+  onNodeClick: (nodeId: string) => void; // New click handler
 }
 
 const MyCustomNode: React.FC<MyCustomNodeProps> = ({
@@ -18,7 +20,23 @@ const MyCustomNode: React.FC<MyCustomNodeProps> = ({
   index,
   payload,
   containerWidth,
+  isExpanded,
+  onNodeClick
 }) => {
+
+  // Dynamic styles
+  const fillColor = payload.value && payload.value > 100 ? "#ff6347" : "#8884d8";
+  const strokeColor = "#fff"; // Highlight the first node
+  const fontSize = Math.max(12, width / 10);
+  const truncatedName =
+    payload.name.length > 10 ? `${payload.name.substring(0, 10)}...` : payload.name;
+
+  const handleClick = () => {
+    console.log("Rendering Node:", payload.name, payload.value); // Debugging line
+    onNodeClick(payload.name);
+
+  };
+
   return (
     <g>
       {/* Rectangle for the node */}
@@ -27,29 +45,36 @@ const MyCustomNode: React.FC<MyCustomNodeProps> = ({
         y={y}
         width={width}
         height={height}
-        fill="#8884d8"
-        stroke="#fff"
+        fill={fillColor}
+        stroke={strokeColor}
         strokeWidth={2}
+        rx={5} // Rounded corners
+        ry={5}
+        onClick={handleClick}
+        style={{ cursor: "pointer" }}
       />
       {/* Text for node name */}
       <text
-        x={x + width / 2}
+        x={x + width / 2 + 40}
         y={y + height / 2 - 10} // Position above value
         textAnchor="middle"
         fill="#fff"
+        fontSize={fontSize}
         dy={4}
       >
-        {payload.name}
+        {truncatedName}
+        <title>{payload.name}</title>
       </text>
       {/* Text for node value */}
       <text
-        x={x + width / 2}
+        x={x + width / 2 + 40}
         y={y + height / 2 + 10} // Position below name
         textAnchor="middle"
         fill="#fff"
+        fontSize={fontSize}
         dy={4}
       >
-        {payload.value || 'N/A'} {/* Display value or fallback to 'N/A' */}
+        {payload.value || 'N/A'}
       </text>
     </g>
   );

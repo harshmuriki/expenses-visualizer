@@ -121,42 +121,65 @@ export const data0 = {
 
 export const testdatamini = {
   nodes: [
-    { name: "Expenses" },
+    { name: "Expenses" }, //0
     // Education - parent tag
-    { name: "Education" },
+    { name: "Education" }, //1
 
     // tags
-    { name: "Penn Engineering Online" },
+    { name: "Penn Engineering Online", cost: 100 }, //2  - $100
 
     // health - parent tag
-    { name: "Health" },
+    { name: "Health" }, //3
 
     // tags
-    { name: "CVS Pharmacy Purchase" },
+    { name: "CVS Pharmacy Purchase", cost: 10 }, //4 - $10
+    { name: "Some Hospital", cost: 150 }, //5 - $150
 
     // Shopping - parent tag
-    { name: "Shopping" }, //5
+    { name: "Shopping" }, //6
 
     // tags
-    { name: "Mobile Payment" },
-    { name: "Amazon Purchase" },
-    { name: "Target" },
-    { name: "Amazon Purchase 2" }, //11
+    { name: "Mobile Payment", cost: 15 }, //7 - $15
+    { name: "Amazon Purchase", cost: 175 }, //8 - $175
+    { name: "Target", cost: 70 }, //9 - $70
+    { name: "Amazon Purchase 2", cost: 25 }, //10 - $125
   ],
-  links: [
-    // Links for Education
-    { source: 0, target: 1, value: 92.43 }, // Expenses -> Education
-    { source: 1, target: 2, value: 92.43 }, // Education -> Penn Engineering Online
+};
 
-    // Links for Shopping
-    { source: 0, target: 5, value: 831.52 }, // Expenses -> Shopping
-    { source: 5, target: 6, value: 50.52 }, // Shopping -> Mobile Payment
-    { source: 5, target: 7, value: 5.43 }, // Shopping -> Amazon Purchase
-    { source: 5, target: 8, value: 100.97 }, // Shopping -> Target Purchase
-    { source: 5, target: 9, value: 368.18 }, // Shopping -> Mobile Payment (second)
+export const parentChildMap_testdatamini = {
+  1: [2], // Education -> Penn Engineering Online
+  3: [4, 5], // Health -> CVS Pharmacy Purchase, Some Hospital
+  6: [7, 8, 9, 10], // Shopping -> Mobile Payment, Amazon Purchase, etc.
+};
 
-    // Links for Health
-    { source: 0, target: 3, value: 2.93 }, // Expenses -> Health
-    { source: 3, target: 4, value: 2.93 }, // Health -> CVS Pharmacy Purchase
-  ],
+export const calculateLinks = (
+  nodes: Array<{ name: string; cost?: number }>,
+  map: Record<number, number[]>
+) => {
+  //   const nodes = testdatamini.nodes; // Access nodes correctly
+  const links = [];
+  const parentValues: Record<number, number> = {}; // Define the type for parentValues
+  //   const map = parentChildMap_testdatamini;
+  // Iterate through parent-child relationships
+  for (const [parentIndex, childIndices] of Object.entries(map)) {
+    const parent = parseInt(parentIndex, 10);
+    let parentSum = 0;
+    // Process child nodes
+    for (const child of childIndices) {
+      const value = nodes[child].cost || 0;
+      parentSum += value;
+      // Link parent -> child
+      links.push({ source: parent, target: child, value });
+    }
+    // Store total value for the parent
+    parentValues[parent] = parentSum;
+    // Link root -> parent
+    links.push({ source: 0, target: parent, value: parentSum });
+  }
+  // Update node values based on calculated parent values
+  const updatedNodes = nodes.map((node, index) => ({
+    ...node,
+    value: parentValues[index] || node.value || 0,
+  }));
+  return { nodes: updatedNodes, links: links };
 };
