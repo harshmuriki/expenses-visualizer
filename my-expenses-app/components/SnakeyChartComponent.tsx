@@ -3,14 +3,26 @@
 import React, { useState } from "react";
 import { Sankey, Tooltip, ResponsiveContainer } from "recharts";
 import MyCustomNode from "./MyCustomNode";
-import { data0, testdatamini, calculateLinks, parentChildMap_testdatamini } from "@/data/testData";
+import {
+  data0,
+  testdatamini,
+  calculateLinks,
+  parentChildMap_testdatamini,
+} from "@/data/testData";
 
 const SankeyChartComponent = () => {
-  const data_test = calculateLinks(testdatamini.nodes, parentChildMap_testdatamini);
-  console.log(data_test);
+  const data_test = calculateLinks(
+    testdatamini.nodes,
+    parentChildMap_testdatamini
+  );
+  // console.log(data_test);
   // Calculate the number of nodes
   const [dataValue, setDataValue] = useState(data_test);
   const numberOfNodes = dataValue.nodes.length;
+  const [editingNode, setEditingNode] = useState<{
+    index: number;
+    value: string | null;
+  }>({ index: -1, value: null });
 
   // Define base dimensions
   // const baseWidth = 500;
@@ -35,59 +47,90 @@ const SankeyChartComponent = () => {
       const nodeIndex = prevData.nodes.findIndex(
         (node) => node.name === nodeId
       );
-      // Check if the node is a leaf node (no outgoing links)
-      const isLeafNode = !prevData.links.some(
+      const isLeafNode = !dataValue.links.some(
         (link) => link.source === nodeIndex
       );
       if (isLeafNode) {
-        // Update all links connected to this leaf node
-        const updatedLinks = prevData.links.map((link) => {
-          if (link.target === nodeIndex) {
-            return { ...link, value: link.value + 10 }; // Increment the link's value
-          }
-          return link;
+        setEditingNode({
+          index: nodeIndex,
+          value: dataValue.nodes[nodeIndex].value?.toString() || "",
         });
-        // Propagate changes to parent nodes
-        const updatedNodes = prevData.nodes.map((node, index) => {
-          // Calculate the new value for each node based on incoming links
-          const incomingLinks = updatedLinks.filter(
-            (link) => link.target === index
-          );
-          if (incomingLinks.length > 0) {
-            const newValue = incomingLinks.reduce(
-              (sum, link) => sum + link.value,
-              0
-            );
-            return { ...node, value: newValue };
-          }
-          return node;
-        });
-        console.log(
-          "Updated Nodes and Links for Leaf Node:",
-          updatedNodes,
-          updatedLinks
-        ); // Debugging line
-        return { ...prevData, nodes: updatedNodes, links: updatedLinks };
       }
+
       // If not a leaf node, return the data unchanged
       return prevData;
     });
   };
 
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleInputBlur();
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEditingNode((prev) => ({ ...prev, value: e.target.value }));
+  };
+
+  const handleInputBlur = () => {
+    if (editingNode.index !== -1 && editingNode.value !== null) {
+      const newValue = parseFloat(editingNode.value);
+      if (!isNaN(newValue)) {
+        setDataValue((prevData) => {
+          const updatedLinks = prevData.links.map((link) => {
+            if (link.target === editingNode.index) {
+              return { ...link, value: newValue };
+            }
+            return link;
+          });
+          // Propagate changes to parent nodes
+          const updatedNodes = prevData.nodes.map((node, index) => {
+            // Calculate the new value for each node based on incoming links
+            const incomingLinks = updatedLinks.filter(
+              (link) => link.target === index
+            );
+            if (incomingLinks.length > 0) {
+              const newValue = incomingLinks.reduce(
+                (sum, link) => sum + link.value,
+                0
+              );
+              return { ...node, value: newValue };
+            }
+            return node;
+          });
+          return { ...prevData, nodes: updatedNodes, links: updatedLinks };
+        });
+      }
+    }
+    setEditingNode({ index: -1, value: null });
+  };
+
   return (
-    <div
-      style={{
-        width: "100%",
-        overflowX: "scroll", // Enable horizontal scrolling
-      }}
-    >
+    <div style={{ width: "100%", overflowX: "scroll", position: "relative" }}>
+      {editingNode.index !== -1 && (
+        <input
+          type="text"
+          value={editingNode.value || ""}
+          onChange={handleInputChange}
+          onBlur={handleInputBlur}
+          onKeyDown={handleInputKeyDown}
+          placeholder={editingNode.value?.toString() || "0"} // Convert to string
+          style={{
+            color: "black",
+            position: "fixed", // Use fixed positioning
+            bottom: "10px", // Position 10px from the bottom
+            right: "10px", // Position 10px from the left
+            zIndex: 1000, // Ensure it appears above other elements
+          }}
+        />
+      )}
       <ResponsiveContainer width={baseWidth} height={adjustedHeight}>
         <Sankey
           width={adjustedWidth}
           height={adjustedHeight}
           data={dataValue}
           node={(nodeProps) => (
-            <MyCustomNode {...nodeProps} onNodeClick={handleNodeClick} />
+            <MyCustomNode {...nodeProps} links={dataValue.links} onNodeClick={handleNodeClick} />
           )}
           nodePadding={50}
           margin={margin}

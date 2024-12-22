@@ -1,4 +1,10 @@
-import React from 'react';
+import React from "react";
+
+interface Link {
+  source: number;
+  target: number;
+  value: number;
+}
 
 interface MyCustomNodeProps {
   x: number;
@@ -10,6 +16,7 @@ interface MyCustomNodeProps {
   containerWidth: number;
   isExpanded: boolean; // New prop to indicate if the node is expanded
   onNodeClick: (nodeId: string) => void; // New click handler
+  links: Link
 }
 
 const MyCustomNode: React.FC<MyCustomNodeProps> = ({
@@ -19,22 +26,26 @@ const MyCustomNode: React.FC<MyCustomNodeProps> = ({
   height,
   index,
   payload,
-  containerWidth,
-  isExpanded,
-  onNodeClick
+  links,
+  onNodeClick,
 }) => {
-
+  const isLeafNode = !links.some((link: Link) => link.source === index);
+  const nodeWidth = isLeafNode ? 25 : width; // Set a constant width for leaf nodes
+  const nodeHeight = isLeafNode ? 25 : height; // Set a constant height for leaf nodes
   // Dynamic styles
-  const fillColor = payload.value && payload.value > 100 ? "#ff6347" : "#8884d8";
+  // Dynamic styles
+  const fillColor =
+    payload.value && payload.value > 100 ? "#ff6347" : "#8884d8";
   const strokeColor = "#fff"; // Highlight the first node
   const fontSize = Math.max(12, width / 10);
   const truncatedName =
-    payload.name.length > 10 ? `${payload.name.substring(0, 10)}...` : payload.name;
+    payload.name.length > 10
+      ? `${payload.name.substring(0, 10)}...`
+      : payload.name;
 
   const handleClick = () => {
-    console.log("Rendering Node:", payload.name, payload.value); // Debugging line
+    // console.log("Rendering Node:", payload.name, payload.value); // Debugging line
     onNodeClick(payload.name);
-
   };
 
   return (
@@ -43,8 +54,8 @@ const MyCustomNode: React.FC<MyCustomNodeProps> = ({
       <rect
         x={x}
         y={y}
-        width={width}
-        height={height}
+        width={nodeWidth}
+        height={nodeHeight}
         fill={fillColor}
         stroke={strokeColor}
         strokeWidth={2}
@@ -74,7 +85,7 @@ const MyCustomNode: React.FC<MyCustomNodeProps> = ({
         fontSize={fontSize}
         dy={4}
       >
-        {payload.value || 'N/A'}
+        {payload.value || "N/A"}
       </text>
     </g>
   );
