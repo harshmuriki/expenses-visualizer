@@ -6,6 +6,13 @@ interface Link {
   value: number;
 }
 
+interface Node {
+  name: string;
+  value?: number;
+  isleaf?: boolean;
+  // Add other properties as needed
+}
+
 interface MyCustomNodeProps {
   x: number;
   y: number;
@@ -14,9 +21,8 @@ interface MyCustomNodeProps {
   index: number;
   payload: { name: string; value?: number; [key: string]: any };
   containerWidth: number;
-  isExpanded: boolean; // New prop to indicate if the node is expanded
-  onNodeClick: (nodeId: string) => void; // New click handler
-  links: Link
+  onNodeClick: (nodeId: string, event: React.MouseEvent<SVGElement>) => void; // New click handler
+  allNodes: Node[];
 }
 
 const MyCustomNode: React.FC<MyCustomNodeProps> = ({
@@ -26,10 +32,17 @@ const MyCustomNode: React.FC<MyCustomNodeProps> = ({
   height,
   index,
   payload,
-  links,
   onNodeClick,
+  allNodes,
 }) => {
-  const isLeafNode = !links.some((link: Link) => link.source === index);
+  const isLeafNode = allNodes[index].isleaf;
+
+  const handleClick = (event: React.MouseEvent<SVGElement>) => {
+    event.stopPropagation(); // Prevent propagation
+    onNodeClick(payload.name, event); // Pass the event object
+  };
+  // console.log("isleafnode", isLeafNode);
+  // const isLeafNode = !links.some((link: Link) => link.source === index);
   const nodeWidth = isLeafNode ? 25 : width; // Set a constant width for leaf nodes
   const nodeHeight = isLeafNode ? 25 : height; // Set a constant height for leaf nodes
   // Dynamic styles
@@ -42,11 +55,6 @@ const MyCustomNode: React.FC<MyCustomNodeProps> = ({
     payload.name.length > 10
       ? `${payload.name.substring(0, 10)}...`
       : payload.name;
-
-  const handleClick = () => {
-    // console.log("Rendering Node:", payload.name, payload.value); // Debugging line
-    onNodeClick(payload.name);
-  };
 
   return (
     <g>

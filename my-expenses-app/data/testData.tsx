@@ -143,6 +143,9 @@ export const testdatamini = {
     { name: "Amazon Purchase", cost: 175 }, //8 - $175
     { name: "Target", cost: 70 }, //9 - $70
     { name: "Amazon Purchase 2", cost: 25 }, //10 - $125
+
+    { name: "Food" }, //11
+    { name: "Chipotle", cost: 16 }, //12
   ],
 };
 
@@ -150,6 +153,7 @@ export const parentChildMap_testdatamini = {
   1: [2], // Education -> Penn Engineering Online
   3: [4, 5], // Health -> CVS Pharmacy Purchase, Some Hospital
   6: [7, 8, 9, 10], // Shopping -> Mobile Payment, Amazon Purchase, etc.
+  11: [12],
 };
 
 export const calculateLinks = (
@@ -159,7 +163,7 @@ export const calculateLinks = (
   //   const nodes = testdatamini.nodes; // Access nodes correctly
   const links = [];
   const parentValues: Record<number, number> = {}; // Define the type for parentValues
-  //   const map = parentChildMap_testdatamini;
+  const parentIndices = new Set(Object.keys(map).map(Number));
   // Iterate through parent-child relationships
   for (const [parentIndex, childIndices] of Object.entries(map)) {
     const parent = parseInt(parentIndex, 10);
@@ -179,7 +183,9 @@ export const calculateLinks = (
   // Update node values based on calculated parent values
   const updatedNodes = nodes.map((node, index) => ({
     ...node,
-    value: parentValues[index] || node.value || 0,
+    value: parentValues[index] || node.cost || 0,
+    visible: index == 0 || parentIndices.has(index) ? true : null, // Set visibility
+    isleaf: index == 0 || parentIndices.has(index) ? false : true,
   }));
   return { nodes: updatedNodes, links: links };
 };
