@@ -1,4 +1,4 @@
-export const data0 = {
+export const data0_old = {
   nodes: [
     { name: "Expenses" },
 
@@ -54,10 +54,6 @@ export const data0 = {
     { name: "FADO Irish Restaurant" },
     { name: "WINGNUTS" },
     { name: "Moge Tee Snack" },
-
-    { name: "Income" },
-
-    { name: "Savings" },
   ],
   links: [
     // Income and Savings
@@ -119,6 +115,83 @@ export const data0 = {
   ],
 };
 
+export const data0 = {
+  nodes: [
+    { name: "Expenses" }, //0
+
+    // Education - parent tag
+    { name: "Education" }, //1
+
+    // tags
+    { name: "Penn Engineering Online", cost: 92.43 }, //2 - $92.43
+    { name: "GA Tech Marketplace", cost: 105.0 }, //3 - $105.0
+    { name: "Princeton Application Fee", cost: 75.0 }, //4 - $75.0
+    { name: "UCB Graduate Division", cost: 155.0 }, //5 - $155.0
+
+    // Health - parent tag
+    { name: "Health" }, //6
+
+    // tags
+    { name: "CVS Pharmacy Purchase", cost: 2.93 }, //7 - $2.93
+
+    // Shopping - parent tag
+    { name: "Shopping" }, //8
+
+    // tags
+    { name: "Mobile Payment", cost: 831.52 }, //9 - $831.52
+    { name: "Amazon Purchase", cost: 5.43 }, //10 - $5.43
+    { name: "Target Purchase", cost: 35.97 }, //11 - $35.97
+    { name: "Mobile Payment 2", cost: 368.18 }, //12 - $368.18
+    { name: "Amazon Purchase 2", cost: 12.11 }, //13 - $12.11
+
+    // Transportation - parent tag
+    { name: "Transportation" }, //14
+
+    // tags
+    { name: "Lyft Ride 1", cost: 7.0 }, //15 - $7.0
+    { name: "Lyft Ride 2", cost: 22.99 }, //16 - $22.99
+    { name: "Lyft Ride 3", cost: 20.99 }, //17 - $20.99
+    { name: "Vehicle Rental 1", cost: 37.35 }, //18 - $37.35
+    { name: "Enterprise Rental", cost: 43.32 }, //19 - $43.32
+    { name: "Vehicle Rental 2", cost: 390.3 }, //20 - $390.3
+    { name: "Toll Payment", cost: 26.1 }, //21 - $26.1
+    { name: "Lakes Gas", cost: 3.01 }, //22 - $3.01
+    { name: "Valero Fuel Purchase", cost: 5.38 }, //23 - $5.38
+    { name: "Bird App Ride", cost: 4.3 }, //24 - $4.3
+
+    // Food & Dining - parent tag
+    { name: "Food & Dining" }, //25
+
+    // tags
+    { name: "Matcha Cafe", cost: 6.41 }, //26 - $6.41
+    { name: "Grocery Purchase 1", cost: 13.51 }, //27 - $13.51
+    { name: "Publix Grocery Purchase 1", cost: 7.61 }, //28 - $7.61
+    { name: "Sahirah Kebab", cost: 16.34 }, //29 - $16.34
+    { name: "AplPay TST PONKO", cost: 26.76 }, //30 - $26.76
+    { name: "Publix Groceries 1", cost: 16.29 }, //31 - $16.29
+    { name: "IPIC Atlanta", cost: 20.85 }, //32 - $20.85
+    { name: "AplPay TECH DINING", cost: 14.15 }, //33 - $14.15
+    { name: "Moe's Southwest Grill", cost: 10.33 }, //34 - $10.33
+    { name: "Grocery Purchase 2", cost: 34.7 }, //35 - $34.7
+    { name: "Bella Mia Restaurant", cost: 2.92 }, //36 - $2.92
+    { name: "Chick-fil-A 1", cost: 12.07 }, //37 - $12.07
+    { name: "Fast Food Meal", cost: 5.4 }, //38 - $5.4
+    { name: "Chick-fil-A 2", cost: 6.48 }, //39 - $6.48
+    { name: "Publix Groceries 2", cost: 22.12 }, //40 - $22.12
+    { name: "FADO Irish Restaurant", cost: 21.05 }, //41 - $21.05
+    { name: "WINGNUTS", cost: 16.88 }, //42 - $16.88
+    { name: "Moge Tee Snack", cost: 7.08 }, //43 - $7.08
+  ],
+};
+
+export const parentChildMap_data0 = {
+  1: [2, 3, 4, 5], // Education -> Penn Engineering Online, GA Tech Marketplace, etc.
+  6: [7], // Health -> CVS Pharmacy Purchase
+  8: [9, 10, 11, 12, 13], // Shopping -> Mobile Payment, Amazon Purchase, etc.
+  14: [15, 16, 17, 18, 19, 20, 21, 22, 23, 24], // Transportation -> Lyft Ride 1, Vehicle Rental, etc.
+  25: [26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43], // Food & Dining -> Matcha Cafe, Grocery Purchase, etc.
+};
+
 export const testdatamini = {
   nodes: [
     { name: "Expenses" }, //0
@@ -173,12 +246,20 @@ export const calculateLinks = (
       const value = nodes[child].cost || 0;
       parentSum += value;
       // Link parent -> child
-      links.push({ source: parent, target: child, value });
+      links.push({
+        source: parent,
+        target: child,
+        value: parseFloat(value.toFixed(1)),
+      });
     }
     // Store total value for the parent
-    parentValues[parent] = parentSum;
+    parentValues[parent] = parseFloat(parentSum.toFixed(1));
     // Link root -> parent
-    links.push({ source: 0, target: parent, value: parentSum });
+    links.push({
+      source: 0,
+      target: parent,
+      value: parseFloat(parentSum.toFixed(1)),
+    });
   }
   // Update node values based on calculated parent values
   const updatedNodes = nodes.map((node, index) => ({

@@ -5,21 +5,18 @@ import { Sankey, Tooltip, ResponsiveContainer } from "recharts";
 import MyCustomNode from "./MyCustomNode";
 import {
   data0,
+  parentChildMap_data0,
   testdatamini,
   calculateLinks,
   parentChildMap_testdatamini,
 } from "@/data/testData";
-import InputModal from "./editNodes";
+// import InputModal from "./editNodes";
 
 const SankeyChartComponent = () => {
   const data_test = calculateLinks(
-    testdatamini.nodes,
-    parentChildMap_testdatamini
+    data0.nodes,
+    parentChildMap_data0
   );
-
-  // console.log(data_test);
-  // Calculate the number of nodes
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [dataValue, setDataValue] = useState(data_test);
   const numberOfNodes = dataValue.nodes.length;
@@ -50,7 +47,7 @@ const SankeyChartComponent = () => {
 
   // Define base dimensions
   // const baseWidth = 500;
-  const baseWidth = numberOfNodes * 100; // or 40 for big Wider base width
+  const baseWidth = numberOfNodes * 40; // or 40 for big Wider base width
 
   const baseHeight = numberOfNodes;
 
@@ -65,10 +62,7 @@ const SankeyChartComponent = () => {
     bottom: 100,
   };
 
-  const handleNodeClick = (
-    nodeId: string,
-    event: React.MouseEvent<SVGElement>
-  ) => {
+  const handleNodeClick = (nodeId: string) => {
     setDataValue((prevData) => {
       // Find the index of the clicked node
       const nodeIndex = prevData.nodes.findIndex(
@@ -260,7 +254,7 @@ const SankeyChartComponent = () => {
           node={(nodeProps) => (
             <MyCustomNode
               {...nodeProps}
-              onNodeClick={(nodeId, event) => handleNodeClick(nodeId, event)}
+              onNodeClick={(nodeId) => handleNodeClick(nodeId)}
               allNodes={dataValue.nodes}
             />
           )}
