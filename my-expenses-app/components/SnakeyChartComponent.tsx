@@ -6,17 +6,14 @@ import MyCustomNode from "./MyCustomNode";
 import {
   data0,
   parentChildMap_data0,
-  testdatamini,
+  // testdatamini,
   calculateLinks,
-  parentChildMap_testdatamini,
+  // parentChildMap_testdatamini,
 } from "@/data/testData";
 // import InputModal from "./editNodes";
 
 const SankeyChartComponent = () => {
-  const data_test = calculateLinks(
-    data0.nodes,
-    parentChildMap_data0
-  );
+  const data_test = calculateLinks(data0.nodes, parentChildMap_data0);
 
   const [dataValue, setDataValue] = useState(data_test);
   const numberOfNodes = dataValue.nodes.length;
@@ -103,7 +100,7 @@ const SankeyChartComponent = () => {
               // If the parent name doesn't exist
               const newParentNode = {
                 name: newParentName,
-                value: dataValue.nodes[nodeIndex].cost, // Initialize with a default value
+                value: dataValue.nodes[nodeIndex].cost || 0, // Initialize with a default value
                 isleaf: false,
                 visible: true,
               };
@@ -114,7 +111,8 @@ const SankeyChartComponent = () => {
             }
 
             // Update the parent's value by adding the leaf node's value
-            updatedNodes[parentIndex].value -= prevData.nodes[nodeIndex].cost;
+            updatedNodes[parentIndex].value -=
+              prevData.nodes[nodeIndex].cost ?? 0;
             // Update the parent node's name
             const updatedLinks = prevData.links.map((link) =>
               link.target === nodeIndex

@@ -1,5 +1,5 @@
 import React from "react";
-import LineChartComponent from "@/components/LineChartComponent";
+// import LineChartComponent from "@/components/LineChartComponent";
 import SnakeyChartComponent from "@/components/SnakeyChartComponent";
 
 const HomePage = () => {

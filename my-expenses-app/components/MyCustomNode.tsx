@@ -1,9 +1,18 @@
 import React from "react";
 
-interface Link {
-  source: number;
-  target: number;
-  value: number;
+// interface Link {
+//   source: number;
+//   target: number;
+//   value: number;
+// }
+
+interface Payload {
+  name: string;
+  value?: number;
+  // Add other specific properties you expect in the payload
+  // For example:
+  // description?: string;
+  // id?: number;
 }
 
 interface Node {
@@ -19,7 +28,7 @@ interface MyCustomNodeProps {
   width: number;
   height: number;
   index: number;
-  payload: { name: string; value?: number; [key: string]: any };
+  payload: Payload;
   containerWidth: number;
   onNodeClick: (nodeId: string, event: React.MouseEvent<SVGElement>) => void; // New click handler
   allNodes: Node[];
