@@ -5,7 +5,6 @@ interface Payload {
   value?: number;
 }
 
-
 export interface Node {
   value: number;
   visible: boolean | null;
@@ -53,7 +52,7 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
   const strokeColor = "#fff"; // Highlight the first node
   const fontSize = Math.max(12, width / 10);
   const truncatedName =
-    payload.name.length > 10
+    payload.name.length > 15
       ? `${payload.name.substring(0, 10)}...`
       : payload.name;
 
@@ -94,7 +93,7 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
         fontSize={fontSize}
         dy={4}
       >
-        {payload.value || "N/A"}
+        {payload.value !== undefined ? payload.value.toFixed(1) : "N/A"}
       </text>
     </g>
   );

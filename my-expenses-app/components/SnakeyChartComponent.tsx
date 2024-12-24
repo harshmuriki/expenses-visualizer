@@ -27,17 +27,6 @@ const SankeyChartComponent = () => {
   const adjustedWidth = baseWidth + numberOfNodes * 1; // Add 100 units per node
   const adjustedHeight = baseHeight + numberOfNodes * 50; // Add 50 units per node
 
-  // Sort nodes by parent before rendering
-  const sortedNodes = [...dataValue.nodes].sort((a, b) => {
-    const parentA = dataValue.links.find(
-      (link) => link.target === a.index
-    )?.source;
-    const parentB = dataValue.links.find(
-      (link) => link.target === b.index
-    )?.source;
-    return (parentA || 0) - (parentB || 0);
-  });
-
   useEffect(() => {
     setNumberOfNodes(dataValue.nodes.length);
   }, [dataValue]);
@@ -54,6 +43,17 @@ const SankeyChartComponent = () => {
     });
     return newMap;
   };
+
+  // // Sort nodes by parent before rendering
+  // const sortedNodes = [...dataValue.nodes].sort((a, b) => {
+  //   const parentA = dataValue.links.find(
+  //     (link) => link.target === a.index
+  //   )?.source;
+  //   const parentB = dataValue.links.find(
+  //     (link) => link.target === b.index
+  //   )?.source;
+  //   return (parentA || 0) - (parentB || 0);
+  // });
 
   const recalculateLinks = () => {
     const updatedap = updateParentChildMap();
@@ -296,7 +296,7 @@ const SankeyChartComponent = () => {
         <Sankey
           width={adjustedWidth}
           height={adjustedHeight}
-          data={{ ...dataValue, nodes: sortedNodes }}
+          data={{ ...dataValue, nodes: dataValue.nodes }}
           node={(nodeProps) => (
             <MyCustomNode
               {...nodeProps}
