@@ -7,6 +7,7 @@ interface InputModalProps {
   initialPrice: string;
   onSubmit: (newParentName: string, newPrice: number) => void;
   onClose: () => void;
+  parentOptions: string[]; // Add this prop to pass parent options
 }
 
 const InputModal: React.FC<InputModalProps> = ({
@@ -15,8 +16,10 @@ const InputModal: React.FC<InputModalProps> = ({
   initialPrice,
   onSubmit,
   onClose,
+  parentOptions,
 }) => {
   const [newParentName, setNewParentName] = useState(initialParentName);
+  const [isCreatingNewParent, setIsCreatingNewParent] = useState(false);
   const [newPrice, setNewPrice] = useState(initialPrice);
 
   const handleSubmit = () => {
@@ -34,6 +37,17 @@ const InputModal: React.FC<InputModalProps> = ({
       handleSubmit();
     } else if (e.key === "Escape") {
       onClose();
+    }
+  };
+
+  const handleParentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    if (value === "createNew") {
+      setIsCreatingNewParent(true);
+      setNewParentName("");
+    } else {
+      setIsCreatingNewParent(false);
+      setNewParentName(value);
     }
   };
 
@@ -90,10 +104,9 @@ const InputModal: React.FC<InputModalProps> = ({
         >
           New Parent Name:
         </label>
-        <input
-          type="text"
-          value={newParentName}
-          onChange={(e) => setNewParentName(e.target.value)}
+        <select
+          value={isCreatingNewParent ? "createNew" : newParentName}
+          onChange={handleParentChange}
           style={{
             width: "100%",
             padding: "10px",
@@ -101,7 +114,31 @@ const InputModal: React.FC<InputModalProps> = ({
             border: "1px solid #ddd",
             boxSizing: "border-box",
           }}
-        />
+        >
+          {parentOptions.map((parent) => (
+            <option key={parent} value={parent}>
+              {parent}
+            </option>
+          ))}
+          <option value="createNew">Create New Parent</option>
+        </select>
+        {isCreatingNewParent && (
+          <input
+            type="text"
+            value={newParentName}
+            onChange={(e) => setNewParentName(e.target.value)}
+            placeholder="Enter new parent name"
+            style={{
+              width: "100%",
+              padding: "10px",
+              marginTop: "10px",
+              borderRadius: "5px",
+              border: "1px solid #ddd",
+              boxSizing: "border-box",
+            }}
+          />
+        )}
+        {/* Ends */}
       </div>
       <div style={{ marginBottom: "20px" }}>
         <label

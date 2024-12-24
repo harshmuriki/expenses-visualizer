@@ -1,18 +1,8 @@
 import React from "react";
 
-// interface Link {
-//   source: number;
-//   target: number;
-//   value: number;
-// }
-
 interface Payload {
   name: string;
   value?: number;
-  // Add other specific properties you expect in the payload
-  // For example:
-  // description?: string;
-  // id?: number;
 }
 
 

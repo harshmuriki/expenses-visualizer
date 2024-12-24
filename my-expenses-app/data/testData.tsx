@@ -223,6 +223,8 @@ export const testdatamini = {
 };
 
 export const parentChildMap_testdatamini = {
+  // Parent != 0
+  // Parent: [child1, child2, ...]
   1: [2], // Education -> Penn Engineering Online
   3: [4, 5], // Health -> CVS Pharmacy Purchase, Some Hospital
   6: [7, 8, 9, 10], // Shopping -> Mobile Payment, Amazon Purchase, etc.

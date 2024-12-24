@@ -17,23 +17,30 @@ const SankeyChartComponent = () => {
   const [parentIndex, setParentIndex] = useState<number | null>(null);
   const [node, setNode] = useState<Node | null>(null);
   const [nodeIndex, setNodeIndex] = useState<number | null>(null);
-
   const data_test = calculateLinks(data0.nodes, parentChildMap_data0);
-
   const [dataValue, setDataValue] = useState(data_test);
-
   const [numberOfNodes, setNumberOfNodes] = useState<number>(
     dataValue.nodes.length
   );
+  const baseWidth = numberOfNodes * 40; // or 40 for big Wider base width
+  const baseHeight = numberOfNodes;
+  const adjustedWidth = baseWidth + numberOfNodes * 1; // Add 100 units per node
+  const adjustedHeight = baseHeight + numberOfNodes * 50; // Add 50 units per node
+
+  // Sort nodes by parent before rendering
+  const sortedNodes = [...dataValue.nodes].sort((a, b) => {
+    const parentA = dataValue.links.find(
+      (link) => link.target === a.index
+    )?.source;
+    const parentB = dataValue.links.find(
+      (link) => link.target === b.index
+    )?.source;
+    return (parentA || 0) - (parentB || 0);
+  });
+
   useEffect(() => {
-    // This will only run on the client
     setNumberOfNodes(dataValue.nodes.length);
   }, [dataValue]);
-
-  // const [editingNode, setEditingNode] = useState<{
-  //   index: number;
-  //   value: string | null;
-  // }>({ index: -1, value: null });
 
   const updateParentChildMap = () => {
     const newMap: Record<number, number[]> = {};
@@ -50,20 +57,10 @@ const SankeyChartComponent = () => {
 
   const recalculateLinks = () => {
     const updatedap = updateParentChildMap();
-    console.log("new map", updatedap);
+    // console.log("new map", updatedap);
     const newData = calculateLinks(dataValue.nodes, updatedap);
     setDataValue(newData);
   };
-
-  // Define base dimensions
-  // const baseWidth = 500;
-  const baseWidth = numberOfNodes * 40; // or 40 for big Wider base width
-
-  const baseHeight = numberOfNodes;
-
-  // Adjust dimensions based on the number of nodes
-  const adjustedWidth = baseWidth + numberOfNodes * 1; // Add 100 units per node
-  const adjustedHeight = baseHeight + numberOfNodes * 50; // Add 50 units per node
 
   const margin = {
     left: Math.min(200, numberOfNodes * 20),
@@ -71,6 +68,10 @@ const SankeyChartComponent = () => {
     top: 100,
     bottom: 100,
   };
+
+  const parentOptions = Array.from(
+    new Set(dataValue.links.map((link) => dataValue.nodes[link.source].name))
+  );
 
   const handleNodeClick = (nodeId: string) => {
     setDataValue((prevData) => {
@@ -84,12 +85,6 @@ const SankeyChartComponent = () => {
       const isLeafNode = dataValue.nodes[nodeIndex].isleaf;
 
       if (isLeafNode) {
-        console.log();
-        // setEditingNode({
-        //   index: nodeIndex,
-        //   value: dataValue.nodes[nodeIndex].value?.toString() || "",
-        // });
-
         const parentLink = prevData.links.find(
           (link) => link.target === nodeIndex
         );
@@ -99,38 +94,14 @@ const SankeyChartComponent = () => {
           setNodeIndex(nodeIndex);
           setIsModalOpen(true);
         }
-        //   if (parentLink) {
+        // if (false) {
+        //   //(parentLink) {
         //   const parentIndex = parentLink.source;
-        //   // Prompt the user to enter a new name for the parent node
+        //   // // Prompt the user to enter a new name for the parent node
         //   const newParentName = prompt(
         //     "Enter a new name for the parent node:",
         //     prevData.nodes[parentIndex].name
         //   );
-
-        //   const newPrice = prompt(
-        //     "Enter a new price for this node:",
-        //     dataValue.nodes[nodeIndex].value?.toString() || "-1"
-        //   );
-
-        //   console.log("New Price:", newPrice);
-        //   if (newPrice !== null) {
-        //     const parsedPrice = parseFloat(newPrice);
-        //     if (!isNaN(parsedPrice)) {
-        //       const updatedNodes = prevData.nodes.map((n, index) =>
-        //         index === nodeIndex ? { ...n, cost: parsedPrice } : n
-        //       );
-        //       console.log("Updated Nodes:", updatedNodes);
-        //       // Optionally, recalculate links if needed
-        //       const updatedData = calculateLinks(
-        //         updatedNodes,
-        //         updateParentChildMap()
-        //       );
-        //       return {
-        //         nodes: updatedNodes,
-        //         links: updatedData.links,
-        //       };
-        //     }
-        //   }
 
         //   if (newParentName) {
         //     // If the parent name already exists, then add it directly to that node
@@ -178,39 +149,11 @@ const SankeyChartComponent = () => {
         //     // Update the dataValue with the new nodes and links
         //     return { nodes: updatedNodes, links: updatedLinks };
         //   }
+        //   // }
         // }
-      } else {
+        // else {
         // Parent nodes to collapse them
         // ! Not working
-        console.log("val", dataValue.nodes[nodeIndex].visible);
-
-        // Set the node's visibility to false
-        // const updatedNodes = prevData.nodes.map((n, index) =>
-        //   index === nodeIndex ? { ...n, visible: !n.visible } : n
-        // );
-        // console.log("val updated", updatedNodes[nodeIndex].visible);
-
-        const childIndices = prevData.links
-          .filter((link) => link.source === nodeIndex)
-          .map((link) => link.target);
-
-        console.log("childIndices", childIndices);
-
-        if (childIndices.length > 0) {
-          const updatedNodes = prevData.nodes.filter(
-            (_, index) => index === nodeIndex || !childIndices.includes(index)
-          );
-
-          console.log("updatedNodes", updatedNodes);
-          const updatedLinks = prevData.links.filter(
-            (link) =>
-              link.source !== nodeIndex && !childIndices.includes(link.target)
-          );
-          console.log("updatedLinks", updatedLinks);
-          console.log("Child nodes and links removed for:", nodeId);
-          // Update the dataValue with the new nodes and links
-          // return { ...prevData, nodes: updatedNodes, links: updatedLinks };
-        }
       }
 
       // If not a leaf node, return the data unchanged
@@ -220,23 +163,93 @@ const SankeyChartComponent = () => {
 
   const handleModalSubmit = (newParentName: string, newPrice: number) => {
     if (parentIndex !== null && nodeIndex !== null) {
+      // Update parent link
       setDataValue((prevData) => {
-        const updatedNodes = prevData.nodes.map((n, index) => {
-          if (index === parentIndex) {
-            return { ...n, name: newParentName };
-          }
-          if (index === nodeIndex) {
-            return { ...n, cost: newPrice };
-          }
-          return n;
-        });
-        console.log("Updated Nodes:", updatedNodes);
-        // Optionally, recalculate links if needed
-        const updatedData = calculateLinks(
-          updatedNodes,
-          updateParentChildMap()
+        const updatedNodes = [...prevData.nodes];
+        let newParentIndex = parentIndex;
+        // Check if the new parent name already exists
+        const existingParentIndex = prevData.nodes.findIndex(
+          (n) => n.name === newParentName
         );
-        return { ...prevData, nodes: updatedNodes, links: updatedData.links };
+        if (existingParentIndex !== -1) {
+          // Use the existing node as the new parent
+          newParentIndex = existingParentIndex;
+        } else {
+          // Create a new parent node
+          const newParentNode = {
+            name: newParentName,
+            value: dataValue.nodes[nodeIndex].cost || 0,
+            isleaf: false,
+            visible: true,
+          };
+          updatedNodes.push(newParentNode);
+          newParentIndex = updatedNodes.length - 1;
+        }
+
+        let updatedData = calculateLinks(updatedNodes, updateParentChildMap());
+
+        //--
+        // Update the node's cost
+        if (updatedNodes[nodeIndex].cost !== newPrice) {
+          updatedNodes[nodeIndex] = {
+            ...updatedNodes[nodeIndex],
+            cost: newPrice,
+            value: newPrice,
+          };
+
+          updatedData = calculateLinks(updatedNodes, updateParentChildMap());
+        }
+
+        // Update parent only if necessary and if the newParent name is not the
+        // same as the old parent name
+        if (newParentIndex !== parentIndex) {
+          // Update the parent's value by subtracting the leaf node's value
+          updatedNodes[parentIndex].value -=
+            prevData.nodes[nodeIndex].cost ?? 0;
+
+          // Update the links
+          const updatedLinks = prevData.links.map((link) =>
+            link.target === nodeIndex
+              ? { ...link, source: newParentIndex }
+              : link
+          );
+
+          // Add a link from the root to the new parent node if it's newly created
+          if (existingParentIndex === -1) {
+            updatedLinks.push({
+              source: 0, // Assuming 0 is the root node index
+              target: newParentIndex,
+              value: dataValue.nodes[nodeIndex].cost || -1,
+            });
+          }
+          console.log("new price", newPrice);
+
+          // need to add a new node that we created, if created in the map
+          // Add the new node to the parent-child map
+          const updatedParentChildMap = updateParentChildMap();
+          if (!updatedParentChildMap[newParentIndex]) {
+            updatedParentChildMap[newParentIndex] = [];
+          }
+          // Add the node to the new parent
+          updatedParentChildMap[newParentIndex].push(nodeIndex);
+
+          // remove the node from the old parent
+          updatedParentChildMap[parentIndex] = updatedParentChildMap[
+            parentIndex
+          ].filter((value) => value !== nodeIndex);
+
+          // If the parent has no more children, remove the node and the link from 0 -> oldparent
+          if (updatedParentChildMap[parentIndex].length === 0) {
+            // Remove the link from the root to the old parent
+            delete updatedParentChildMap[parentIndex];
+          }
+          // Recalculate links with the updated map
+          updatedData = calculateLinks(updatedNodes, updatedParentChildMap);
+          // console.log("New data is:", updatedNodes, updatedData.links);
+          // return { nodes: updatedNodes, links: updatedData.links };
+        }
+
+        return { nodes: updatedNodes, links: updatedData.links };
       });
     }
   };
@@ -283,7 +296,7 @@ const SankeyChartComponent = () => {
         <Sankey
           width={adjustedWidth}
           height={adjustedHeight}
-          data={dataValue}
+          data={{ ...dataValue, nodes: sortedNodes }}
           node={(nodeProps) => (
             <MyCustomNode
               {...nodeProps}
@@ -294,7 +307,6 @@ const SankeyChartComponent = () => {
           nodePadding={50}
           margin={margin}
           link={{ stroke: "#77c878" }}
-          sort={false}
         >
           <Tooltip />
         </Sankey>
@@ -306,9 +318,10 @@ const SankeyChartComponent = () => {
           <InputModal
             node={node}
             initialParentName={dataValue.nodes[parentIndex].name}
-            initialPrice={dataValue.nodes[nodeIndex].value?.toString() || "-1"}
+            initialPrice={dataValue.nodes[nodeIndex].value?.toString()}
             onSubmit={handleModalSubmit}
             onClose={() => setIsModalOpen(false)}
+            parentOptions={parentOptions}
           />
         )}
       <button
