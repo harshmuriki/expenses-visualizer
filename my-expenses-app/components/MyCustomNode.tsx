@@ -15,11 +15,13 @@ interface Payload {
   // id?: number;
 }
 
-interface Node {
-  name: string;
-  value?: number;
+
+export interface Node {
+  value: number;
+  visible: boolean | null;
   isleaf?: boolean;
-  // Add other properties as needed
+  name: string;
+  cost?: number;
 }
 
 interface MyCustomNodeProps {
@@ -34,7 +36,7 @@ interface MyCustomNodeProps {
   allNodes: Node[];
 }
 
-const MyCustomNode: React.FC<MyCustomNodeProps> = ({
+export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
   x,
   y,
   width,
@@ -107,5 +109,3 @@ const MyCustomNode: React.FC<MyCustomNodeProps> = ({
     </g>
   );
 };
-
-export default MyCustomNode;
