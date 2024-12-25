@@ -6,8 +6,6 @@ interface Payload {
 }
 
 export interface Node {
-  value: number;
-  visible: boolean | null;
   isleaf?: boolean;
   name: string;
   cost?: number;
