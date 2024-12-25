@@ -4,7 +4,7 @@
 
 import {SankeyChart} from "@d3/sankey-component"
 
-function SankeyChart({
+export function SankeyChart({
     nodes, // an iterable of node objects (typically [{id}, …]); implied by links if missing
     links // an iterable of link objects (typically [{source, target}, …])
   }, {
