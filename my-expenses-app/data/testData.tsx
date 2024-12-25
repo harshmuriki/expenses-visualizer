@@ -1,3 +1,5 @@
+import { Node, Map } from "@/components/MyCustomNode";
+
 export const data0_old = {
   nodes: [
     { name: "Expenses" },
@@ -117,70 +119,70 @@ export const data0_old = {
 
 export const data0 = {
   nodes: [
-    { name: "Expenses" }, //0
+    { name: "Expenses", index: 0 }, //0
 
     // Education - parent tag
-    { name: "Education" }, //1
+    { name: "Education", index: 1 }, //1
 
     // tags
-    { name: "Penn Engineering Online", cost: 92.43 }, //2 - $92.43
-    { name: "GA Tech Marketplace", cost: 105.0 }, //3 - $105.0
-    { name: "Princeton Application Fee", cost: 75.0 }, //4 - $75.0
-    { name: "UCB Graduate Division", cost: 155.0 }, //5 - $155.0
+    { name: "Penn Engineering Online", cost: 92.43, index: 2 }, //2 - $92.43
+    { name: "GA Tech Marketplace", cost: 105.0, index: 3 }, //3 - $105.0
+    { name: "Princeton Application Fee", cost: 75.0, index: 4 }, //4 - $75.0
+    { name: "UCB Graduate Division", cost: 155.0, index: 5 }, //5 - $155.0
 
     // Health - parent tag
-    { name: "Health" }, //6
+    { name: "Health", index: 6 }, //6
 
     // tags
-    { name: "CVS Pharmacy Purchase", cost: 2.93 }, //7 - $2.93
+    { name: "CVS Pharmacy Purchase", cost: 2.93, index: 7 }, //7 - $2.93
 
     // Shopping - parent tag
-    { name: "Shopping" }, //8
+    { name: "Shopping", index: 8 }, //8
 
     // tags
-    { name: "Mobile Payment", cost: 831.52 }, //9 - $831.52
-    { name: "Amazon Purchase", cost: 5.43 }, //10 - $5.43
-    { name: "Target Purchase", cost: 35.97 }, //11 - $35.97
-    { name: "Mobile Payment 2", cost: 368.18 }, //12 - $368.18
-    { name: "Amazon Purchase 2", cost: 12.11 }, //13 - $12.11
+    { name: "Mobile Payment", cost: 831.52, index: 9 }, //9 - $831.52
+    { name: "Amazon Purchase", cost: 5.43, index: 10 }, //10 - $5.43
+    { name: "Target Purchase", cost: 35.97, index: 11 }, //11 - $35.97
+    { name: "Mobile Payment 2", cost: 368.18, index: 12 }, //12 - $368.18
+    { name: "Amazon Purchase 2", cost: 12.11, index: 13 }, //13 - $12.11
 
     // Transportation - parent tag
-    { name: "Transportation" }, //14
+    { name: "Transportation", index: 14 }, //14
 
     // tags
-    { name: "Lyft Ride 1", cost: 7.0 }, //15 - $7.0
-    { name: "Lyft Ride 2", cost: 22.99 }, //16 - $22.99
-    { name: "Lyft Ride 3", cost: 20.99 }, //17 - $20.99
-    { name: "Vehicle Rental 1", cost: 37.35 }, //18 - $37.35
-    { name: "Enterprise Rental", cost: 43.32 }, //19 - $43.32
-    { name: "Vehicle Rental 2", cost: 390.3 }, //20 - $390.3
-    { name: "Toll Payment", cost: 26.1 }, //21 - $26.1
-    { name: "Lakes Gas", cost: 3.01 }, //22 - $3.01
-    { name: "Valero Fuel Purchase", cost: 5.38 }, //23 - $5.38
-    { name: "Bird App Ride", cost: 4.3 }, //24 - $4.3
+    { name: "Lyft Ride 1", cost: 7.0, index: 15 }, //15 - $7.0
+    { name: "Lyft Ride 2", cost: 22.99, index: 16 }, //16 - $22.99
+    { name: "Lyft Ride 3", cost: 20.99, index: 17 }, //17 - $20.99
+    { name: "Vehicle Rental 1", cost: 37.35, index: 18 }, //18 - $37.35
+    { name: "Enterprise Rental", cost: 43.32, index: 19 }, //19 - $43.32
+    { name: "Vehicle Rental 2", cost: 390.3, index: 20 }, //20 - $390.3
+    { name: "Toll Payment", cost: 26.1, index: 21 }, //21 - $26.1
+    { name: "Lakes Gas", cost: 3.01, index: 22 }, //22 - $3.01
+    { name: "Valero Fuel Purchase", cost: 5.38, index: 23 }, //23 - $5.38
+    { name: "Bird App Ride", cost: 4.3, index: 24 }, //24 - $4.3
 
     // Food & Dining - parent tag
-    { name: "Food & Dining" }, //25
+    { name: "Food & Dining", index: 25 }, //25
 
     // tags
-    { name: "Matcha Cafe", cost: 6.41 }, //26 - $6.41
-    { name: "Grocery Purchase 1", cost: 13.51 }, //27 - $13.51
-    { name: "Publix Grocery Purchase 1", cost: 7.61 }, //28 - $7.61
-    { name: "Sahirah Kebab", cost: 16.34 }, //29 - $16.34
-    { name: "AplPay TST PONKO", cost: 26.76 }, //30 - $26.76
-    { name: "Publix Groceries 1", cost: 16.29 }, //31 - $16.29
-    { name: "IPIC Atlanta", cost: 20.85 }, //32 - $20.85
-    { name: "AplPay TECH DINING", cost: 14.15 }, //33 - $14.15
-    { name: "Moe's Southwest Grill", cost: 10.33 }, //34 - $10.33
-    { name: "Grocery Purchase 2", cost: 34.7 }, //35 - $34.7
-    { name: "Bella Mia Restaurant", cost: 2.92 }, //36 - $2.92
-    { name: "Chick-fil-A 1", cost: 12.07 }, //37 - $12.07
-    { name: "Fast Food Meal", cost: 5.4 }, //38 - $5.4
-    { name: "Chick-fil-A 2", cost: 6.48 }, //39 - $6.48
-    { name: "Publix Groceries 2", cost: 22.12 }, //40 - $22.12
-    { name: "FADO Irish Restaurant", cost: 21.05 }, //41 - $21.05
-    { name: "WINGNUTS", cost: 16.88 }, //42 - $16.88
-    { name: "Moge Tee Snack", cost: 7.08 }, //43 - $7.08
+    { name: "Matcha Cafe", cost: 6.41, index: 26 }, //26 - $6.41
+    { name: "Grocery Purchase 1", cost: 13.51, index: 27 }, //27 - $13.51
+    { name: "Publix Grocery Purchase 1", cost: 7.61, index: 28 }, //28 - $7.61
+    { name: "Sahirah Kebab", cost: 16.34, index: 29 }, //29 - $16.34
+    { name: "AplPay TST PONKO", cost: 26.76, index: 30 }, //30 - $26.76
+    { name: "Publix Groceries 1", cost: 16.29, index: 31 }, //31 - $16.29
+    { name: "IPIC Atlanta", cost: 20.85, index: 32 }, //32 - $20.85
+    { name: "AplPay TECH DINING", cost: 14.15, index: 33 }, //33 - $14.15
+    { name: "Moe's Southwest Grill", cost: 10.33, index: 34 }, //34 - $10.33
+    { name: "Grocery Purchase 2", cost: 34.7, index: 35 }, //35 - $34.7
+    { name: "Bella Mia Restaurant", cost: 2.92, index: 36 }, //36 - $2.92
+    { name: "Chick-fil-A 1", cost: 12.07, index: 37 }, //37 - $12.07
+    { name: "Fast Food Meal", cost: 5.4, index: 38 }, //38 - $5.4
+    { name: "Chick-fil-A 2", cost: 6.48, index: 39 }, //39 - $6.48
+    { name: "Publix Groceries 2", cost: 22.12, index: 40 }, //40 - $22.12
+    { name: "FADO Irish Restaurant", cost: 21.05, index: 41 }, //41 - $21.05
+    { name: "WINGNUTS", cost: 16.88, index: 42 }, //42 - $16.88
+    { name: "Moge Tee Snack", cost: 7.08, index: 43 }, //43 - $7.08
   ],
 };
 
@@ -194,31 +196,70 @@ export const parentChildMap_data0 = {
 
 export const testdatamini = {
   nodes: [
-    { name: "Expenses" }, //0
+    { name: "Expenses", index: 0 }, //0
+
     // Education - parent tag
-    { name: "Education" }, //1
+    { name: "Education", index: 1 }, //1
 
     // tags
-    { name: "Penn Engineering Online", cost: 100 }, //2  - $100
+    { name: "Penn Engineering Online", cost: 92.43, index: 2 }, //2 - $92.43
+    { name: "GA Tech Marketplace", cost: 105.0, index: 3 }, //3 - $105.0
+    { name: "Princeton Application Fee", cost: 75.0, index: 4 }, //4 - $75.0
+    { name: "UCB Graduate Division", cost: 155.0, index: 5 }, //5 - $155.0
 
-    // health - parent tag
-    { name: "Health" }, //3
+    // Health - parent tag
+    { name: "Health", index: 6 }, //6
 
     // tags
-    { name: "CVS Pharmacy Purchase", cost: 10 }, //4 - $10
-    { name: "Some Hospital", cost: 150 }, //5 - $150
+    { name: "CVS Pharmacy Purchase", cost: 2.93, index: 7 }, //7 - $2.93
 
     // Shopping - parent tag
-    { name: "Shopping" }, //6
+    { name: "Shopping", index: 8 }, //8
 
     // tags
-    { name: "Mobile Payment", cost: 15 }, //7 - $15
-    { name: "Amazon Purchase", cost: 175 }, //8 - $175
-    { name: "Target", cost: 70 }, //9 - $70
-    { name: "Amazon Purchase 2", cost: 25 }, //10 - $125
+    { name: "Mobile Payment", cost: 831.52, index: 9 }, //9 - $831.52
+    { name: "Amazon Purchase", cost: 5.43, index: 10 }, //10 - $5.43
+    { name: "Target Purchase", cost: 35.97, index: 11 }, //11 - $35.97
+    { name: "Mobile Payment 2", cost: 368.18, index: 12 }, //12 - $368.18
+    { name: "Amazon Purchase 2", cost: 12.11, index: 13 }, //13 - $12.11
 
-    { name: "Food" }, //11
-    { name: "Chipotle", cost: 16 }, //12
+    // Transportation - parent tag
+    { name: "Transportation", index: 14 }, //14
+
+    // tags
+    { name: "Lyft Ride 1", cost: 7.0, index: 15 }, //15 - $7.0
+    { name: "Lyft Ride 2", cost: 22.99, index: 16 }, //16 - $22.99
+    { name: "Lyft Ride 3", cost: 20.99, index: 17 }, //17 - $20.99
+    { name: "Vehicle Rental 1", cost: 37.35, index: 18 }, //18 - $37.35
+    { name: "Enterprise Rental", cost: 43.32, index: 19 }, //19 - $43.32
+    { name: "Vehicle Rental 2", cost: 390.3, index: 20 }, //20 - $390.3
+    { name: "Toll Payment", cost: 26.1, index: 21 }, //21 - $26.1
+    { name: "Lakes Gas", cost: 3.01, index: 22 }, //22 - $3.01
+    { name: "Valero Fuel Purchase", cost: 5.38, index: 23 }, //23 - $5.38
+    { name: "Bird App Ride", cost: 4.3, index: 24 }, //24 - $4.3
+
+    // Food & Dining - parent tag
+    { name: "Food & Dining", index: 25 }, //25
+
+    // tags
+    { name: "Matcha Cafe", cost: 6.41, index: 26 }, //26 - $6.41
+    { name: "Grocery Purchase 1", cost: 13.51, index: 27 }, //27 - $13.51
+    { name: "Publix Grocery Purchase 1", cost: 7.61, index: 28 }, //28 - $7.61
+    { name: "Sahirah Kebab", cost: 16.34, index: 29 }, //29 - $16.34
+    { name: "AplPay TST PONKO", cost: 26.76, index: 30 }, //30 - $26.76
+    { name: "Publix Groceries 1", cost: 16.29, index: 31 }, //31 - $16.29
+    { name: "IPIC Atlanta", cost: 20.85, index: 32 }, //32 - $20.85
+    { name: "AplPay TECH DINING", cost: 14.15, index: 33 }, //33 - $14.15
+    { name: "Moe's Southwest Grill", cost: 10.33, index: 34 }, //34 - $10.33
+    { name: "Grocery Purchase 2", cost: 34.7, index: 35 }, //35 - $34.7
+    { name: "Bella Mia Restaurant", cost: 2.92, index: 36 }, //36 - $2.92
+    { name: "Chick-fil-A 1", cost: 12.07, index: 37 }, //37 - $12.07
+    { name: "Fast Food Meal", cost: 5.4, index: 38 }, //38 - $5.4
+    { name: "Chick-fil-A 2", cost: 6.48, index: 39 }, //39 - $6.48
+    { name: "Publix Groceries 2", cost: 22.12, index: 40 }, //40 - $22.12
+    { name: "FADO Irish Restaurant", cost: 21.05, index: 41 }, //41 - $21.05
+    { name: "WINGNUTS", cost: 16.88, index: 42 }, //42 - $16.88
+    { name: "Moge Tee Snack", cost: 7.08, index: 43 }, //43 - $7.08
   ],
 };
 
@@ -231,20 +272,32 @@ export const parentChildMap_testdatamini = {
   11: [12],
 };
 
-export const calculateLinks = (
-  nodes: Array<{ name: string; cost?: number }>,
-  map: Record<number, number[]>
-) => {
-  //   const nodes = testdatamini.nodes; // Access nodes correctly
+export const calculateLinks = (nodes: Node[], map: Map[]) => {
   const links = [];
   const parentValues: Record<number, number> = {}; // Define the type for parentValues
   const parentIndices = new Set(Object.keys(map).map(Number));
   // Iterate through parent-child relationships
+
+  //   const tempMap: Record<number, number[]> = {};
+  //   // Copy existing map entries
+  //   for (const [parentIndex, childIndices] of Object.entries(map)) {
+  //     const parent = parseInt(parentIndex, 10);
+  //     tempMap[parent] = childIndices;
+  //   }
+
+  //   tempMap[0] = Object.keys(map).map((key) => parseInt(key, 10));
+
+  //   console.log("tempmap", tempMap)
+
   for (const [parentIndex, childIndices] of Object.entries(map)) {
     const parent = parseInt(parentIndex, 10);
     let parentSum = 0;
     // Process child nodes
-    for (const child of childIndices) {
+    const childIndicesArray = Array.isArray(childIndices)
+      ? childIndices
+      : Object.values(childIndices);
+
+    for (const child of childIndicesArray) {
       const value = nodes[child].cost || 0;
       parentSum += value;
       // Link parent -> child
@@ -252,6 +305,8 @@ export const calculateLinks = (
         source: parent,
         target: child,
         value: parseFloat(value.toFixed(1)),
+        color: "#77c878",
+        strokeWidth: 1,
       });
     }
     // Store total value for the parent

@@ -138,7 +138,6 @@ const InputModal: React.FC<InputModalProps> = ({
             }}
           />
         )}
-        {/* Ends */}
       </div>
       <div style={{ marginBottom: "20px" }}>
         <label

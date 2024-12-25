@@ -11,7 +11,18 @@ export interface Node {
   isleaf?: boolean;
   name: string;
   cost?: number;
+  index: number;
 }
+
+export interface Link {
+  source: number;
+  target: number;
+  value: number;
+  color?: string;
+  strokeWidth?: number;
+}
+
+export type Map = Record<number, number[]>;
 
 interface MyCustomNodeProps {
   x: number;
@@ -23,6 +34,7 @@ interface MyCustomNodeProps {
   containerWidth: number;
   onNodeClick: (nodeId: string, event: React.MouseEvent<SVGElement>) => void; // New click handler
   allNodes: Node[];
+  colorThreshold: number;
 }
 
 export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
@@ -34,6 +46,7 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
   payload,
   onNodeClick,
   allNodes,
+  colorThreshold,
 }) => {
   const isLeafNode = allNodes[index].isleaf;
 
@@ -41,23 +54,20 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
     event.stopPropagation(); // Prevent propagation
     onNodeClick(payload.name, event); // Pass the event object
   };
-  // console.log("isleafnode", isLeafNode);
-  // const isLeafNode = !links.some((link: Link) => link.source === index);
-  const nodeWidth = isLeafNode ? 25 : width; // Set a constant width for leaf nodes
+
+  const nodeWidth = isLeafNode ? 40 : width; // Set a constant width for leaf nodes
   const nodeHeight = isLeafNode ? 25 : height; // Set a constant height for leaf nodes
-  // Dynamic styles
-  // Dynamic styles
   const fillColor =
-    payload.value && payload.value > 100 ? "#ff6347" : "#8884d8";
-  const strokeColor = "#fff"; // Highlight the first node
+    payload.value && payload.value > colorThreshold ? "#ff6347" : "#32a836";
+  // const strokeColor = "#ggg"; // Highlight the first node
   const fontSize = Math.max(12, width / 10);
   const truncatedName =
     payload.name.length > 15
-      ? `${payload.name.substring(0, 10)}...`
+      ? `${payload.name.substring(0, 15)}...`
       : payload.name;
 
   return (
-    <g>
+    <g onClick={handleClick} style={{ cursor: "pointer" }}>
       {/* Rectangle for the node */}
       <rect
         x={x}
@@ -65,33 +75,34 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
         width={nodeWidth}
         height={nodeHeight}
         fill={fillColor}
-        stroke={strokeColor}
         strokeWidth={2}
-        rx={5} // Rounded corners
-        ry={5}
+        rx={6} // Rounded corners
+        ry={6}
         onClick={handleClick}
-        style={{ cursor: "pointer" }}
+        style={{ cursor: "pointer", filter: "drop-shadow(1px 1px 1px #aaa)" }} // Add shadow
       />
       {/* Text for node name */}
       <text
-        x={x + width / 2 + 40}
-        y={y + height / 2 - 10} // Position above value
+        x={x + nodeWidth / 2}
+        y={y + nodeHeight / 2 - 18}
         textAnchor="middle"
         fill="#fff"
         fontSize={fontSize}
         dy={4}
+        className="font-sans font-medium" // Apply Tailwind font classes
       >
         {truncatedName}
         <title>{payload.name}</title>
       </text>
       {/* Text for node value */}
       <text
-        x={x + width / 2 + 40}
-        y={y + height / 2 + 10} // Position below name
+        x={x + nodeWidth / 2}
+        y={y + nodeHeight / 2} // Position below name
         textAnchor="middle"
         fill="#fff"
         fontSize={fontSize}
         dy={4}
+        className="font-sans font-medium" // Apply Tailwind font classes
       >
         {payload.value !== undefined ? payload.value.toFixed(1) : "N/A"}
       </text>

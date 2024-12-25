@@ -11,6 +11,9 @@ import {
   // parentChildMap_testdatamini,
 } from "@/data/testData";
 import InputModal from "./editNodes";
+// import * as d3 from "d3"
+// import * as d3Sankey from "d3-sankey"
+// import {SankeyChart} from "@d3/sankey-component"
 
 const SankeyChartComponent = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -44,22 +47,38 @@ const SankeyChartComponent = () => {
     return newMap;
   };
 
-  // // Sort nodes by parent before rendering
-  // const sortedNodes = [...dataValue.nodes].sort((a, b) => {
-  //   const parentA = dataValue.links.find(
-  //     (link) => link.target === a.index
-  //   )?.source;
-  //   const parentB = dataValue.links.find(
-  //     (link) => link.target === b.index
-  //   )?.source;
-  //   return (parentA || 0) - (parentB || 0);
-  // });
+  const fixedColors = [
+    "#FF5733", // Red
+    "#33FF57", // Green
+    "#3357FF", // Blue
+    "#FF33A1", // Pink
+    "#FF8C33", // Orange
+    "#33FFF5", // Cyan
+    "#8C33FF", // Purple
+    "#FFD433", // Yellow
+    "#33FF8C", // Lime
+    "#FF3333", // Dark Red
+  ];
 
   const recalculateLinks = () => {
     const updatedap = updateParentChildMap();
-    // console.log("new map", updatedap);
     const newData = calculateLinks(dataValue.nodes, updatedap);
-    setDataValue(newData);
+    // Set color for each link based on the parent node
+    // console.log("nedata links", newData.links);
+    const coloredLinks = newData.links.map((link) => {
+      // Assign a color based on the parent node's index
+      // console.log("link", link);
+      // const sourceNode = newData.nodes[link.source];
+      const targetNode = newData.nodes[link.target];
+      const parentColorIndex = link.source % fixedColors.length;
+      const color = fixedColors[parentColorIndex];
+      const strokeWidth = targetNode.cost ? targetNode.cost / 10 : 1; // Adjust divisor for scaling
+
+      return { ...link, color, strokeWidth }; // Add color property to each link
+    });
+    // console.log("coloredLinks", coloredLinks);
+    // Update dataValue with colored links
+    setDataValue({ ...newData, links: coloredLinks });
   };
 
   const margin = {
@@ -159,6 +178,11 @@ const SankeyChartComponent = () => {
       // If not a leaf node, return the data unchanged
       return prevData;
     });
+    // console.log("Recalculating links...");
+    setTimeout(() => {
+      recalculateLinks();
+      console.log("Restarted");
+    }, 2000);
   };
 
   const handleModalSubmit = (newParentName: string, newPrice: number) => {
@@ -254,41 +278,7 @@ const SankeyChartComponent = () => {
     }
   };
 
-  // console.log("fl", filteredLinks);
-  console.log("all", dataValue);
-
-  // const handleInputBlur = () => {
-  //   if (editingNode.index !== -1 && editingNode.value !== null) {
-  //     const newValue = parseFloat(editingNode.value);
-  //     if (!isNaN(newValue)) {
-  //       setDataValue((prevData) => {
-  //         const updatedLinks = prevData.links.map((link) => {
-  //           if (link.target === editingNode.index) {
-  //             return { ...link, value: newValue };
-  //           }
-  //           return link;
-  //         });
-  //         // Propagate changes to parent nodes
-  //         const updatedNodes = prevData.nodes.map((node, index) => {
-  //           // Calculate the new value for each node based on incoming links
-  //           const incomingLinks = updatedLinks.filter(
-  //             (link) => link.target === index
-  //           );
-  //           if (incomingLinks.length > 0) {
-  //             const newValue = incomingLinks.reduce(
-  //               (sum, link) => sum + link.value,
-  //               0
-  //             );
-  //             return { ...node, value: newValue };
-  //           }
-  //           return node;
-  //         });
-  //         return { ...prevData, nodes: updatedNodes, links: updatedLinks };
-  //       });
-  //     }
-  //   }
-  //   setEditingNode({ index: -1, value: null });
-  // };
+  // console.log("all", dataValue);
 
   return (
     <div style={{ width: "100%", overflowX: "scroll", position: "relative" }}>
@@ -302,11 +292,54 @@ const SankeyChartComponent = () => {
               {...nodeProps}
               onNodeClick={(nodeId) => handleNodeClick(nodeId)}
               allNodes={dataValue.nodes}
+              colorThreshold={10}
             />
           )}
           nodePadding={50}
           margin={margin}
-          link={{ stroke: "#77c878" }}
+          // link={{ stroke: "#77c878" }}
+          link={(linkProps) => {
+            const {
+              sourceX,
+              sourceY,
+              targetX,
+              targetY,
+              sourceControlX,
+              targetControlX,
+              payload,
+            } = linkProps;
+
+            // console.log("linkProps", linkProps);
+            const sourceIndex = payload.source.index;
+            const targetIndex = payload.target.index;
+
+            const link = dataValue.links.find(
+              (l) => l.source === sourceIndex && l.target === targetIndex
+            );
+
+            // Construct the SVG path
+            const path = `
+              M${sourceX},${sourceY}
+              C${sourceControlX},${sourceY}
+              ${targetControlX},${targetY}
+              ${targetX},${targetY}
+            `;
+
+            const linkColor = link.color || "#8884d8"; // Use the color from the link or fallback
+
+            const linkStrokeWidth = link.strokeWidth || 2; // Use the strokeWidth from the link or fallback
+
+            return (
+              <path
+                key={`link-${sourceIndex}-${targetIndex}`} // Ensure source and target are defined
+                d={path}
+                stroke={linkColor}
+                strokeWidth={linkStrokeWidth}
+                strokeOpacity={0.2}
+                fill="none"
+              />
+            );
+          }}
         >
           <Tooltip />
         </Sankey>
