@@ -1,0 +1,17 @@
+{
+    "nodes": [
+        {
+            "name": "Expenses",
+            "index": 0
+        },
+        {
+            "name": "Food & Dining",
+            "index": 1
+        },
+        {
+            "name": "AplPay MARRAKECH EXP",
+            "cost": 9.74,
+            "index": 2
+        }
+    ]
+}

@@ -9,6 +9,8 @@ import {
   // testdatamini,
   calculateLinks,
   // parentChildMap_testdatamini,
+  data1,
+  data1_map,
 } from "@/data/testData";
 import InputModal from "./editNodes";
 import { fixedColors } from "./variables";
@@ -16,14 +18,41 @@ import { fixedColors } from "./variables";
 // import * as d3Sankey from "d3-sankey"
 // import {SankeyChart} from "@d3/sankey-component"
 
-const SankeyChartComponent = () => {
+interface SnakeyChartComponentProps {
+  refresh: boolean; // Prop to trigger data fetch
+}
+
+const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
+  refresh,
+}) => {
+  const [dataValue, setDataValue] = useState({ nodes: [], links: [] });
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch("/api/data");
+        if (!response.ok) {
+          throw new Error("Failed to fetch data");
+        }
+        const optdata = await response.json();
+        console.log("Fetched data:", optdata); // Debugging
+        const { nodes, parentChildMap } = optdata;
+        console.log("got data!!!", nodes, parentChildMap);
+        const data = calculateLinks(nodes, parentChildMap);
+        setDataValue(data);
+        console.log("data", data);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+
+    fetchData();
+  }, [refresh]);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [parentIndex, setParentIndex] = useState<number | null>(null);
   const [node, setNode] = useState<Node | null>(null);
   const [nodeIndex, setNodeIndex] = useState<number | null>(null);
-  // @ts-expect-error Changing the type of parent Map is breaking everything
-  const data_test = calculateLinks(data0.nodes, parentChildMap_data0);
-  const [dataValue, setDataValue] = useState(data_test);
+  // const data_test = calculateLinks(data1.nodes, data1_map);
   const [numberOfNodes, setNumberOfNodes] = useState<number>(
     dataValue.nodes.length
   );
@@ -32,9 +61,9 @@ const SankeyChartComponent = () => {
   const adjustedWidth = baseWidth + numberOfNodes * 1; // Add 100 units per node
   const adjustedHeight = baseHeight + numberOfNodes * 50; // Add 50 units per node
 
-  useEffect(() => {
-    setNumberOfNodes(dataValue.nodes.length);
-  }, [dataValue]);
+  // useEffect(() => {
+  //   setNumberOfNodes(dataValue.nodes.length);
+  // }, [dataValue]);
 
   const updateParentChildMap = () => {
     const newMap: Record<number, number[]> = {};

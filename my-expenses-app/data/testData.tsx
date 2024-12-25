@@ -124,7 +124,7 @@ export const data0 = {
     // Education - parent tag
     { name: "Education", index: 1 }, //1
 
-    // tags
+    // transactions
     { name: "Penn Engineering Online", cost: 92.43, index: 2 }, //2 - $92.43
     { name: "GA Tech Marketplace", cost: 105.0, index: 3 }, //3 - $105.0
     { name: "Princeton Application Fee", cost: 75.0, index: 4 }, //4 - $75.0
@@ -133,13 +133,13 @@ export const data0 = {
     // Health - parent tag
     { name: "Health", index: 6 }, //6
 
-    // tags
+    // transactions
     { name: "CVS Pharmacy Purchase", cost: 2.93, index: 7 }, //7 - $2.93
 
     // Shopping - parent tag
     { name: "Shopping", index: 8 }, //8
 
-    // tags
+    // transactions
     { name: "Mobile Payment", cost: 831.52, index: 9 }, //9 - $831.52
     { name: "Amazon Purchase", cost: 5.43, index: 10 }, //10 - $5.43
     { name: "Target Purchase", cost: 35.97, index: 11 }, //11 - $35.97
@@ -149,7 +149,7 @@ export const data0 = {
     // Transportation - parent tag
     { name: "Transportation", index: 14 }, //14
 
-    // tags
+    // transactions
     { name: "Lyft Ride 1", cost: 7.0, index: 15 }, //15 - $7.0
     { name: "Lyft Ride 2", cost: 22.99, index: 16 }, //16 - $22.99
     { name: "Lyft Ride 3", cost: 20.99, index: 17 }, //17 - $20.99
@@ -164,7 +164,7 @@ export const data0 = {
     // Food & Dining - parent tag
     { name: "Food & Dining", index: 25 }, //25
 
-    // tags
+    // transactions
     { name: "Matcha Cafe", cost: 6.41, index: 26 }, //26 - $6.41
     { name: "Grocery Purchase 1", cost: 13.51, index: 27 }, //27 - $13.51
     { name: "Publix Grocery Purchase 1", cost: 7.61, index: 28 }, //28 - $7.61
@@ -272,22 +272,127 @@ export const parentChildMap_testdatamini = {
   11: [12],
 };
 
+export const data1 = {
+  nodes: [
+    {
+      name: "Expenses",
+      index: 0,
+    },
+    {
+      name: "Food & Dining",
+      index: 1,
+    },
+    {
+      name: "AplPay Marrakech Exp",
+      cost: 9.74,
+      index: 2,
+    },
+    {
+      name: "Transportation",
+      index: 3,
+    },
+    {
+      name: "SEPTA Transportation",
+      cost: 15.0,
+      index: 4,
+    },
+    {
+      name: "Shopping",
+      index: 5,
+    },
+    {
+      name: "AMAZON.COM Purchase",
+      cost: 5.84,
+      index: 6,
+    },
+    {
+      name: "AplPay AJM BUSINESS",
+      cost: 6.24,
+      index: 7,
+    },
+    {
+      name: "AplPay AO SUPPLIER CASTORIA",
+      cost: 18.72,
+      index: 8,
+    },
+    {
+      name: "Joe's Pizza",
+      cost: 4.5,
+      index: 9,
+    },
+    {
+      name: "AplPay L' ARTE DEL G",
+      cost: 7.89,
+      index: 10,
+    },
+    {
+      name: "Lyft Ride",
+      cost: 10.78,
+      index: 11,
+    },
+    {
+      name: "Lyft Ride",
+      cost: 12.73,
+      index: 12,
+    },
+    {
+      name: "AplPay NYCT PAYGO",
+      cost: 2.9,
+      index: 13,
+    },
+    {
+      name: "AplPay NYCT PAYGO",
+      cost: 2.9,
+      index: 14,
+    },
+    {
+      name: "Local Transportation",
+      cost: 2.9,
+      index: 15,
+    },
+    {
+      name: "AplPay NYCT PAYGO",
+      cost: 2.9,
+      index: 16,
+    },
+    {
+      name: "Cheesecake Factory",
+      cost: 45.53,
+      index: 17,
+    },
+    {
+      name: "Entertainment & Recreation",
+      index: 18,
+    },
+    {
+      name: "AplPay BIRD APP",
+      cost: 1.08,
+      index: 19,
+    },
+    {
+      name: "BIRD APP",
+      cost: 2.15,
+      index: 20,
+    },
+    {
+      name: "Bird Ride",
+      cost: 6.52,
+      index: 21,
+    },
+  ],
+};
+
+export const data1_map = {
+  "1": [2, 7, 8, 9, 10, 17],
+  "3": [4, 11, 12, 13, 14, 15, 16, 21],
+  "5": [6],
+  "18": [19, 20],
+};
+
 export const calculateLinks = (nodes: Node[], map: Map[]) => {
   const links = [];
   const parentValues: Record<number, number> = {}; // Define the type for parentValues
   const parentIndices = new Set(Object.keys(map).map(Number));
-  // Iterate through parent-child relationships
-
-  //   const tempMap: Record<number, number[]> = {};
-  //   // Copy existing map entries
-  //   for (const [parentIndex, childIndices] of Object.entries(map)) {
-  //     const parent = parseInt(parentIndex, 10);
-  //     tempMap[parent] = childIndices;
-  //   }
-
-  //   tempMap[0] = Object.keys(map).map((key) => parseInt(key, 10));
-
-  //   console.log("tempmap", tempMap)
 
   for (const [parentIndex, childIndices] of Object.entries(map)) {
     const parent = parseInt(parentIndex, 10);
@@ -327,3 +432,20 @@ export const calculateLinks = (nodes: Node[], map: Map[]) => {
   }));
   return { nodes: updatedNodes, links: links };
 };
+
+export const parentTags = [
+  "Food & Dining",
+  "Food Delivery",
+  "Transportation",
+  "Shopping",
+  "Entertainment & Recreation",
+  "Housing",
+  "Bills & Utilities",
+  "Health & Wellness",
+  "Education",
+  "Finance & Fees",
+  "Business & Work",
+  "Insurance",
+  "Personal Care",
+  "Travel",
+];

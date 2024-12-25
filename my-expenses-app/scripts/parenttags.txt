@@ -1,4 +1,5 @@
 Food & Dining
+Food Delivery
 Transportation
 Shopping
 Entertainment & Recreation
@@ -10,7 +11,4 @@ Finance & Fees
 Business & Work
 Insurance
 Personal Care
-Childcare & Family
-Pets
 Travel
-Donations & Gifts
