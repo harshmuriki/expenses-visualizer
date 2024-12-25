@@ -11,6 +11,7 @@ import {
   // parentChildMap_testdatamini,
 } from "@/data/testData";
 import InputModal from "./editNodes";
+import { fixedColors } from "./variables";
 // import * as d3 from "d3"
 // import * as d3Sankey from "d3-sankey"
 // import {SankeyChart} from "@d3/sankey-component"
@@ -48,38 +49,18 @@ const SankeyChartComponent = () => {
     return newMap;
   };
 
-  const fixedColors = [
-    "#FF5733", // Red
-    "#33FF57", // Green
-    "#3357FF", // Blue
-    "#FF33A1", // Pink
-    "#FF8C33", // Orange
-    "#33FFF5", // Cyan
-    "#8C33FF", // Purple
-    "#FFD433", // Yellow
-    "#33FF8C", // Lime
-    "#FF3333", // Dark Red
-  ];
-
   const recalculateLinks = () => {
     const updatedap = updateParentChildMap();
     // @ts-expect-error Changing the type of updatedap is breaking everything (same as map)
     const newData = calculateLinks(dataValue.nodes, updatedap);
-    // Set color for each link based on the parent node
-    // console.log("nedata links", newData.links);
     const coloredLinks = newData.links.map((link) => {
-      // Assign a color based on the parent node's index
-      // console.log("link", link);
-      // const sourceNode = newData.nodes[link.source];
       const targetNode = newData.nodes[link.target];
       const parentColorIndex = link.source % fixedColors.length;
       const color = fixedColors[parentColorIndex];
-      const strokeWidth = targetNode.cost ? targetNode.cost / 10 : 1; // Adjust divisor for scaling
+      const strokeWidth = targetNode.cost ? targetNode.cost / 10 : 1;
 
-      return { ...link, color, strokeWidth }; // Add color property to each link
+      return { ...link, color, strokeWidth };
     });
-    // console.log("coloredLinks", coloredLinks);
-    // Update dataValue with colored links
     setDataValue({ ...newData, links: coloredLinks });
   };
 
@@ -180,7 +161,6 @@ const SankeyChartComponent = () => {
       // If not a leaf node, return the data unchanged
       return prevData;
     });
-    // console.log("Recalculating links...");
     setTimeout(() => {
       recalculateLinks();
       console.log("Restarted");
@@ -215,7 +195,6 @@ const SankeyChartComponent = () => {
         // @ts-expect-error Same error as map
         let updatedData = calculateLinks(updatedNodes, updateParentChildMap());
 
-        //--
         // Update the node's cost
         if (updatedNodes[nodeIndex].cost !== newPrice) {
           updatedNodes[nodeIndex] = {
@@ -249,7 +228,6 @@ const SankeyChartComponent = () => {
               value: dataValue.nodes[nodeIndex].cost || -1,
             });
           }
-          console.log("new price", newPrice);
 
           // need to add a new node that we created, if created in the map
           // Add the new node to the parent-child map
