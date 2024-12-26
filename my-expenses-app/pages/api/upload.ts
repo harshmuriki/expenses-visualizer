@@ -4,6 +4,7 @@ import path from "path";
 import csv from "csv-parser";
 import { Document } from "@/components/process";
 import { parentTags } from "@/data/testData";
+import uploadTransaction from "@/components/sendDataFirebase";
 
 let processedData = { nodes: [], parentChildMap: {} }; // In-memory storage
 
@@ -29,6 +30,7 @@ const handler = async (req, res) => {
 
       const file = files.file[0]; // Access the first element of the array
       if (!file) {
+        console.log("error??", file);
         return res.status(400).json({ error: "No file uploaded" });
       }
 
@@ -51,7 +53,33 @@ const handler = async (req, res) => {
           console.log("processed data");
           console.log("processed data", processedData);
 
-        //   Send the data to firebase
+          // Send the nodes to firebase
+          for (const node of output.nodes) {
+            console.log("node", node);
+            await uploadTransaction({
+              month: "January",
+              transaction: node.name,
+              index: node.index,
+              cost: node.cost || 0,
+              isMap: false,
+              key: null,
+              values: null,
+            });
+          }
+
+          // Send the map to Firebase
+          for (const [key, values] of Object.entries(parentChildMap)) {
+            console.log("map", { key, values });
+            await uploadTransaction({
+              month: "January",
+              transaction: null,
+              index: null,
+              cost: null,
+              isMap: true,
+              key: key,
+              values: values,
+            });
+          }
 
           res
             .status(200)
@@ -68,8 +96,5 @@ const handler = async (req, res) => {
       .json({ error: "Internal Server Error", details: error.message });
   }
 };
-
-// Export the processed data for access by other routes
-export const getProcessedData = () => processedData;
 
 export default handler;

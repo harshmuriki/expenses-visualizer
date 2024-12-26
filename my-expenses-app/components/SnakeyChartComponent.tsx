@@ -14,6 +14,9 @@ import {
 } from "@/data/testData";
 import InputModal from "./editNodes";
 import { fixedColors } from "./variables";
+import { collection, doc, setDoc, getDoc, getDocs } from "firebase/firestore";
+import { db } from "./firebaseConfig";
+
 // import * as d3 from "d3"
 // import * as d3Sankey from "d3-sankey"
 // import {SankeyChart} from "@d3/sankey-component"
@@ -26,17 +29,23 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
   refresh,
 }) => {
   const [dataValue, setDataValue] = useState({ nodes: [], links: [] });
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch("/api/data");
-        if (!response.ok) {
-          throw new Error("Failed to fetch data");
-        }
-        const optdata = await response.json();
-        console.log("Fetched data:", optdata); // Debugging
-        const { nodes, parentChildMap } = optdata;
-        console.log("got data!!!", nodes, parentChildMap);
+        // Fetch nodes
+        const month = "January";
+        const nodesCollectionRef = collection(db, month);
+        const nodesSnapshot = await getDocs(nodesCollectionRef);
+        const nodes = nodesSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        // Fetch parentChildMap
+        const mapDocRef = doc(db, month, "parentChildMap");
+        const mapSnapshot = await getDoc(mapDocRef);
+        const parentChildMap = mapSnapshot.exists() ? mapSnapshot.data() : {};
+        console.log("Fetched data:", nodes, parentChildMap); // Debugging
         const data = calculateLinks(nodes, parentChildMap);
         setDataValue(data);
         console.log("data", data);
@@ -44,7 +53,6 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
         console.error("Error fetching data:", error);
       }
     };
-
     fetchData();
   }, [refresh]);
 
