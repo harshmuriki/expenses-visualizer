@@ -3,135 +3,117 @@
 import React, { useState, useEffect } from "react";
 import SnakeyChartComponent from "@/components/SnakeyChartComponent";
 import UploadComponent from "@/components/uploadComponent";
-import { signIn, signOut, useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import WelcomeComponent from "@/components/welcomeComponent";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/components/firebaseConfig";
-import UserInfo from "@/components/userInfo";
 
+// Separate Admin Access Component
+const AdminAccess = () => {
+  return (
+    <div className="mt-8 p-6 rounded-lg bg-gray-800 border border-gray-700">
+      <h2 className="text-2xl font-bold text-white mb-4">Admin Access</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="p-4 bg-gray-700 rounded shadow">
+          <h3 className="text-lg font-semibold text-gray-200">
+            Create New Skating Session
+          </h3>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Separate Profile Component
+const UserProfile = ({ user, picture, onSignOut }) => {
+  return (
+    <div className="bg-gray-800 p-6 rounded-lg shadow-md flex flex-col items-center">
+      <img
+        src={picture}
+        alt="User profile"
+        className="mb-4 rounded-full border-4 border-gray-600"
+        width="100"
+        height="100"
+      />
+      <h4 className="text-xl font-medium text-white mb-2">
+        Signed in as {user}
+      </h4>
+      <button
+        onClick={onSignOut}
+        className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded focus:outline-none focus:ring focus:ring-red-400"
+      >
+        Sign out
+      </button>
+    </div>
+  );
+};
+
+// Main Home Page Component
 const HomePage = () => {
   const [refreshChart, setRefreshChart] = useState(false);
-
-  const handleUploadSuccess = () => {
-    setRefreshChart((prev) => !prev); // Toggle the state to trigger a re-fetch
-  };
-
-  const handleBypass = () => {
-    setRefreshChart(true); // Set refreshChart to true
-  };
-
   const { data: session, status } = useSession();
-  const user = session?.user?.name;
   const [isAdmin, setIsAdmin] = useState(false);
-  const [email, setEmail] = useState("");
 
   useEffect(() => {
-    if (session) {
-      setEmail(session.user.email);
-      const intervalId = setInterval(() => {
-        CheckAdmin(session.user.email)
-          .then((isAdmin) => {
-            setIsAdmin(isAdmin);
-          })
-          .catch((error) => {
-            console.error("Error checking admin status:", error);
-          });
-      }, 1000); // Run every 1000 milliseconds (1 second)
+    const checkAdmin = async (userEmail) => {
+      try {
+        const adminCollection = collection(db, "admin");
+        const q = query(adminCollection, where("email", "==", userEmail));
+        const querySnapshot = await getDocs(q);
+        return !querySnapshot.empty;
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+        return false;
+      }
+    };
 
-      return () => clearInterval(intervalId); // Cleanup interval on component unmount
+    if (session?.user?.email) {
+      checkAdmin(session.user.email).then(setIsAdmin);
     }
   }, [session]);
 
-  const CheckAdmin = async (userEmail) => {
-    try {
-      const adminCollection = collection(db, "admin");
+  const handleUploadSuccess = () => setRefreshChart((prev) => !prev);
+  const handleBypass = () => setRefreshChart(true);
 
-      const q = query(adminCollection, where("email", "==", userEmail));
-      const querySnapshot = await getDocs(q);
+  if (status === "loading")
+    return <p className="text-center text-gray-200">Loading...</p>;
 
-      return !querySnapshot.empty;
-    } catch (error) {
-      console.error("Error checking admin status:", error);
-      return false;
-    }
-  };
-
-  const ifAdmin = ({ isAdmin }) => {
-    return (
-      isAdmin && (
-        <div className="mt-6 border-2 p-4 rounded-lg border-gray-300 bg-gray-100 sm:inline-block">
-          <h2 className="text-2xl font-semibold mb-4">Admin Access</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="p-4 rounded shadow-md">
-              <h2 className="text-xl font-semibold mb-4">
-                Create New Skating Session
-              </h2>
-            </div>
-          </div>
-        </div>
-      )
-    );
-  };
+  if (!session) return <WelcomeComponent />;
 
   return (
-    <div>
-      {status === "loading" ? (
-        <p className="text-center">Loading...</p>
-      ) : !session ? (
-        <WelcomeComponent />
+    <div
+      className={`min-h-screen ${
+        refreshChart ? "bg-gray-900" : "bg-gray-900 text-gray-200 py-10"
+      }`}
+    >
+      {refreshChart ? (
+        <div className="w-screen h-screen flex items-center justify-center">
+          <SnakeyChartComponent refresh={refreshChart} />
+        </div>
       ) : (
-        <main>
-          <div className="">
-            <h1 className="text-3xl font-bold mb-8 text-center text-gray-800">
-              AI Personal Expenses Tracker
-            </h1>
-            <div>
-              {!refreshChart && (
-                <>
-                  <UploadComponent onUploadSuccess={handleUploadSuccess} />
-                  <button
-                    onClick={handleBypass}
-                    className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring focus:border-blue-300 mt-4"
-                  >
-                    Bypass
-                  </button>
-                </>
-              )}
-              {refreshChart && <SnakeyChartComponent refresh={refreshChart} />}
+        <main className="max-w-4xl mx-auto px-6">
+          <h1 className="text-5xl font-bold text-center text-white mb-12">
+            AI Personal Expenses Tracker
+          </h1>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
+              <UploadComponent onUploadSuccess={handleUploadSuccess} />
+              <button
+                onClick={handleBypass}
+                className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring focus:ring-blue-400"
+              >
+                Bypass
+              </button>
             </div>
+            <UserProfile
+              user={session.user.name}
+              picture={session.user.picture}
+              onSignOut={() => signOut()}
+            />
           </div>
 
-          {!refreshChart && (
-            <div className="p-6 rounded-lg shadow-md flex flex-col items-center justify-center">
-              <div className="flex items-center justify-center flex flex-col">
-                <div>
-                  <div className="flex items-center justify-center flex-wrap bg-gray-50 px-4 rounded-lg shadow-md p-4">
-                    <div className="bg-gray-50 p-4 rounded-lg shadow-md">
-                      <div className="flex items-center justify-center flex flex-col">
-                        <img
-                          src={session.user.picture}
-                          alt="User profile"
-                          className="rounded-lg"
-                          style={{ borderRadius: "30%" }}
-                          width="100"
-                          height="100"
-                        />
-                        <h4 className="text-base md:text-lg lg:text-xl font-semibold mb-1">
-                          Signed in as {user}
-                        </h4>
-                        <button
-                          onClick={() => signOut()}
-                          className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring focus:border-blue-300"
-                        >
-                          Sign out
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* {isAdmin && <AdminAccess />} */}
         </main>
       )}
     </div>

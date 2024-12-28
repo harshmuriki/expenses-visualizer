@@ -2,89 +2,81 @@
 
 import React, { useState, useEffect } from "react";
 import { Sankey, Tooltip, ResponsiveContainer } from "recharts";
-import { MyCustomNode, Node } from "./MyCustomNode";
-import {
-  data0,
-  parentChildMap_data0,
-  testdatamini,
-  calculateLinks,
-  parentChildMap_testdatamini,
-  data1,
-  data1_map,
-} from "@/data/testData";
+import { MyCustomNode } from "./MyCustomNode";
+import { testdatamini, calculateLinks } from "@/data/testData"; // Make sure these imports point to the correct files
 import InputModal from "./editNodes";
-import { fixedColors } from "./variables";
 import { collection, doc, setDoc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "./firebaseConfig";
-import { Node, Map, Link } from "@/components/MyCustomNode";
+import {
+  Node as SankeyNode,
+  Link as SankeyLink,
+} from "@/components/MyCustomNode";
 
-// import * as d3 from "d3"
-// import * as d3Sankey from "d3-sankey"
-// import {SankeyChart} from "@d3/sankey-component"
-
+// Types
 interface SnakeyChartComponentProps {
   refresh: boolean; // Prop to trigger data fetch
+}
+
+interface SankeyData {
+  nodes: SankeyNode[];
+  links: SankeyLink[];
 }
 
 const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
   refresh,
 }) => {
-  const [dataValue, setDataValue] = useState<{ nodes: Node[]; links: Link[] }>({
+  const [dataValue, setDataValue] = useState<SankeyData>({
     nodes: [],
     links: [],
   });
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [parentIndex, setParentIndex] = useState<number | null>(null);
+  const [nodeIndex, setNodeIndex] = useState<number | null>(null);
+  const [node, setNode] = useState<SankeyNode | null>(null);
+
+  /**
+   * Fetches data (nodes + parentChildMap) from Firestore,
+   * then calculates and sets the Sankey links.
+   */
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch nodes
         const month = "test";
+
+        // Fetch nodes
         const nodesCollectionRef = collection(db, month);
         const nodesSnapshot = await getDocs(nodesCollectionRef);
-        const nodes = nodesSnapshot.docs
+        const nodes: SankeyNode[] = nodesSnapshot.docs
           .filter((doc) => doc.id !== "parentChildMap") // Exclude 'parentChildMap'
           .map((doc) => ({
-            name: doc.data().transaction, // Assuming 'transaction' is the name field
-            cost: doc.data().cost || 100, // Default to 0 if cost is not present
-            index: doc.data().index, // Use the index from Firestore
+            name: doc.data().transaction,
+            cost: doc.data().cost || 100,
+            index: doc.data().index,
             isleaf: doc.data().isleaf,
             value: doc.data().cost || 100,
             visible: doc.data().visible,
           }))
-          .sort((a, b) => a.index - b.index); // Sort nodes by index
-        // const nodes = testdatamini.nodes;
+          .sort((a, b) => a.index - b.index);
+
         // Fetch parentChildMap
         const mapDocRef = doc(db, month, "parentChildMap");
         const mapSnapshot = await getDoc(mapDocRef);
         const parentChildMap = mapSnapshot.exists() ? mapSnapshot.data() : {};
-        // const parentChildMap = parentChildMap_testdatamini;
-        console.log("Fetched data:", nodes, parentChildMap); // Debugging
+
+        // Calculate links from the nodes + parentChildMap
         const data = calculateLinks(nodes, parentChildMap);
         setDataValue(data);
-        console.log("data", data);
       } catch (error) {
         console.error("Error fetching data:", error);
       }
     };
+
     fetchData();
   }, [refresh]);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [parentIndex, setParentIndex] = useState<number | null>(null);
-  const [node, setNode] = useState<Node | null>(null);
-  const [nodeIndex, setNodeIndex] = useState<number | null>(null);
-  // const data_test = calculateLinks(data1.nodes, data1_map);
-  const [numberOfNodes, setNumberOfNodes] = useState<number>(
-    dataValue.nodes.length
-  );
-  const baseWidth = numberOfNodes * 100; // or 40 for big Wider base width
-  const baseHeight = numberOfNodes;
-  const adjustedWidth = baseWidth + numberOfNodes * 1; // Add 100 units per node
-  const adjustedHeight = baseHeight + numberOfNodes * 50; // Add 50 units per node
-
-  useEffect(() => {
-    setNumberOfNodes(dataValue.nodes.length);
-  }, [dataValue]);
-
+  /**
+   * Dynamically builds a parent->children map based on existing links.
+   */
   const updateParentChildMap = () => {
     const newMap: Record<number, number[]> = {};
     dataValue.links.forEach((link) => {
@@ -98,21 +90,160 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
     return newMap;
   };
 
+  /**
+   * Recalculates links after nodes or parent-child relationships change,
+   * applying strokeWidth scaling based on relative link values.
+   */
   const recalculateLinks = () => {
-    const updatedap = updateParentChildMap();
-    // @ts-expect-error Changing the type of updatedap is breaking everything (same as map)
-    const newData = calculateLinks(dataValue.nodes, updatedap);
+    const updatedParentChildMap = updateParentChildMap();
+    const newData = calculateLinks(dataValue.nodes, updatedParentChildMap);
     const maxLinkValue = Math.max(...newData.links.map((link) => link.value));
     const coloredLinks = newData.links.map((link) => {
-      // Scale the strokeWidth based on the link's value relative to the maximum link value
+      // Scale strokeWidth based on link's value
+      const baseWidth = 3;
+      const maxWidth = 75; // tweak as needed
       const strokeWidth = maxLinkValue
-        ? Math.max(3, (link.value / maxLinkValue) * 75) // Adjust the multiplier (10) as needed
-        : 3;
+        ? Math.max(baseWidth, (link.value / maxLinkValue) * maxWidth)
+        : baseWidth;
+
       return { ...link, strokeWidth };
     });
     setDataValue({ ...newData, links: coloredLinks });
   };
 
+  /**
+   * When a node is clicked, open the modal if it is a leaf node.
+   * (Right now, only leaf nodes are handled for editing.)
+   */
+  const handleNodeClick = (nodeId: string) => {
+    setDataValue((prevData) => {
+      const clickedIndex = prevData.nodes.findIndex((n) => n.name === nodeId);
+      if (clickedIndex === -1) return prevData;
+
+      const clickedNode = prevData.nodes[clickedIndex];
+      setNodeIndex(clickedIndex);
+      setNode(clickedNode);
+
+      if (clickedNode.isleaf) {
+        const parentLink = prevData.links.find(
+          (link) => link.target === clickedIndex
+        );
+        if (parentLink) {
+          setParentIndex(parentLink.source);
+          setIsModalOpen(true);
+        }
+      }
+      return prevData;
+    });
+
+    // Give time for setState to finish, then recalculate
+    setTimeout(() => {
+      recalculateLinks();
+    }, 500);
+  };
+
+  /**
+   * Handle form submission from the modal:
+   * - Possibly create a new parent node or reuse an existing node
+   * - Update the cost/value on the leaf node
+   * - Update the parent's cost
+   * - Update parentChildMap, recalculate links
+   */
+  const handleModalSubmit = (newParentName: string, newPrice: number) => {
+    if (parentIndex === null || nodeIndex === null) return;
+
+    setDataValue((prevData) => {
+      const updatedNodes = [...prevData.nodes];
+      let newParentIndex = parentIndex;
+
+      // Check if the new parent name already exists
+      const existingParentIndex = updatedNodes.findIndex(
+        (n) => n.name === newParentName
+      );
+
+      // If parent doesn't exist, create it
+      if (existingParentIndex === -1) {
+        const newParentNode: SankeyNode = {
+          name: newParentName,
+          value: updatedNodes[nodeIndex].cost || 0,
+          isleaf: false,
+          visible: true,
+          index: updatedNodes.length,
+        };
+        updatedNodes.push(newParentNode);
+        newParentIndex = updatedNodes.length - 1;
+      } else {
+        newParentIndex = existingParentIndex;
+      }
+
+      // Update the node's cost/value
+      if (updatedNodes[nodeIndex].cost !== newPrice) {
+        updatedNodes[nodeIndex] = {
+          ...updatedNodes[nodeIndex],
+          cost: newPrice,
+          value: newPrice,
+        };
+      }
+
+      // Build links from the old data
+      let updatedLinks = [...prevData.links];
+
+      // If the user actually changed the parent (not just the price)
+      if (newParentIndex !== parentIndex) {
+        // Subtract the node's value from the old parent
+        updatedNodes[parentIndex].value -= prevData.nodes[nodeIndex].cost ?? 0;
+
+        // Reassign the leaf to the new parent
+        updatedLinks = updatedLinks.map((link) =>
+          link.target === nodeIndex ? { ...link, source: newParentIndex } : link
+        );
+
+        // If we created a brand-new parent node, add a link from root (index 0)
+        if (existingParentIndex === -1) {
+          updatedLinks.push({
+            source: 0,
+            target: newParentIndex,
+            value: updatedNodes[nodeIndex].cost ?? 0,
+          });
+        }
+
+        // Update parent-child relationships
+        const updatedMap = updateParentChildMap();
+        if (!updatedMap[newParentIndex]) {
+          updatedMap[newParentIndex] = [];
+        }
+        // Add the node to the new parent
+        updatedMap[newParentIndex].push(nodeIndex);
+
+        // Remove the node from the old parent
+        updatedMap[parentIndex] = updatedMap[parentIndex].filter(
+          (val) => val !== nodeIndex
+        );
+
+        // If the old parent has no children left, remove that parent link from root
+        if (updatedMap[parentIndex]?.length === 0) {
+          delete updatedMap[parentIndex];
+        }
+
+        // Recalculate links with the updated map
+        const recalculatedData = calculateLinks(updatedNodes, updatedMap);
+        return { nodes: updatedNodes, links: recalculatedData.links };
+      }
+
+      // No parent change, just cost
+      const recalculatedData = calculateLinks(
+        updatedNodes,
+        updateParentChildMap()
+      );
+      return { nodes: updatedNodes, links: recalculatedData.links };
+    });
+  };
+
+  // Chart dimensions
+  const numberOfNodes = dataValue.nodes.length;
+  const baseWidth = numberOfNodes * 100;
+  const adjustedWidth = baseWidth + numberOfNodes;
+  const adjustedHeight = numberOfNodes * 50 + 200; // A little padding
   const margin = {
     left: Math.min(200, numberOfNodes * 20),
     right: Math.min(200, numberOfNodes * 20),
@@ -120,195 +251,15 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
     bottom: 100,
   };
 
+  // Unique set of parent node names (for the dropdown in the modal)
   const parentOptions = Array.from(
-    new Set(dataValue.links.map((link) => dataValue.nodes[link.source].name))
+    new Set(
+      dataValue.links.map((link) => {
+        const sourceIndex = link.source;
+        return dataValue.nodes[sourceIndex]?.name ?? "";
+      })
+    )
   );
-
-  const handleNodeClick = (nodeId: string) => {
-    setDataValue((prevData) => {
-      // Find the index of the clicked node
-      const nodeIndex = prevData.nodes.findIndex(
-        (node) => node.name === nodeId
-      );
-      setNodeIndex(nodeIndex);
-      setNode(prevData.nodes[nodeIndex]);
-
-      const isLeafNode = dataValue.nodes[nodeIndex].isleaf;
-
-      if (isLeafNode) {
-        const parentLink = prevData.links.find(
-          (link) => link.target === nodeIndex
-        );
-
-        if (parentLink) {
-          setParentIndex(parentLink.source);
-          setNodeIndex(nodeIndex);
-          setIsModalOpen(true);
-        }
-        // if (false) {
-        //   //(parentLink) {
-        //   const parentIndex = parentLink.source;
-        //   // // Prompt the user to enter a new name for the parent node
-        //   const newParentName = prompt(
-        //     "Enter a new name for the parent node:",
-        //     prevData.nodes[parentIndex].name
-        //   );
-
-        //   if (newParentName) {
-        //     // If the parent name already exists, then add it directly to that node
-        //     const existingParentIndex = prevData.nodes.findIndex(
-        //       (n) => n.name === newParentName
-        //     );
-        //     const updatedNodes = [...prevData.nodes];
-        //     let newParentIndex;
-
-        //     if (existingParentIndex !== -1) {
-        //       // If the parent name already exists, use the existing node
-        //       newParentIndex = existingParentIndex;
-        //     } else {
-        //       // If the parent name doesn't exist
-        //       const newParentNode = {
-        //         name: newParentName,
-        //         value: dataValue.nodes[nodeIndex].cost || 0, // Initialize with a default value
-        //         isleaf: false,
-        //         visible: true,
-        //       };
-
-        //       // updatedNodes = [...prevData.nodes, newParentNode];
-        //       updatedNodes.push(newParentNode);
-        //       newParentIndex = updatedNodes.length - 1;
-        //     }
-
-        //     // Update the parent's value by adding the leaf node's value
-        //     updatedNodes[parentIndex].value -=
-        //       prevData.nodes[nodeIndex].cost ?? 0;
-        //     // Update the parent node's name
-        //     const updatedLinks = prevData.links.map((link) =>
-        //       link.target === nodeIndex
-        //         ? { ...link, source: newParentIndex }
-        //         : link
-        //     );
-
-        //     // Add a link from the root to the new parent node if it's newly created
-        //     if (existingParentIndex === -1) {
-        //       updatedLinks.push({
-        //         source: 0, // Assuming 0 is the root node index
-        //         target: newParentIndex,
-        //         value: dataValue.nodes[nodeIndex].cost || 100,
-        //       });
-        //     }
-        //     // Update the dataValue with the new nodes and links
-        //     return { nodes: updatedNodes, links: updatedLinks };
-        //   }
-        //   // }
-        // }
-        // else {
-        // Parent nodes to collapse them
-        // ! Not working
-      }
-
-      // If not a leaf node, return the data unchanged
-      return prevData;
-    });
-    setTimeout(() => {
-      recalculateLinks();
-      console.log("Restarted");
-    }, 2000);
-  };
-
-  const handleModalSubmit = (newParentName: string, newPrice: number) => {
-    if (parentIndex !== null && nodeIndex !== null) {
-      // Update parent link
-      setDataValue((prevData) => {
-        const updatedNodes = [...prevData.nodes];
-        let newParentIndex = parentIndex;
-        // Check if the new parent name already exists
-        const existingParentIndex = prevData.nodes.findIndex(
-          (n) => n.name === newParentName
-        );
-        if (existingParentIndex !== -1) {
-          // Use the existing node as the new parent
-          newParentIndex = existingParentIndex;
-        } else {
-          // Create a new parent node
-          const newParentNode = {
-            name: newParentName,
-            value: dataValue.nodes[nodeIndex].cost || 0,
-            isleaf: false,
-            visible: true,
-            index: updatedNodes.length,
-          };
-          updatedNodes.push(newParentNode);
-          newParentIndex = updatedNodes.length - 1;
-        }
-        // @ts-expect-error Same error as map
-        let updatedData = calculateLinks(updatedNodes, updateParentChildMap());
-
-        // Update the node's cost
-        if (updatedNodes[nodeIndex].cost !== newPrice) {
-          updatedNodes[nodeIndex] = {
-            ...updatedNodes[nodeIndex],
-            cost: newPrice,
-            value: newPrice,
-          };
-          // @ts-expect-error Same error as map
-          updatedData = calculateLinks(updatedNodes, updateParentChildMap());
-        }
-
-        // Update parent only if necessary and if the newParent name is not the
-        // same as the old parent name
-        if (newParentIndex !== parentIndex) {
-          // Update the parent's value by subtracting the leaf node's value
-          updatedNodes[parentIndex].value -=
-            prevData.nodes[nodeIndex].cost ?? 0;
-
-          // Update the links
-          const updatedLinks = prevData.links.map((link) =>
-            link.target === nodeIndex
-              ? { ...link, source: newParentIndex }
-              : link
-          );
-
-          // Add a link from the root to the new parent node if it's newly created
-          if (existingParentIndex === -1) {
-            updatedLinks.push({
-              source: 0, // Assuming 0 is the root node index
-              target: newParentIndex,
-              value: dataValue.nodes[nodeIndex].cost || -1,
-            });
-          }
-
-          // need to add a new node that we created, if created in the map
-          // Add the new node to the parent-child map
-          const updatedParentChildMap = updateParentChildMap();
-          if (!updatedParentChildMap[newParentIndex]) {
-            updatedParentChildMap[newParentIndex] = [];
-          }
-          // Add the node to the new parent
-          updatedParentChildMap[newParentIndex].push(nodeIndex);
-
-          // remove the node from the old parent
-          updatedParentChildMap[parentIndex] = updatedParentChildMap[
-            parentIndex
-          ].filter((value) => value !== nodeIndex);
-
-          // If the parent has no more children, remove the node and the link from 0 -> oldparent
-          if (updatedParentChildMap[parentIndex].length === 0) {
-            // Remove the link from the root to the old parent
-            delete updatedParentChildMap[parentIndex];
-          }
-          // Recalculate links with the updated map
-
-          // @ts-expect-error Same error as map
-          updatedData = calculateLinks(updatedNodes, updatedParentChildMap);
-          // console.log("New data is:", updatedNodes, updatedData.links);
-          // return { nodes: updatedNodes, links: updatedData.links };
-        }
-
-        return { nodes: updatedNodes, links: updatedData.links };
-      });
-    }
-  };
 
   return (
     <div style={{ width: "100%", overflowX: "scroll", position: "relative" }}>
@@ -318,7 +269,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
             <Sankey
               width={adjustedWidth}
               height={adjustedHeight}
-              data={{ ...dataValue, nodes: dataValue.nodes }}
+              data={{ nodes: dataValue.nodes, links: dataValue.links }}
               node={(nodeProps) => (
                 <MyCustomNode
                   {...nodeProps}
@@ -327,9 +278,8 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
                   colorThreshold={10}
                 />
               )}
-              nodePadding={50}
+              nodePadding={60}
               margin={margin}
-              // link={{ stroke: "#77c878" }}
               link={(linkProps) => {
                 const {
                   sourceX,
@@ -344,12 +294,19 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
                 const sourceIndex = payload.source.index;
                 const targetIndex = payload.target.index;
 
-                let linkColor = "#8884d8"; // Default color
-                let linkStrokeWidth = 2; // Default stroke width
+                // Default link color and width
+                let linkColor = "#8884d8";
+                let linkStrokeWidth = 2;
 
-                const link = dataValue.links.find(
+                // Match the link in our dataValue to get custom styling
+                const matchingLink = dataValue.links.find(
                   (l) => l.source === sourceIndex && l.target === targetIndex
                 );
+
+                if (matchingLink) {
+                  linkColor = matchingLink.color || linkColor;
+                  linkStrokeWidth = matchingLink.strokeWidth || 2;
+                }
 
                 const path = `
                   M${sourceX},${sourceY}
@@ -357,12 +314,6 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
                   ${targetControlX},${targetY}
                   ${targetX},${targetY}
                 `;
-
-                if (link) {
-                  linkColor = link.color || linkColor;
-                  console.log("link.strokeWidth", link.strokeWidth);
-                  linkStrokeWidth = link.strokeWidth || 2;
-                }
 
                 return (
                   <path
@@ -386,8 +337,8 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
             node !== null && (
               <InputModal
                 node={node}
-                initialParentName={dataValue.nodes[parentIndex].name}
-                initialPrice={dataValue.nodes[nodeIndex].value?.toString()}
+                initialParentName={dataValue.nodes[parentIndex]?.name}
+                initialPrice={dataValue.nodes[nodeIndex]?.value?.toString()}
                 onSubmit={handleModalSubmit}
                 onClose={() => setIsModalOpen(false)}
                 parentOptions={parentOptions}

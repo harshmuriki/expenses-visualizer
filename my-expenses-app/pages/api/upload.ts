@@ -4,7 +4,12 @@ import path from "path";
 import csv from "csv-parser";
 import { Document } from "@/components/process";
 import uploadTransaction from "@/components/sendDataFirebase";
-import { data0, parentChildMap_data0, parentChildMap_testdatamini, testdatamini } from "@/data/testData";
+import {
+  data0,
+  parentChildMap_data0,
+  parentChildMap_testdatamini,
+  testdatamini,
+} from "@/data/testData";
 
 export const config = {
   api: {
@@ -57,7 +62,10 @@ const handler = async (req, res) => {
           // Send the nodes to firebase
           for (const node of nodes) {
             console.log("node", node);
-            const isLeaf = !parentChildMap.hasOwnProperty(node.index);
+            const isLeaf =
+              node.index === 0
+                ? false
+                : !parentChildMap.hasOwnProperty(node.index);
             await uploadTransaction({
               month: month,
               transaction: node.name,
