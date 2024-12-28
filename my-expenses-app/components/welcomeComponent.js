@@ -1,26 +1,26 @@
 import React from "react";
-import { signIn } from 'next-auth/react';
-import Image from 'next/image';
+import { signIn } from "next-auth/react";
 
 function WelcomeComponent() {
-
     return (
-        <div className="bg-background bg-cover bg-auto min-h-screen flex flex-col items-center justify-center">
-            <div className="mb-8 mt-8">
-                <h1 className="text-5xl font-bold mb-8 text-center text-black">AI Expenses Tracker</h1>
-                <div className="flex flex-col items-center">
-                    {/* <p className="mb-4">Please sign in</p> */}
-                    <button
-                        onClick={() => signIn()}
-                        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring focus:border-blue-300"
-                    >
-                        Google Sign in
-                    </button>
-                </div>
-            </div>
-            <div className="h-[50%] w-[50%]">
-            </div>
+        <div className="min-h-screen bg-gradient-to-r from-blue-600 to-purple-600 flex flex-col items-center justify-center p-4">
+            <h1 className="text-5xl md:text-6xl font-extrabold mb-6 text-center text-white drop-shadow-lg">
+                AI Personal Expenses Tracker
+            </h1>
+
+            <p className="text-lg md:text-xl text-white mb-10 max-w-xl text-center leading-relaxed">
+                Simplify your expense tracking with the power of AI. Sign in to start analyzing and managing
+                your finances effortlessly.
+            </p>
+
+            <button
+                onClick={() => signIn()}
+                className="bg-white text-blue-700 hover:text-blue-800 hover:bg-gray-200 font-semibold py-3 px-6 rounded-full shadow-lg transition duration-300"
+            >
+                Sign in with Google
+            </button>
         </div>
     );
 }
-export default WelcomeComponent
+
+export default WelcomeComponent;

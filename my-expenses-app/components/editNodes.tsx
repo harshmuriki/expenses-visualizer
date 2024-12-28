@@ -1,14 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Node } from "./MyCustomNode";
-
-interface InputModalProps {
-  node: Node;
-  initialParentName: string;
-  initialPrice: string;
-  onSubmit: (newParentName: string, newPrice: number) => void;
-  onClose: () => void;
-  parentOptions: string[]; // Add this prop to pass parent options
-}
+import { InputModalProps } from "@/app/types/types";
 
 const InputModal: React.FC<InputModalProps> = ({
   node,

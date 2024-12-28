@@ -1,39 +1,6 @@
 import React from "react";
+import { Payload, SankeyNode, SankeyLink, MyCustomNodeProps } from "@/app/types/types";
 
-interface Payload {
-  name: string;
-  value?: number;
-}
-
-export interface Node {
-  isleaf?: boolean;
-  name: string;
-  cost?: number;
-  index: number;
-}
-
-export interface Link {
-  source: number;
-  target: number;
-  value: number;
-  color?: string;
-  strokeWidth?: number;
-}
-
-export type Map = Record<number, number[]>;
-
-interface MyCustomNodeProps {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  index: number;
-  payload: Payload;
-  containerWidth: number;
-  onNodeClick: (nodeId: string, event: React.MouseEvent<SVGElement>) => void; // New click handler
-  allNodes: Node[];
-  colorThreshold: number;
-}
 
 export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
   x,

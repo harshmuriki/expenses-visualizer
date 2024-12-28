@@ -3,24 +3,18 @@
 import React, { useState, useEffect } from "react";
 import { Sankey, Tooltip, ResponsiveContainer } from "recharts";
 import { MyCustomNode } from "./MyCustomNode";
-import { testdatamini, calculateLinks } from "@/data/testData"; // Make sure these imports point to the correct files
+import { testdatamini, calculateLinks } from "@/data/testData";
 import InputModal from "./editNodes";
 import { collection, doc, setDoc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "./firebaseConfig";
 import {
-  Node as SankeyNode,
-  Link as SankeyLink,
-} from "@/components/MyCustomNode";
-
-// Types
-interface SnakeyChartComponentProps {
-  refresh: boolean; // Prop to trigger data fetch
-}
-
-interface SankeyData {
-  nodes: SankeyNode[];
-  links: SankeyLink[];
-}
+  SankeyNode,
+  SankeyLink,
+  SankeyData,
+  SnakeyChartComponentProps,
+} from "@/app/types/types";
+import uploadTransaction from "./sendDataFirebase";
+import { useRouter } from "next/navigation";
 
 const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
   refresh,
@@ -33,6 +27,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
   const [parentIndex, setParentIndex] = useState<number | null>(null);
   const [nodeIndex, setNodeIndex] = useState<number | null>(null);
   const [node, setNode] = useState<SankeyNode | null>(null);
+  const router = useRouter();
 
   /**
    * Fetches data (nodes + parentChildMap) from Firestore,
@@ -109,6 +104,49 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
       return { ...link, strokeWidth };
     });
     setDataValue({ ...newData, links: coloredLinks });
+  };
+
+  const sendDataToFirebase = async () => {
+    console.log("uploading data to firebase");
+    try {
+      const month = "test1";
+      // Send nodes to Firebase
+      for (const node of dataValue.nodes) {
+        const isLeaf =
+          node.index === 0
+            ? false
+            : !dataValue.links.some((link) => link.source === node.index);
+        await uploadTransaction({
+          month: month,
+          transaction: node.name,
+          index: node.index,
+          isleaf: isLeaf,
+          cost: node.cost || 100,
+          isMap: false,
+          key: null,
+          values: null,
+          visible: true,
+        });
+      }
+      // Send the parent-child map to Firebase
+      const parentChildMap = updateParentChildMap();
+      for (const [key, values] of Object.entries(parentChildMap)) {
+        await uploadTransaction({
+          month: month,
+          transaction: null,
+          index: null,
+          cost: null,
+          isleaf: null,
+          isMap: true,
+          key: key,
+          values: values,
+          visible: true,
+        });
+      }
+      console.log("Data saved to Firebase successfully!");
+    } catch (error) {
+      console.error("Error saving data to Firebase:", error);
+    }
   };
 
   /**
@@ -263,6 +301,28 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
 
   return (
     <div style={{ width: "100%", overflowX: "scroll", position: "relative" }}>
+      <div
+        style={{
+          position: "fixed",
+          top: "10px",
+          left: "10px",
+          zIndex: 2000,
+        }}
+      >
+        <button
+          onClick={() => router.push("/")} // or whichever page you want
+          style={{
+            padding: "10px 20px",
+            backgroundColor: "#007AFF",
+            color: "white",
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer",
+          }}
+        >
+          Back to Home
+        </button>
+      </div>
       {dataValue.nodes.length > 0 && dataValue.links.length > 0 ? (
         <>
           <ResponsiveContainer width={baseWidth} height={adjustedHeight}>
@@ -345,26 +405,50 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
               />
             )}
 
-          <button
-            onClick={recalculateLinks}
+          <div
             style={{
               position: "fixed",
               bottom: "10px",
               left: "10px",
               zIndex: 1000,
-              padding: "10px 20px",
-              backgroundColor: "#4CAF50",
-              color: "white",
-              border: "none",
-              borderRadius: "5px",
-              cursor: "pointer",
+              display: "flex",
+              gap: "10px",
             }}
           >
-            Recalculate Links
-          </button>
+            <button
+              onClick={recalculateLinks}
+              style={{
+                padding: "10px 20px",
+                backgroundColor: "#4CAF50",
+                color: "white",
+                border: "none",
+                borderRadius: "5px",
+                cursor: "pointer",
+              }}
+            >
+              Recalculate Links
+            </button>
+            <button
+              onClick={sendDataToFirebase}
+              style={{
+                padding: "10px 20px",
+                backgroundColor: "#4CAF50",
+                color: "white",
+                border: "none",
+                borderRadius: "5px",
+                cursor: "pointer",
+              }}
+            >
+              Save Data to Firebase
+            </button>
+          </div>
         </>
       ) : (
-        <p>No data available to display the chart.</p>
+        <div className="flex items-center justify-center h-full">
+          <div className="p-4 rounded-md bg-red-100 text-red-700 text-center">
+            Data loading... to display the chart.
+          </div>
+        </div>
       )}
     </div>
   );

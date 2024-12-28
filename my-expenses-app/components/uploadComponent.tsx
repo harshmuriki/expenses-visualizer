@@ -1,8 +1,7 @@
-import React, { useState } from "react";
+"use client";
 
-interface UploadComponentProps {
-  onUploadSuccess: () => void; // Callback function to trigger data fetch
-}
+import React, { useState } from "react";
+import { UploadComponentProps } from "@/app/types/types";
 
 const UploadComponent: React.FC<UploadComponentProps> = ({
   onUploadSuccess,
@@ -26,6 +25,7 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
     formData.append("file", file);
 
     setIsUploading(true);
+
     try {
       const response = await fetch("/api/upload", {
         method: "POST",
@@ -34,9 +34,10 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
       if (!response.ok) {
         throw new Error("Failed to upload file");
       }
+
       const data = await response.json();
       console.log("Upload successful:", data);
-      onUploadSuccess(); // Trigger the callback on successful upload
+      onUploadSuccess();
       alert("File uploaded successfully!");
     } catch (error) {
       console.error("Error uploading file:", error);
@@ -47,19 +48,23 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
   };
 
   return (
-    <div className="flex flex-col items-center justify-center p-6 bg-gray-800 text-gray-200 shadow-md rounded-lg">
-      <input
-        type="file"
-        accept=".csv"
-        onChange={handleFileChange}
-        className="mb-4 p-2 border border-gray-600 rounded-md bg-gray-700 text-gray-200"
-      />
+    <div className="flex flex-col items-center justify-center space-y-4 p-6 bg-gray-800 text-gray-200 shadow-md rounded-lg border border-gray-700">
+      <label className="flex flex-col items-center w-full">
+        <span className="mb-5 font-semibold">Upload a CSV File</span>
+        <input
+          type="file"
+          accept=".csv"
+          onChange={handleFileChange}
+          className="p-2 border border-gray-600 rounded-md bg-gray-700 text-gray-200 w-full cursor-pointer"
+        />
+      </label>
+
       <button
         onClick={handleUpload}
         disabled={isUploading}
-        className={`px-4 py-2 rounded-md transition duration-300 ${
+        className={`px-6 py-2 rounded-md transition duration-300 font-semibold ${
           isUploading
-            ? "bg-gray-500 cursor-not-allowed"
+            ? "bg-gray-500 cursor-not-allowed text-gray-200"
             : "bg-blue-500 hover:bg-blue-600 text-white"
         }`}
       >

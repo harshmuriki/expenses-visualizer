@@ -1,15 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-// import { useRouter } from "next/router";
 import { signOut, useSession } from "next-auth/react";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { db } from "@/components/firebaseConfig";
+import { useRouter } from "next/navigation";
 import UploadComponent from "@/components/uploadComponent";
 import WelcomeComponent from "@/components/welcomeComponent";
-import { db } from "@/components/firebaseConfig";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { useRouter } from "next/navigation";
+import Image from "next/image";
 
-// Separate Admin Access Component
+// Admin Access Component
 const AdminAccess = () => {
   return (
     <div className="mt-8 p-6 rounded-lg bg-gray-800 border border-gray-700">
@@ -25,20 +25,26 @@ const AdminAccess = () => {
   );
 };
 
-// Separate Profile Component
-const UserProfile = ({ user, picture, onSignOut }) => {
+// User Profile Component
+const UserProfile = ({
+  user,
+  picture,
+  onSignOut,
+}: {
+  user: string;
+  picture: string;
+  onSignOut: () => void;
+}) => {
   return (
-    <div className="bg-gray-800 p-6 rounded-lg shadow-md flex flex-col items-center">
-      <img
+    <div className="bg-white text-gray-900 p-6 rounded-lg shadow-md flex flex-col items-center">
+      <Image
         src={picture}
         alt="User profile"
-        className="mb-4 rounded-full border-4 border-gray-600"
-        width="100"
-        height="100"
+        className="mb-4 rounded-full border-4 border-gray-300"
+        width={100}
+        height={100}
       />
-      <h4 className="text-xl font-medium text-white mb-2">
-        Signed in as {user}
-      </h4>
+      <h4 className="text-xl font-semibold mb-2">Signed in as {user}</h4>
       <button
         onClick={onSignOut}
         className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded focus:outline-none focus:ring focus:ring-red-400"
@@ -48,17 +54,18 @@ const UserProfile = ({ user, picture, onSignOut }) => {
     </div>
   );
 };
+
+// Main Home Page
 const HomePage = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const { data: session, status } = useSession();
-  const router = useRouter(); // For navigation
+  const router = useRouter();
 
   useEffect(() => {
-    // Check admin logic remains the same
-    const checkAdmin = async (userEmail) => {
+    const checkAdmin = async (userEmail: string) => {
       try {
-        const adminCollection = collection(db, "admin");
-        const q = query(adminCollection, where("email", "==", userEmail));
+        const adminRef = collection(db, "admin");
+        const q = query(adminRef, where("email", "==", userEmail));
         const querySnapshot = await getDocs(q);
         return !querySnapshot.empty;
       } catch (error) {
@@ -72,51 +79,47 @@ const HomePage = () => {
     }
   }, [session]);
 
-  // If session is loading
+  // Loading state
   if (status === "loading") {
     return <p className="text-center text-gray-200">Loading...</p>;
   }
 
-  // If user is not logged in
+  // Not logged in
   if (!session) {
     return <WelcomeComponent />;
   }
 
+  // Navigate to the chart page
   const handleBypass = () => {
-    // Instead of setting refreshChart, we redirect to /chart
     router.push("/chart");
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-gray-200 py-10">
-      <main className="max-w-4xl mx-auto px-6">
-        <h1 className="text-5xl font-bold text-center text-white mb-12">
-          AI Personal Expenses Tracker
-        </h1>
+    <div className="min-h-screen bg-gradient-to-r from-blue-600 to-purple-600 flex flex-col items-center justify-center p-4">
+      <h1 className="text-5xl md:text-6xl font-extrabold mb-6 text-center text-white drop-shadow-lg">
+        AI Personal Expenses Tracker
+      </h1>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
-            <UploadComponent
-            // onUploadSuccess -> you can keep this if you want to do something
-            // else after uploading, but not necessary for the direct chart page
-            />
-            <button
-              onClick={handleBypass}
-              className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring focus:ring-blue-400"
-            >
-              Go to Chart
-            </button>
-          </div>
-
-          <UserProfile
-            user={session.user.name}
-            picture={session.user.picture}
-            onSignOut={() => signOut()}
-          />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-4xl">
+        <div className="bg-white text-gray-900 p-6 rounded-lg shadow-lg flex flex-col">
+          <UploadComponent onUploadSuccess={() => {}} />
+          <button
+            onClick={handleBypass}
+            className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring focus:ring-blue-400 self-end"
+          >
+            Go to Chart
+          </button>
         </div>
 
-        {/* {isAdmin && <AdminAccess />} */}
-      </main>
+        <UserProfile
+          user={session.user.name}
+          picture={session.user.picture}
+          onSignOut={() => signOut()}
+        />
+      </div>
+
+      {/* Uncomment if admin functionality is needed */}
+      {/* {isAdmin && <AdminAccess />} */}
     </div>
   );
 };
