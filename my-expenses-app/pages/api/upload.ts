@@ -31,6 +31,7 @@ const handler = async (req, res) => {
         return res.status(500).json({ error: "File upload failed" });
       }
 
+      const month = fields.month[0] || 'default';
       const file = files.file[0]; // Access the first element of the array
       if (!file) {
         console.log("error??", file);
@@ -57,7 +58,6 @@ const handler = async (req, res) => {
           const parentChildMap = parentChildMap_testdatamini;
 
           console.log("processed data");
-          const month = "test";
 
           // Send the nodes to firebase
           for (const node of nodes) {

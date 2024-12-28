@@ -14,7 +14,7 @@ import {
   SnakeyChartComponentProps,
 } from "@/app/types/types";
 import uploadTransaction from "./sendDataFirebase";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
   refresh,
@@ -29,6 +29,9 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
   const [node, setNode] = useState<SankeyNode | null>(null);
   const router = useRouter();
 
+  const searchParams = useSearchParams();
+  const month = searchParams.get("month") || "";
+
   /**
    * Fetches data (nodes + parentChildMap) from Firestore,
    * then calculates and sets the Sankey links.
@@ -36,8 +39,6 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const month = "test";
-
         // Fetch nodes
         const nodesCollectionRef = collection(db, month);
         const nodesSnapshot = await getDocs(nodesCollectionRef);
@@ -304,13 +305,21 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
       <div
         style={{
           position: "fixed",
-          top: "10px",
-          left: "10px",
+          top: 0,
+          left: 0,
+          width: "100%",
           zIndex: 2000,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          background: "linear-gradient(to right, #4b5563, #6b7280)", // Soft gray gradient
+          padding: "10px 20px",
+          boxShadow: "0 2px 5px rgba(0,0,0,0.3)", // Subtle shadow
         }}
       >
+        {/* Left Section: Back to Home Button */}
         <button
-          onClick={() => router.push("/")} // or whichever page you want
+          onClick={() => router.push("/")}
           style={{
             padding: "10px 20px",
             backgroundColor: "#007AFF",
@@ -318,11 +327,56 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
             border: "none",
             borderRadius: "5px",
             cursor: "pointer",
+            fontWeight: "bold",
           }}
         >
           Back to Home
         </button>
+
+        {/* Center: Month Label */}
+        <span
+          style={{
+            color: "white",
+            fontWeight: "bold",
+            fontSize: "1.1rem",
+          }}
+        >
+          Editing Month: {month}
+        </span>
+
+        {/* Right Section: Buttons */}
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button
+            onClick={recalculateLinks}
+            style={{
+              padding: "10px 20px",
+              backgroundColor: "#4CAF50",
+              color: "white",
+              border: "none",
+              borderRadius: "5px",
+              cursor: "pointer",
+              fontWeight: "bold",
+            }}
+          >
+            Recalculate Links
+          </button>
+          <button
+            onClick={sendDataToFirebase}
+            style={{
+              padding: "10px 20px",
+              backgroundColor: "#4CAF50",
+              color: "white",
+              border: "none",
+              borderRadius: "5px",
+              cursor: "pointer",
+              fontWeight: "bold",
+            }}
+          >
+            Save Data to Firebase
+          </button>
+        </div>
       </div>
+
       {dataValue.nodes.length > 0 && dataValue.links.length > 0 ? (
         <>
           <ResponsiveContainer width={baseWidth} height={adjustedHeight}>
@@ -405,7 +459,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
               />
             )}
 
-          <div
+          {/* <div
             style={{
               position: "fixed",
               bottom: "10px",
@@ -441,12 +495,12 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
             >
               Save Data to Firebase
             </button>
-          </div>
+          </div> */}
         </>
       ) : (
         <div className="flex items-center justify-center h-full">
           <div className="p-4 rounded-md bg-red-100 text-red-700 text-center">
-            Data loading... to display the chart.
+            Data loading... 😀
           </div>
         </div>
       )}
