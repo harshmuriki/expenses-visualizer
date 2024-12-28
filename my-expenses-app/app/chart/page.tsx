@@ -2,7 +2,6 @@
 
 import React from "react";
 import SnakeyChartComponent from "@/components/SnakeyChartComponent";
-import { useRouter } from "next/navigation"
 
 export default function ChartPage() {
   return (
