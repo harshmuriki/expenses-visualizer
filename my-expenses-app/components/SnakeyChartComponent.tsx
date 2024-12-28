@@ -6,9 +6,9 @@ import { MyCustomNode, Node } from "./MyCustomNode";
 import {
   data0,
   parentChildMap_data0,
-  // testdatamini,
+  testdatamini,
   calculateLinks,
-  // parentChildMap_testdatamini,
+  parentChildMap_testdatamini,
   data1,
   data1_map,
 } from "@/data/testData";
@@ -16,6 +16,7 @@ import InputModal from "./editNodes";
 import { fixedColors } from "./variables";
 import { collection, doc, setDoc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "./firebaseConfig";
+import { Node, Map, Link } from "@/components/MyCustomNode";
 
 // import * as d3 from "d3"
 // import * as d3Sankey from "d3-sankey"
@@ -28,23 +29,34 @@ interface SnakeyChartComponentProps {
 const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
   refresh,
 }) => {
-  const [dataValue, setDataValue] = useState({ nodes: [], links: [] });
-
+  const [dataValue, setDataValue] = useState<{ nodes: Node[]; links: Link[] }>({
+    nodes: [],
+    links: [],
+  });
   useEffect(() => {
     const fetchData = async () => {
       try {
         // Fetch nodes
-        const month = "January";
+        const month = "test";
         const nodesCollectionRef = collection(db, month);
         const nodesSnapshot = await getDocs(nodesCollectionRef);
-        const nodes = nodesSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
+        const nodes = nodesSnapshot.docs
+          .filter((doc) => doc.id !== "parentChildMap") // Exclude 'parentChildMap'
+          .map((doc) => ({
+            name: doc.data().transaction, // Assuming 'transaction' is the name field
+            cost: doc.data().cost || 100, // Default to 0 if cost is not present
+            index: doc.data().index, // Use the index from Firestore
+            isleaf: doc.data().isleaf,
+            value: doc.data().cost || 100,
+            visible: doc.data().visible,
+          }))
+          .sort((a, b) => a.index - b.index); // Sort nodes by index
+        // const nodes = testdatamini.nodes;
         // Fetch parentChildMap
         const mapDocRef = doc(db, month, "parentChildMap");
         const mapSnapshot = await getDoc(mapDocRef);
         const parentChildMap = mapSnapshot.exists() ? mapSnapshot.data() : {};
+        // const parentChildMap = parentChildMap_testdatamini;
         console.log("Fetched data:", nodes, parentChildMap); // Debugging
         const data = calculateLinks(nodes, parentChildMap);
         setDataValue(data);
@@ -64,14 +76,14 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
   const [numberOfNodes, setNumberOfNodes] = useState<number>(
     dataValue.nodes.length
   );
-  const baseWidth = numberOfNodes * 40; // or 40 for big Wider base width
+  const baseWidth = numberOfNodes * 100; // or 40 for big Wider base width
   const baseHeight = numberOfNodes;
   const adjustedWidth = baseWidth + numberOfNodes * 1; // Add 100 units per node
   const adjustedHeight = baseHeight + numberOfNodes * 50; // Add 50 units per node
 
-  // useEffect(() => {
-  //   setNumberOfNodes(dataValue.nodes.length);
-  // }, [dataValue]);
+  useEffect(() => {
+    setNumberOfNodes(dataValue.nodes.length);
+  }, [dataValue]);
 
   const updateParentChildMap = () => {
     const newMap: Record<number, number[]> = {};
@@ -90,13 +102,13 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
     const updatedap = updateParentChildMap();
     // @ts-expect-error Changing the type of updatedap is breaking everything (same as map)
     const newData = calculateLinks(dataValue.nodes, updatedap);
+    const maxLinkValue = Math.max(...newData.links.map((link) => link.value));
     const coloredLinks = newData.links.map((link) => {
-      const targetNode = newData.nodes[link.target];
-      const parentColorIndex = link.source % fixedColors.length;
-      const color = fixedColors[parentColorIndex];
-      const strokeWidth = targetNode.cost ? targetNode.cost / 10 : 1;
-
-      return { ...link, color, strokeWidth };
+      // Scale the strokeWidth based on the link's value relative to the maximum link value
+      const strokeWidth = maxLinkValue
+        ? Math.max(3, (link.value / maxLinkValue) * 75) // Adjust the multiplier (10) as needed
+        : 3;
+      return { ...link, strokeWidth };
     });
     setDataValue({ ...newData, links: coloredLinks });
   };
@@ -298,106 +310,111 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
     }
   };
 
-  // console.log("all", dataValue);
-
   return (
     <div style={{ width: "100%", overflowX: "scroll", position: "relative" }}>
-      <ResponsiveContainer width={baseWidth} height={adjustedHeight}>
-        <Sankey
-          width={adjustedWidth}
-          height={adjustedHeight}
-          data={{ ...dataValue, nodes: dataValue.nodes }}
-          node={(nodeProps) => (
-            <MyCustomNode
-              {...nodeProps}
-              onNodeClick={(nodeId) => handleNodeClick(nodeId)}
-              allNodes={dataValue.nodes}
-              colorThreshold={10}
-            />
-          )}
-          nodePadding={50}
-          margin={margin}
-          // link={{ stroke: "#77c878" }}
-          link={(linkProps) => {
-            const {
-              sourceX,
-              sourceY,
-              targetX,
-              targetY,
-              sourceControlX,
-              targetControlX,
-              payload,
-            } = linkProps;
+      {dataValue.nodes.length > 0 && dataValue.links.length > 0 ? (
+        <>
+          <ResponsiveContainer width={baseWidth} height={adjustedHeight}>
+            <Sankey
+              width={adjustedWidth}
+              height={adjustedHeight}
+              data={{ ...dataValue, nodes: dataValue.nodes }}
+              node={(nodeProps) => (
+                <MyCustomNode
+                  {...nodeProps}
+                  onNodeClick={(nodeId) => handleNodeClick(nodeId)}
+                  allNodes={dataValue.nodes}
+                  colorThreshold={10}
+                />
+              )}
+              nodePadding={50}
+              margin={margin}
+              // link={{ stroke: "#77c878" }}
+              link={(linkProps) => {
+                const {
+                  sourceX,
+                  sourceY,
+                  targetX,
+                  targetY,
+                  sourceControlX,
+                  targetControlX,
+                  payload,
+                } = linkProps;
 
-            // console.log("linkProps", linkProps);
-            const sourceIndex = payload.source.index;
-            const targetIndex = payload.target.index;
+                const sourceIndex = payload.source.index;
+                const targetIndex = payload.target.index;
 
-            let linkColor = "#8884d8"; // Default color
-            let linkStrokeWidth = 2; // Default stroke width
+                let linkColor = "#8884d8"; // Default color
+                let linkStrokeWidth = 2; // Default stroke width
 
-            const link = dataValue.links.find(
-              (l) => l.source === sourceIndex && l.target === targetIndex
-            );
+                const link = dataValue.links.find(
+                  (l) => l.source === sourceIndex && l.target === targetIndex
+                );
 
-            // Construct the SVG path
-            const path = `
-              M${sourceX},${sourceY}
-              C${sourceControlX},${sourceY}
-              ${targetControlX},${targetY}
-              ${targetX},${targetY}
-            `;
+                const path = `
+                  M${sourceX},${sourceY}
+                  C${sourceControlX},${sourceY}
+                  ${targetControlX},${targetY}
+                  ${targetX},${targetY}
+                `;
 
-            if (link) {
-              linkColor = link.color || "#8884d8"; // Use the color from the link or fallback
-              linkStrokeWidth = link.strokeWidth || 2; // Use the strokeWidth from the link or fallback
-            }
+                if (link) {
+                  linkColor = link.color || linkColor;
+                  console.log("link.strokeWidth", link.strokeWidth);
+                  linkStrokeWidth = link.strokeWidth || 2;
+                }
 
-            return (
-              <path
-                key={`link-${sourceIndex}-${targetIndex}`} // Ensure source and target are defined
-                d={path}
-                stroke={linkColor}
-                strokeWidth={linkStrokeWidth}
-                strokeOpacity={0.2}
-                fill="none"
+                return (
+                  <path
+                    key={`link-${sourceIndex}-${targetIndex}`}
+                    d={path}
+                    stroke={linkColor}
+                    strokeWidth={linkStrokeWidth}
+                    strokeOpacity={0.2}
+                    fill="none"
+                  />
+                );
+              }}
+            >
+              <Tooltip />
+            </Sankey>
+          </ResponsiveContainer>
+
+          {isModalOpen &&
+            parentIndex !== null &&
+            nodeIndex !== null &&
+            node !== null && (
+              <InputModal
+                node={node}
+                initialParentName={dataValue.nodes[parentIndex].name}
+                initialPrice={dataValue.nodes[nodeIndex].value?.toString()}
+                onSubmit={handleModalSubmit}
+                onClose={() => setIsModalOpen(false)}
+                parentOptions={parentOptions}
               />
-            );
-          }}
-        >
-          <Tooltip />
-        </Sankey>
-      </ResponsiveContainer>
-      {isModalOpen &&
-        parentIndex !== null &&
-        nodeIndex !== null &&
-        node !== null && (
-          <InputModal
-            node={node}
-            initialParentName={dataValue.nodes[parentIndex].name}
-            initialPrice={dataValue.nodes[nodeIndex].value?.toString()}
-            onSubmit={handleModalSubmit}
-            onClose={() => setIsModalOpen(false)}
-            parentOptions={parentOptions}
-          />
-        )}
-      <button
-        onClick={recalculateLinks}
-        style={{
-          position: "fixed",
-          bottom: "10px",
-          left: "10px",
-          zIndex: 1000,
-          padding: "10px 20px",
-          backgroundColor: "#4CAF50",
-          color: "white",
-          border: "none",
-          borderRadius: "5px",
-          cursor: "pointer",
-        }}
-      >
-        Recalculate Links
-      </button>
+            )}
+
+          <button
+            onClick={recalculateLinks}
+            style={{
+              position: "fixed",
+              bottom: "10px",
+              left: "10px",
+              zIndex: 1000,
+              padding: "10px 20px",
+              backgroundColor: "#4CAF50",
+              color: "white",
+              border: "none",
+              borderRadius: "5px",
+              cursor: "pointer",
+            }}
+          >
+            Recalculate Links
+          </button>
+        </>
+      ) : (
+        <p>No data available to display the chart.</p>
+      )}
     </div>
   );
 };

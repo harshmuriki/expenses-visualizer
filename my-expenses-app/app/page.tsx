@@ -11,16 +11,19 @@ import UserInfo from "@/components/userInfo";
 
 const HomePage = () => {
   const [refreshChart, setRefreshChart] = useState(false);
-  // const [isUploadSuccessful, setIsUploadSuccessful] = useState(false);
+
   const handleUploadSuccess = () => {
     setRefreshChart((prev) => !prev); // Toggle the state to trigger a re-fetch
+  };
+
+  const handleBypass = () => {
+    setRefreshChart(true); // Set refreshChart to true
   };
 
   const { data: session, status } = useSession();
   const user = session?.user?.name;
   const [isAdmin, setIsAdmin] = useState(false);
   const [email, setEmail] = useState("");
-  // const checkUserExists = CheckUserExists({ email: email });
 
   useEffect(() => {
     if (session) {
@@ -34,8 +37,8 @@ const HomePage = () => {
             console.error("Error checking admin status:", error);
           });
       }, 1000); // Run every 1000 milliseconds (1 second)
-      // Cleanup function to clear the interval when the component unmounts
-      return () => clearInterval(intervalId);
+
+      return () => clearInterval(intervalId); // Cleanup interval on component unmount
     }
   }, [session]);
 
@@ -43,22 +46,13 @@ const HomePage = () => {
     try {
       const adminCollection = collection(db, "admin");
 
-      // Query to fetch admin emails from Firestore
       const q = query(adminCollection, where("email", "==", userEmail));
       const querySnapshot = await getDocs(q);
 
-      if (!querySnapshot.empty) {
-        // User email matches an admin email in the collection
-        // console.log("User is an admin");
-        return true;
-      } else {
-        // User is not an admin
-        // console.log("User is not an admin");
-        return false;
-      }
+      return !querySnapshot.empty;
     } catch (error) {
       console.error("Error checking admin status:", error);
-      return false; // Return false in case of any error
+      return false;
     }
   };
 
@@ -68,7 +62,7 @@ const HomePage = () => {
         <div className="mt-6 border-2 p-4 rounded-lg border-gray-300 bg-gray-100 sm:inline-block">
           <h2 className="text-2xl font-semibold mb-4">Admin Access</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-white p-4 rounded shadow-md">
+            <div className="p-4 rounded shadow-md">
               <h2 className="text-xl font-semibold mb-4">
                 Create New Skating Session
               </h2>
@@ -81,26 +75,34 @@ const HomePage = () => {
 
   return (
     <div>
-      <div>
-        {status === "loading" ? (
-          <p className="text-center">Loading...</p>
-        ) : !session ? (
-          <WelcomeComponent />
-        ) : (
-          <main className="">
-            <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center">
-              <h1 className="text-4xl font-bold mb-8 text-gray-800"></h1>
-              <div>
-                <UploadComponent onUploadSuccess={handleUploadSuccess} />
-                {refreshChart && (
-                  <SnakeyChartComponent refresh={refreshChart} />
-                )}
-              </div>
+      {status === "loading" ? (
+        <p className="text-center">Loading...</p>
+      ) : !session ? (
+        <WelcomeComponent />
+      ) : (
+        <main>
+          <div className="">
+            <h1 className="text-3xl font-bold mb-8 text-center text-gray-800">
+              AI Personal Expenses Tracker
+            </h1>
+            <div>
+              {!refreshChart && (
+                <>
+                  <UploadComponent onUploadSuccess={handleUploadSuccess} />
+                  <button
+                    onClick={handleBypass}
+                    className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring focus:border-blue-300 mt-4"
+                  >
+                    Bypass
+                  </button>
+                </>
+              )}
+              {refreshChart && <SnakeyChartComponent refresh={refreshChart} />}
             </div>
-            <div className="p-6 bg-white rounded-lg shadow-md flex flex-col items-center justify-center">
-              <h1 className="text-3xl font-bold mb-8 text-center text-gray-800">
-                AI Personal Expenses Tracker
-              </h1>
+          </div>
+
+          {!refreshChart && (
+            <div className="p-6 rounded-lg shadow-md flex flex-col items-center justify-center">
               <div className="flex items-center justify-center flex flex-col">
                 <div>
                   <div className="flex items-center justify-center flex-wrap bg-gray-50 px-4 rounded-lg shadow-md p-4">
@@ -125,17 +127,13 @@ const HomePage = () => {
                         </button>
                       </div>
                     </div>
-                    <div className="p-5 rounded">
-                      {/* <UserInfo email={email} /> */}
-                    </div>
                   </div>
-                  {ifAdmin({ isAdmin })}
                 </div>
               </div>
             </div>
-          </main>
-        )}
-      </div>
+          )}
+        </main>
+      )}
     </div>
   );
 };

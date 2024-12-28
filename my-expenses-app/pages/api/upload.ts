@@ -3,10 +3,8 @@ import fs from "fs";
 import path from "path";
 import csv from "csv-parser";
 import { Document } from "@/components/process";
-import { parentTags } from "@/data/testData";
 import uploadTransaction from "@/components/sendDataFirebase";
-
-let processedData = { nodes: [], parentChildMap: {} }; // In-memory storage
+import { data0, parentChildMap_data0, parentChildMap_testdatamini, testdatamini } from "@/data/testData";
 
 export const config = {
   api: {
@@ -43,27 +41,33 @@ const handler = async (req, res) => {
         .pipe(csv())
         .on("data", (data) => results.push(data))
         .on("end", async () => {
-          const allparenttags = parentTags;
+          //   const allparenttags = parentTags;
 
-          const doc = new Document(results, allparenttags);
-          await doc.convertDocToItems();
-          const { output, parentChildMap } = doc.convertData();
-          processedData = { nodes: output.nodes, parentChildMap };
+          //   const doc = new Document(results, allparenttags);
+          //   await doc.convertDocToItems();
+          //   const { nodes, parentChildMap } = doc.convertData();
+          //   processedData = { nodes: output.nodes, parentChildMap };
+
+          const nodes = testdatamini.nodes;
+          const parentChildMap = parentChildMap_testdatamini;
 
           console.log("processed data");
-          console.log("processed data", processedData);
+          const month = "test";
 
           // Send the nodes to firebase
-          for (const node of output.nodes) {
+          for (const node of nodes) {
             console.log("node", node);
+            const isLeaf = !parentChildMap.hasOwnProperty(node.index);
             await uploadTransaction({
-              month: "January",
+              month: month,
               transaction: node.name,
               index: node.index,
-              cost: node.cost || 0,
+              isleaf: isLeaf,
+              cost: node.cost || 100,
               isMap: false,
               key: null,
               values: null,
+              visible: true,
             });
           }
 
@@ -71,13 +75,15 @@ const handler = async (req, res) => {
           for (const [key, values] of Object.entries(parentChildMap)) {
             console.log("map", { key, values });
             await uploadTransaction({
-              month: "January",
+              month: month,
               transaction: null,
               index: null,
               cost: null,
+              isleaf: null,
               isMap: true,
               key: key,
               values: values,
+              visible: true,
             });
           }
 
