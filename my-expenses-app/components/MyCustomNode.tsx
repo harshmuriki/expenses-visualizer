@@ -1,5 +1,5 @@
 import React from "react";
-import { Payload, SankeyNode, SankeyLink, MyCustomNodeProps } from "@/app/types/types";
+import { MyCustomNodeProps } from "@/app/types/types";
 
 
 export const MyCustomNode: React.FC<MyCustomNodeProps> = ({

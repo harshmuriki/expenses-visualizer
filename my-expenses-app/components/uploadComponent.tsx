@@ -18,10 +18,10 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
     }
   };
 
-  const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setMonth(e.target.value);
-    onMonthSelect(e.target.value); // <-- notify parent
-  };
+//   const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+//     setMonth(e.target.value);
+//     onMonthSelect(e.target.value); // <-- notify parent
+//   };
 
   const handleUpload = async () => {
     if (!file) {

@@ -1,15 +1,17 @@
-import formidable from "formidable";
+// import formidable from "formidable";
 import fs from "fs";
-import path from "path";
+import { NextApiRequest, NextApiResponse } from "next";
+// import path from "path";
 import csv from "csv-parser";
-import { Document } from "@/components/process";
+// import { Document } from "@/components/process";
 import uploadTransaction from "@/components/sendDataFirebase";
 import {
-  data0,
-  parentChildMap_data0,
+  //   data0,
+  //   parentChildMap_data0,
   parentChildMap_testdatamini,
   testdatamini,
 } from "@/data/testData";
+import { Fields, Files } from "formidable";
 
 export const config = {
   api: {
@@ -17,22 +19,32 @@ export const config = {
   },
 };
 
-const handler = async (req, res) => {
+const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     if (req.method !== "POST") {
       return res.status(405).json({ message: "Method not allowed" });
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const formidable = require("formidable");
+
     const form = new formidable.IncomingForm();
 
-    form.parse(req, async (err, fields, files) => {
+    form.parse(req, async (err: Error | null, fields: Fields, files: Files) => {
       if (err) {
         return res.status(500).json({ error: "File upload failed" });
       }
 
-      const month = fields.month[0] || 'default';
-      const file = files.file[0]; // Access the first element of the array
+      const month =
+        Array.isArray(fields?.month) && fields.month.length > 0
+          ? fields.month[0]
+          : "default";
+
+      const file =
+        Array.isArray(files.file) && files.file.length > 0
+          ? files.file[0]
+          : null;
+
       if (!file) {
         console.log("error??", file);
         return res.status(400).json({ error: "No file uploaded" });
@@ -41,7 +53,7 @@ const handler = async (req, res) => {
       const results = [];
 
       // Read the file stream directly
-      const fileStream = fs.createReadStream(file.filepath || file.path);
+      const fileStream = fs.createReadStream(file.filepath);
 
       fileStream
         .pipe(csv())
@@ -99,15 +111,13 @@ const handler = async (req, res) => {
             .status(200)
             .json({ message: "Data processed successfully", success: true });
         })
-        .on("error", (error) => {
+        .on("error", () => {
           res.status(500).json({ error: "Error processing CSV file" });
         });
     });
   } catch (error) {
     console.error("Error in /api/upload:", error);
-    res
-      .status(500)
-      .json({ error: "Internal Server Error", details: error.message });
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
 

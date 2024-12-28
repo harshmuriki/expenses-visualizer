@@ -1,44 +1,42 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { signOut, useSession } from "next-auth/react";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "@/components/firebaseConfig";
 import { useRouter } from "next/navigation";
 import UploadComponent from "@/components/uploadComponent";
 import WelcomeComponent from "@/components/welcomeComponent";
 import Image from "next/image";
 
 // Admin Access Component
-const AdminAccess = () => {
-  return (
-    <div className="mt-8 p-6 rounded-lg bg-gray-800 border border-gray-700">
-      <h2 className="text-2xl font-bold text-white mb-4">Admin Access</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="p-4 bg-gray-700 rounded shadow">
-          <h3 className="text-lg font-semibold text-gray-200">
-            Create New Skating Session
-          </h3>
-        </div>
-      </div>
-    </div>
-  );
-};
+// const AdminAccess = () => {
+//   return (
+//     <div className="mt-8 p-6 rounded-lg bg-gray-800 border border-gray-700">
+//       <h2 className="text-2xl font-bold text-white mb-4">Admin Access</h2>
+//       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+//         <div className="p-4 bg-gray-700 rounded shadow">
+//           <h3 className="text-lg font-semibold text-gray-200">
+//             Create New Skating Session
+//           </h3>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
 
 // User Profile Component
 const UserProfile = ({
   user,
-  picture,
+  image,
   onSignOut,
 }: {
   user: string;
-  picture: string;
+  image: string;
   onSignOut: () => void;
 }) => {
   return (
     <div className="bg-white text-gray-900 p-6 rounded-lg shadow-md flex flex-col items-center">
       <Image
-        src={picture}
+        src={image}
         alt="User profile"
         className="mb-4 rounded-full border-4 border-gray-300"
         width={100}
@@ -57,31 +55,35 @@ const UserProfile = ({
 
 // Main Home Page
 const HomePage = () => {
-  const [isAdmin, setIsAdmin] = useState(false);
+  // const [isAdmin, setIsAdmin] = useState(false);
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  useEffect(() => {
-    const checkAdmin = async (userEmail: string) => {
-      try {
-        const adminRef = collection(db, "admin");
-        const q = query(adminRef, where("email", "==", userEmail));
-        const querySnapshot = await getDocs(q);
-        return !querySnapshot.empty;
-      } catch (error) {
-        console.error("Error checking admin status:", error);
-        return false;
-      }
-    };
+  // useEffect(() => {
+  //   const checkAdmin = async (userEmail: string) => {
+  //     try {
+  //       const adminRef = collection(db, "admin");
+  //       const q = query(adminRef, where("email", "==", userEmail));
+  //       const querySnapshot = await getDocs(q);
+  //       return !querySnapshot.empty;
+  //     } catch (error) {
+  //       console.error("Error checking admin status:", error);
+  //       return false;
+  //     }
+  //   };
 
-    if (session?.user?.email) {
-      checkAdmin(session.user.email).then(setIsAdmin);
-    }
-  }, [session]);
+  //   if (session?.user?.email) {
+  //     checkAdmin(session.user.email).then(setIsAdmin);
+  //   }
+  // }, [session]);
 
   // Loading state
   if (status === "loading") {
-    return <p className="text-center text-gray-200">Loading...</p>;
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gray-900">
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
   }
 
   // Not logged in
@@ -112,8 +114,11 @@ const HomePage = () => {
         </div>
 
         <UserProfile
-          user={session.user.name}
-          picture={session.user.picture}
+          user={session?.user?.name || "No User Name"}
+          image={
+            (session?.user as { picture?: string })?.picture ||
+            "/images/defaultuser.jpg"
+          } // Use type assertion
           onSignOut={() => signOut()}
         />
       </div>

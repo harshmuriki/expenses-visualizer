@@ -1,5 +1,5 @@
 export interface InputModalProps {
-  node: Node;
+  clickedNode: SankeyNode;
   initialParentName: string;
   initialPrice: string;
   onSubmit: (newParentName: string, newPrice: number) => void;
@@ -40,7 +40,7 @@ export interface MyCustomNodeProps {
   payload: Payload;
   containerWidth: number;
   onNodeClick: (nodeId: string, event: React.MouseEvent<SVGElement>) => void; // New click handler
-  allNodes: Node[];
+  allNodes: SankeyNode[];
   colorThreshold: number;
 }
 
@@ -55,4 +55,57 @@ export interface SankeyData {
 
 export interface UploadComponentProps {
   onUploadSuccess: () => void; // Callback function to trigger data fetch
+}
+
+/**
+ * Interface that represents the environment variables you rely on.
+ * For safety, check if the variable is present before usage.
+ */
+export interface EnvConfig {
+  OPENAI_KEY?: string;
+}
+
+/**
+ * Represents a row of CSV data.
+ * Many times CSV rows are free-form, so we can make this a generic
+ * "string-to-string" mapping or refine it if you know the CSV columns.
+ */
+export interface CSVRow {
+  [key: string]: string;
+}
+
+/**
+ * The structure returned by the OpenAI completion endpoint.
+ * This is simplified; you can expand if you need more fields.
+ */
+export interface OpenAIChoiceMessage {
+  message: {
+    content: string;
+  };
+}
+
+export interface OpenAICompletionResponse {
+  data: {
+    choices: OpenAIChoiceMessage[];
+  };
+}
+
+/**
+ * Represents the shape of each node in the output JSON.
+ * For instance, a node has at least a 'name', 'index' (and possibly 'cost').
+ */
+export interface OutputNode {
+  name: string;
+  index: number;
+  cost?: number;
+}
+
+/**
+ * The final hierarchical data returned by Document.convertData().
+ */
+export interface HierarchicalData {
+  output: {
+    nodes: OutputNode[];
+  };
+  parentChildMap: Record<number, number[]>;
 }

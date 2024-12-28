@@ -1,11 +1,16 @@
 // Import necessary modules
 import * as fs from "fs";
-import * as path from "path";
+// import * as path from "path";
 import * as dotenv from "dotenv";
-import * as csv from "csv-parser";
-import axios from "axios";
-import { parentTags } from "@/data/testData";
-
+// import * as csv from "csv-parser";
+import axios, { AxiosResponse } from "axios";
+import {
+  EnvConfig,
+  CSVRow,
+  OpenAICompletionResponse,
+  OutputNode,
+  HierarchicalData,
+} from "@/app/types/types";
 // Load environment variables
 dotenv.config();
 
@@ -66,28 +71,36 @@ class Item {
             parenttag: <broader category from the parent tag list given>
         `;
 
-    const completion = await this.runOpenAI(tagPrompt);
+    const completion: OpenAICompletionResponse = await this.runOpenAI(
+      tagPrompt
+    );
     const content = completion.data.choices[0].message.content;
 
     const lines = content.trim().split("\n");
     for (const line of lines) {
-      const trimmedLine = line.trim();
-      if (trimmedLine.toLowerCase().startsWith("name:")) {
-        this.name = trimmedLine.split(":", 2)[1].trim();
-      } else if (trimmedLine.toLowerCase().startsWith("cost:")) {
-        const priceStr = trimmedLine.split(":", 2)[1].trim();
+      const trimmedLine = line.trim().toLowerCase();
+
+      if (trimmedLine.startsWith("name:")) {
+        this.name = line.split(":", 2)[1].trim();
+      } else if (trimmedLine.startsWith("cost:")) {
+        const priceStr = line.split(":", 2)[1].trim();
         this.cost = parseFloat(priceStr) || null;
-      } else if (trimmedLine.toLowerCase().startsWith("index:")) {
-        this.index = trimmedLine.split(":", 2)[1].trim();
-      } else if (trimmedLine.toLowerCase().startsWith("parenttag:")) {
-        this.parenttag = trimmedLine.split(":", 2)[1].trim();
+      } else if (trimmedLine.startsWith("index:")) {
+        this.index = line.split(":", 2)[1].trim();
+      } else if (trimmedLine.startsWith("parenttag:")) {
+        this.parenttag = line.split(":", 2)[1].trim();
       }
     }
   }
 
-  async runOpenAI(prompt: string): Promise<any> {
-    const apiKey = process.env.OPENAI_KEY;
-    const response = await axios.post(
+  async runOpenAI(prompt: string): Promise<OpenAICompletionResponse> {
+    const envConfig: EnvConfig = process.env as unknown as EnvConfig;
+    const apiKey = envConfig.OPENAI_KEY;
+    if (!apiKey) {
+      throw new Error("Missing OPENAI_KEY environment variable");
+    }
+
+    const response: AxiosResponse<OpenAICompletionResponse> = await axios.post(
       "https://api.openai.com/v1/chat/completions",
       {
         model: "gpt-4o-mini",
@@ -101,19 +114,19 @@ class Item {
       }
     );
 
-    return response;
+    return response.data;
   }
 }
 
 // Define the Document class
 export class Document {
-  document: any[];
+  document: CSVRow[];
   items: Item[];
   alltags: string[] | null;
   allparenttags: string[] | null;
 
   constructor(
-    document: any[],
+    document: CSVRow[],
     alltags: string[] | null = null,
     allparenttags: string[] | null = null
   ) {
@@ -143,18 +156,19 @@ export class Document {
     }
   }
 
-  convertData(): { output: any; parentChildMap: any } {
-    const output = { nodes: [] as any[] };
-    const parentTags: { [key: string]: number } = {};
+  convertData(): HierarchicalData {
+    const output = { nodes: [] as OutputNode[] };
+    const parentTagsMap: { [key: string]: number } = {};
     const parentChildMap: { [key: number]: number[] } = {};
     let currentIndex = 0;
 
+    // Add root "Expenses" node
     output.nodes.push({ name: "Expenses", index: currentIndex });
     currentIndex++;
 
     for (const item of this.items) {
-      if (item.parenttag && !(item.parenttag in parentTags)) {
-        parentTags[item.parenttag] = currentIndex;
+      if (item.parenttag && !(item.parenttag in parentTagsMap)) {
+        parentTagsMap[item.parenttag] = currentIndex;
         output.nodes.push({ name: item.parenttag, index: currentIndex });
         parentChildMap[currentIndex] = [];
         currentIndex++;
@@ -162,11 +176,17 @@ export class Document {
 
       const transactionIndex = currentIndex;
       output.nodes.push({
-        name: item.name,
-        cost: item.cost,
+        name: item.name ?? "Untitled",
+        cost: item.cost ?? 0,
         index: transactionIndex,
       });
-      parentChildMap[parentTags[item.parenttag!]].push(transactionIndex);
+
+      const parentIndex = parentTagsMap[item.parenttag!];
+      if (!parentChildMap[parentIndex]) {
+        parentChildMap[parentIndex] = [];
+      }
+      parentChildMap[parentIndex].push(transactionIndex);
+
       currentIndex++;
     }
 
@@ -185,23 +205,27 @@ export class Document {
 }
 
 // Main function
-async function main() {
-  const csvFilePath = path.resolve(__dirname, "activity.csv");
+// async function main(): Promise<void> {
+//   const csvFilePath = path.resolve(__dirname, "activity.csv");
 
-  const allparenttags = parentTags
+//   // "parentTags" is imported from testData, or you can define your own array
+//   // If you want a consistent type, you can define: const allparenttags: string[] = parentTags;
 
-  const document: any[] = [];
-  fs.createReadStream(csvFilePath)
-    .pipe(csv())
-    .on("data", (row) => {
-      document.push(row);
-    })
-    .on("end", async () => {
-      const doc = new Document(document, allparenttags);
-      await doc.convertDocToItems();
-      const hierarchicalData = doc.convertData();
-      console.log(hierarchicalData);
-    });
-}
+//   const allparenttags = parentTags as string[];
 
-// main();
+//   const document: CSVRow[] = [];
+
+//   fs.createReadStream(csvFilePath)
+//     .pipe(csv())
+//     .on("data", (row: CSVRow) => {
+//       document.push(row);
+//     })
+//     .on("end", async () => {
+//       const doc = new Document(document, allparenttags);
+//       await doc.convertDocToItems();
+//       const hierarchicalData = doc.convertData();
+//       console.log(hierarchicalData);
+//     });
+// }
+
+// main(); // Uncomment to run directly
