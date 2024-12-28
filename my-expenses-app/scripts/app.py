@@ -34,7 +34,7 @@ def upload_csv():
     doc = process.Document(df, allparenttags=allparenttags)
     doc.convert_doc_to_items()
     doc.show_items()
-    global nodes, parentChildMap = doc.convert_data()
+    # global nodes, parentChildMap = doc.convert_data()
 
     return jsonify({"nodes": nodes, "parentChildMap": parentChildMap}), 200
 

@@ -3,15 +3,15 @@
 import React, { useState, useEffect } from "react";
 import { Sankey, Tooltip, ResponsiveContainer } from "recharts";
 import { MyCustomNode } from "./MyCustomNode";
-import { testdatamini, calculateLinks } from "@/data/testData";
+import { calculateLinks } from "@/data/testData";
 import InputModal from "./editNodes";
-import { collection, doc, setDoc, getDoc, getDocs } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "./firebaseConfig";
 import {
   SankeyNode,
-  SankeyLink,
   SankeyData,
   SnakeyChartComponentProps,
+  Map,
 } from "@/app/types/types";
 import uploadTransaction from "./sendDataFirebase";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -26,11 +26,16 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [parentIndex, setParentIndex] = useState<number | null>(null);
   const [nodeIndex, setNodeIndex] = useState<number | null>(null);
-  const [node, setNode] = useState<SankeyNode | null>(null);
+  const [clickedNode, setNode] = useState<SankeyNode | null>(null);
   const router = useRouter();
 
   const searchParams = useSearchParams();
-  const month = searchParams.get("month") || "";
+  let month = searchParams?.get("month") || "";
+
+  if (month === "") {
+    month = "feb";
+    console.warn("No month specified. Using default month.", month);
+  }
 
   /**
    * Fetches data (nodes + parentChildMap) from Firestore,
@@ -40,6 +45,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
     const fetchData = async () => {
       try {
         // Fetch nodes
+
         const nodesCollectionRef = collection(db, month);
         const nodesSnapshot = await getDocs(nodesCollectionRef);
         const nodes: SankeyNode[] = nodesSnapshot.docs
@@ -57,18 +63,36 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
         // Fetch parentChildMap
         const mapDocRef = doc(db, month, "parentChildMap");
         const mapSnapshot = await getDoc(mapDocRef);
-        const parentChildMap = mapSnapshot.exists() ? mapSnapshot.data() : {};
+
+        // 1) Get array of keys as numbers
+        const keys: number[] = mapSnapshot.exists()
+          ? Object.keys(mapSnapshot.data()).map((key) => parseInt(key))
+          : [];
+
+        const parentChildMapArr: number[][] = mapSnapshot.exists()
+          ? Object.values(mapSnapshot.data()).map(
+              (values) => values as number[]
+            )
+          : [];
+
+        const parentChildMap: Map = keys.reduce((acc: Map, key, index) => {
+          acc[key] = parentChildMapArr[index];
+          return acc;
+        }, {});
+
+        console.log("parentChildMapObj", parentChildMap);
 
         // Calculate links from the nodes + parentChildMap
-        const data = calculateLinks(nodes, parentChildMap);
-        setDataValue(data);
+        const { nodes: calculatedNodes, links: calculatedLinks } =
+          calculateLinks(nodes, parentChildMap);
+        setDataValue({ nodes: calculatedNodes, links: calculatedLinks });
       } catch (error) {
         console.error("Error fetching data:", error);
       }
     };
 
     fetchData();
-  }, [refresh]);
+  }, [refresh, month]);
 
   /**
    * Dynamically builds a parent->children map based on existing links.
@@ -110,7 +134,6 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
   const sendDataToFirebase = async () => {
     console.log("uploading data to firebase");
     try {
-      const month = "test1";
       // Send nodes to Firebase
       for (const node of dataValue.nodes) {
         const isLeaf =
@@ -145,6 +168,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
         });
       }
       console.log("Data saved to Firebase successfully!");
+      alert("Data uploaded successfully!");
     } catch (error) {
       console.error("Error saving data to Firebase:", error);
     }
@@ -230,7 +254,9 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
       // If the user actually changed the parent (not just the price)
       if (newParentIndex !== parentIndex) {
         // Subtract the node's value from the old parent
-        updatedNodes[parentIndex].value -= prevData.nodes[nodeIndex].cost ?? 0;
+        // updatedNodes?[parentIndex].value -= prevData.nodes[nodeIndex].cost ?? 0;
+        (updatedNodes as { value: number }[])[parentIndex].value -=
+          prevData.nodes[nodeIndex].cost ?? 0;
 
         // Reassign the leaf to the new parent
         updatedLinks = updatedLinks.map((link) =>
@@ -448,11 +474,13 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
           {isModalOpen &&
             parentIndex !== null &&
             nodeIndex !== null &&
-            node !== null && (
+            clickedNode !== null && (
               <InputModal
-                node={node}
+                clickedNode={clickedNode}
                 initialParentName={dataValue.nodes[parentIndex]?.name}
-                initialPrice={dataValue.nodes[nodeIndex]?.value?.toString()}
+                initialPrice={
+                  dataValue.nodes[nodeIndex]?.value?.toString() || "0"
+                }
                 onSubmit={handleModalSubmit}
                 onClose={() => setIsModalOpen(false)}
                 parentOptions={parentOptions}

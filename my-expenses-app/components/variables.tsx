@@ -1,3 +1,20 @@
+export const parentTags = [
+  "Food & Dining",
+  "Food Delivery",
+  "Transportation",
+  "Shopping",
+  "Entertainment & Recreation",
+  "Housing",
+  "Bills & Utilities",
+  "Health & Wellness",
+  "Education",
+  "Finance & Fees",
+  "Business & Work",
+  "Insurance",
+  "Personal Care",
+  "Travel",
+];
+
 export const fixedColors = [
   "#FF5733", // Red
   "#33FF57", // Green

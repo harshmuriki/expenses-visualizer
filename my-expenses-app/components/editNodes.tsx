@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Node } from "./MyCustomNode";
 import { InputModalProps } from "@/app/types/types";
 
 const InputModal: React.FC<InputModalProps> = ({
-  node,
+  clickedNode,
   initialParentName,
   initialPrice,
   onSubmit,
@@ -88,7 +87,7 @@ const InputModal: React.FC<InputModalProps> = ({
         }}
       >
         Transaction:{" "}
-        <span style={{ fontWeight: "normal", color: "#222" }}>{node.name}</span>
+        <span style={{ fontWeight: "normal", color: "#222" }}>{clickedNode.name}</span>
       </h2>{" "}
       <div style={{ marginBottom: "15px" }}>
         <label

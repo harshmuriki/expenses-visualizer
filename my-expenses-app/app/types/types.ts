@@ -1,5 +1,5 @@
 export interface InputModalProps {
-  node: Node;
+  clickedNode: SankeyNode;
   initialParentName: string;
   initialPrice: string;
   onSubmit: (newParentName: string, newPrice: number) => void;
@@ -40,7 +40,7 @@ export interface MyCustomNodeProps {
   payload: Payload;
   containerWidth: number;
   onNodeClick: (nodeId: string, event: React.MouseEvent<SVGElement>) => void; // New click handler
-  allNodes: Node[];
+  allNodes: SankeyNode[];
   colorThreshold: number;
 }
 
