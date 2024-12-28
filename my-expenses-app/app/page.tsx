@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import SnakeyChartComponent from "@/components/SnakeyChartComponent";
-import UploadComponent from "@/components/uploadComponent";
+// import { useRouter } from "next/router";
 import { signOut, useSession } from "next-auth/react";
+import UploadComponent from "@/components/uploadComponent";
 import WelcomeComponent from "@/components/welcomeComponent";
-import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/components/firebaseConfig";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { useRouter } from "next/navigation";
 
 // Separate Admin Access Component
 const AdminAccess = () => {
@@ -47,14 +48,13 @@ const UserProfile = ({ user, picture, onSignOut }) => {
     </div>
   );
 };
-
-// Main Home Page Component
 const HomePage = () => {
-  const [refreshChart, setRefreshChart] = useState(false);
-  const { data: session, status } = useSession();
   const [isAdmin, setIsAdmin] = useState(false);
+  const { data: session, status } = useSession();
+  const router = useRouter(); // For navigation
 
   useEffect(() => {
+    // Check admin logic remains the same
     const checkAdmin = async (userEmail) => {
       try {
         const adminCollection = collection(db, "admin");
@@ -72,50 +72,51 @@ const HomePage = () => {
     }
   }, [session]);
 
-  const handleUploadSuccess = () => setRefreshChart((prev) => !prev);
-  const handleBypass = () => setRefreshChart(true);
-
-  if (status === "loading")
+  // If session is loading
+  if (status === "loading") {
     return <p className="text-center text-gray-200">Loading...</p>;
+  }
 
-  if (!session) return <WelcomeComponent />;
+  // If user is not logged in
+  if (!session) {
+    return <WelcomeComponent />;
+  }
+
+  const handleBypass = () => {
+    // Instead of setting refreshChart, we redirect to /chart
+    router.push("/chart");
+  };
 
   return (
-    <div
-      className={`min-h-screen ${
-        refreshChart ? "bg-gray-900" : "bg-gray-900 text-gray-200 py-10"
-      }`}
-    >
-      {refreshChart ? (
-        <div className="w-screen h-screen flex items-center justify-center">
-          <SnakeyChartComponent refresh={refreshChart} />
-        </div>
-      ) : (
-        <main className="max-w-4xl mx-auto px-6">
-          <h1 className="text-5xl font-bold text-center text-white mb-12">
-            AI Personal Expenses Tracker
-          </h1>
+    <div className="min-h-screen bg-gray-900 text-gray-200 py-10">
+      <main className="max-w-4xl mx-auto px-6">
+        <h1 className="text-5xl font-bold text-center text-white mb-12">
+          AI Personal Expenses Tracker
+        </h1>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
-              <UploadComponent onUploadSuccess={handleUploadSuccess} />
-              <button
-                onClick={handleBypass}
-                className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring focus:ring-blue-400"
-              >
-                Bypass
-              </button>
-            </div>
-            <UserProfile
-              user={session.user.name}
-              picture={session.user.picture}
-              onSignOut={() => signOut()}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
+            <UploadComponent
+            // onUploadSuccess -> you can keep this if you want to do something
+            // else after uploading, but not necessary for the direct chart page
             />
+            <button
+              onClick={handleBypass}
+              className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring focus:ring-blue-400"
+            >
+              Go to Chart
+            </button>
           </div>
 
-          {/* {isAdmin && <AdminAccess />} */}
-        </main>
-      )}
+          <UserProfile
+            user={session.user.name}
+            picture={session.user.picture}
+            onSignOut={() => signOut()}
+          />
+        </div>
+
+        {/* {isAdmin && <AdminAccess />} */}
+      </main>
     </div>
   );
 };
