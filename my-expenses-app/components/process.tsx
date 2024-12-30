@@ -13,6 +13,7 @@ import {
 } from "@/app/types/types";
 // Load environment variables
 dotenv.config();
+// import OpenAI from "openai";
 
 // Define the Item class
 class Item {
@@ -74,7 +75,8 @@ class Item {
     const completion: OpenAICompletionResponse = await this.runOpenAI(
       tagPrompt
     );
-    const content = completion.data.choices[0].message.content;
+
+    const content = completion.choices[0].message.content;
 
     const lines = content.trim().split("\n");
     for (const line of lines) {
@@ -177,7 +179,7 @@ export class Document {
       const transactionIndex = currentIndex;
       output.nodes.push({
         name: item.name ?? "Untitled",
-        cost: item.cost ?? 0,
+        cost: item.cost ?? 1,
         index: transactionIndex,
       });
 
@@ -195,6 +197,9 @@ export class Document {
       "parent_child_map.json",
       JSON.stringify(parentChildMap, null, 4)
     );
+
+    console.log("output", output);
+    console.log("parentChildMap", parentChildMap);
 
     console.log(
       "Data successfully written to 'output.json' and 'parent_child_map.json'"

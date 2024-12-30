@@ -88,6 +88,11 @@ export interface OpenAICompletionResponse {
   data: {
     choices: OpenAIChoiceMessage[];
   };
+  choices: {
+    message: {
+      content: string;
+    };
+  }[];
 }
 
 /**
@@ -108,4 +113,12 @@ export interface HierarchicalData {
     nodes: OutputNode[];
   };
   parentChildMap: Record<number, number[]>;
+}
+
+// Define the type for the results array
+export interface ResultType {
+  // Replace 'key1', 'key2', etc., with actual keys and their types
+  key1: string;
+  key2: number;
+  // Add other keys as needed
 }

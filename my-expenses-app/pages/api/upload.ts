@@ -3,15 +3,17 @@ import fs from "fs";
 import { NextApiRequest, NextApiResponse } from "next";
 // import path from "path";
 import csv from "csv-parser";
-// import { Document } from "@/components/process";
+import { Document } from "@/components/process";
 import uploadTransaction from "@/components/sendDataFirebase";
-import {
-  //   data0,
-  //   parentChildMap_data0,
-  parentChildMap_testdatamini,
-  testdatamini,
-} from "@/data/testData";
+// import {
+//   data0,
+//   parentChildMap_data0,
+//   parentChildMap_testdatamini,
+//   testdatamini,
+// } from "@/data/testData";
 import { Fields, Files } from "formidable";
+import { parentTags } from "@/components/variables";
+import { CSVRow } from "@/app/types/types";
 
 export const config = {
   api: {
@@ -50,7 +52,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
         return res.status(400).json({ error: "No file uploaded" });
       }
 
-      const results = [];
+      const results: CSVRow[] = [];
 
       // Read the file stream directly
       const fileStream = fs.createReadStream(file.filepath);
@@ -59,21 +61,24 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
         .pipe(csv())
         .on("data", (data) => results.push(data))
         .on("end", async () => {
-          //   const allparenttags = parentTags;
+          const allparenttags = parentTags;
 
-          //   const doc = new Document(results, allparenttags);
-          //   await doc.convertDocToItems();
-          //   const { nodes, parentChildMap } = doc.convertData();
-          //   processedData = { nodes: output.nodes, parentChildMap };
+          const doc = new Document(results, allparenttags);
+          await doc.convertDocToItems();
+          const { output, parentChildMap } = doc.convertData();
+          // processedData = { nodes: output.nodes, parentChildMap };
 
-          const nodes = testdatamini.nodes;
-          const parentChildMap = parentChildMap_testdatamini;
+          // const nodes = testdatamini.nodes;
+          // const parentChildMap = parentChildMap_testdatamini;
 
           console.log("processed data");
 
+          console.log("nodes", output);
+          console.log("parentmap", parentChildMap);
+
           // Send the nodes to firebase
-          for (const node of nodes) {
-            console.log("node", node);
+          for (const node of output.nodes) {
+            // console.log("node", node);
             const isLeaf =
               node.index === 0
                 ? false

@@ -2,13 +2,13 @@
 
 import React, { useState } from "react";
 import { UploadComponentProps } from "@/app/types/types";
-import { useRouter } from "next/navigation"; // or "next/router" if using Pages Router
+import { useRouter } from "next/navigation";
 
 const UploadComponent: React.FC<UploadComponentProps> = ({
   onUploadSuccess,
 }) => {
   const [file, setFile] = useState<File | null>(null);
-  const [month, setMonth] = useState<string>(""); // <-- NEW: Month state
+  const [month, setMonth] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
   const router = useRouter();
 
@@ -17,11 +17,6 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
       setFile(event.target.files[0]);
     }
   };
-
-//   const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-//     setMonth(e.target.value);
-//     onMonthSelect(e.target.value); // <-- notify parent
-//   };
 
   const handleUpload = async () => {
     if (!file) {
@@ -95,7 +90,32 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
             : "bg-blue-500 hover:bg-blue-600 text-white"
         }`}
       >
-        {isUploading ? "Uploading..." : "Upload"}
+        {isUploading ? (
+          <div className="flex items-center">
+            {/* A simple spinning circle */}
+            <svg
+              className="animate-spin h-5 w-5 mr-3 text-white"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v8H4z"
+              />
+            </svg>
+            Processing using AI...
+          </div>
+        ) : (
+          "Upload"
+        )}
       </button>
     </div>
   );
