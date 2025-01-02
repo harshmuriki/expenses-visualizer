@@ -72,7 +72,10 @@ const HomePage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-4xl">
         {/* Upload Card */}
         <div className="bg-white text-gray-900 p-6 rounded-lg shadow-lg flex flex-col">
-          <UploadComponent onUploadSuccess={() => {}} />
+          <UploadComponent
+            onUploadSuccess={() => {}}
+            useremail={session.user?.email as string}
+          />
           <button
             onClick={handleBypass}
             className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring focus:ring-blue-400 self-end"

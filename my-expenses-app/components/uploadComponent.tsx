@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 const UploadComponent: React.FC<UploadComponentProps> = ({
   onUploadSuccess,
+  useremail,
 }) => {
   const [file, setFile] = useState<File | null>(null);
   const [month, setMonth] = useState<string>("");
@@ -31,6 +32,7 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
     const formData = new FormData();
     formData.append("file", file);
     formData.append("month", month);
+    formData.append("useremail", useremail);
 
     setIsUploading(true);
     try {

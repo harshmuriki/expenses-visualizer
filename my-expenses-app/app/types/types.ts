@@ -55,6 +55,7 @@ export interface SankeyData {
 
 export interface UploadComponentProps {
   onUploadSuccess: () => void; // Callback function to trigger data fetch
+  useremail: string;
 }
 
 /**

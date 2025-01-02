@@ -15,6 +15,7 @@ import {
 } from "@/app/types/types";
 import uploadTransaction from "./sendDataFirebase";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
   refresh,
@@ -28,6 +29,18 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
   const [nodeIndex, setNodeIndex] = useState<number | null>(null);
   const [clickedNode, setNode] = useState<SankeyNode | null>(null);
   const router = useRouter();
+  const { data: session } = useSession();
+  const [user, setUser] = useState<{
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    if (session) {
+      setUser(session?.user || null);
+    }
+  }, [session]);
 
   const searchParams = useSearchParams();
   let month = searchParams?.get("month") || "";
@@ -43,10 +56,14 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
    */
   useEffect(() => {
     const fetchData = async () => {
+      if (!user?.email) {
+        console.warn("User email is not set. Skipping data fetch.");
+        return;
+      }
       try {
         // Fetch nodes
-
-        const nodesCollectionRef = collection(db, month);
+        const userDocRef = doc(db, "users", user?.email);
+        const nodesCollectionRef = collection(userDocRef, month);
         const nodesSnapshot = await getDocs(nodesCollectionRef);
         const nodes: SankeyNode[] = nodesSnapshot.docs
           .filter((doc) => doc.id !== "parentChildMap") // Exclude 'parentChildMap'
@@ -61,7 +78,8 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
           .sort((a, b) => a.index - b.index);
 
         // Fetch parentChildMap
-        const mapDocRef = doc(db, month, "parentChildMap");
+        // const nodesCollectionRef = collection(userDocRef, month);
+        const mapDocRef = doc(nodesCollectionRef, "parentChildMap");
         const mapSnapshot = await getDoc(mapDocRef);
 
         // 1) Get array of keys as numbers
@@ -80,7 +98,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
           return acc;
         }, {});
 
-        console.log("parentChildMapObj", parentChildMap);
+        // console.log("parentChildMapObj", parentChildMap);
 
         // Calculate links from the nodes + parentChildMap
         const { nodes: calculatedNodes, links: calculatedLinks } =
@@ -92,7 +110,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
     };
 
     fetchData();
-  }, [refresh, month]);
+  }, [refresh, month, user?.email]);
 
   /**
    * Dynamically builds a parent->children map based on existing links.
@@ -141,6 +159,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
             ? false
             : !dataValue.links.some((link) => link.source === node.index);
         await uploadTransaction({
+          useremail: user?.email?.toString() || "",
           month: month,
           transaction: node.name,
           index: node.index,
@@ -156,6 +175,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
       const parentChildMap = updateParentChildMap();
       for (const [key, values] of Object.entries(parentChildMap)) {
         await uploadTransaction({
+          useremail: user?.email?.toString() || "",
           month: month,
           transaction: null,
           index: null,

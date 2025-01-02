@@ -47,6 +47,11 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
           ? files.file[0]
           : null;
 
+      const useremail =
+        Array.isArray(fields.useremail) && fields.useremail.length > 0
+          ? fields.useremail[0]
+          : "default";
+
       if (!file) {
         console.log("error??", file);
         return res.status(400).json({ error: "No file uploaded" });
@@ -57,6 +62,8 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       // Read the file stream directly
       const fileStream = fs.createReadStream(file.filepath);
 
+      // const test = true;
+
       fileStream
         .pipe(csv())
         .on("data", (data) => results.push(data))
@@ -66,24 +73,20 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
           const doc = new Document(results, allparenttags);
           await doc.convertDocToItems();
           const { output, parentChildMap } = doc.convertData();
-          // processedData = { nodes: output.nodes, parentChildMap };
+          const processedData = { nodes: output.nodes, parentChildMap };
 
-          // const nodes = testdatamini.nodes;
+          // const processedData = testdatamini;
           // const parentChildMap = parentChildMap_testdatamini;
 
-          console.log("processed data");
-
-          console.log("nodes", output);
-          console.log("parentmap", parentChildMap);
-
           // Send the nodes to firebase
-          for (const node of output.nodes) {
+          for (const node of processedData.nodes) {
             // console.log("node", node);
             const isLeaf =
               node.index === 0
                 ? false
                 : !parentChildMap.hasOwnProperty(node.index);
             await uploadTransaction({
+              useremail: useremail,
               month: month,
               transaction: node.name,
               index: node.index,
@@ -100,6 +103,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
           for (const [key, values] of Object.entries(parentChildMap)) {
             console.log("map", { key, values });
             await uploadTransaction({
+              useremail: useremail,
               month: month,
               transaction: null,
               index: null,
