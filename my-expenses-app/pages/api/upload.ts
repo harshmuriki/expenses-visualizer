@@ -76,7 +76,9 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
           const processedData = { nodes: output.nodes, parentChildMap };
 
           // const processedData = testdatamini;
+          // const processedData = testdatamini;
           // const parentChildMap = parentChildMap_testdatamini;
+
 
           // Send the nodes to firebase
           for (const node of processedData.nodes) {
