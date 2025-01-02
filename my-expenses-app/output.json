@@ -5,63 +5,92 @@
             "index": 0
         },
         {
-            "name": "null",
+            "name": "Restaurant-Restaurant",
             "index": 1
         },
         {
-            "name": "AMAZON.COM",
-            "cost": 5.84,
+            "name": "AplPay Marrakech Express",
+            "cost": 9.74,
             "index": 2
         },
         {
-            "name": "Restaurant-Bar & Café",
+            "name": "Transportation-Rail Services",
             "index": 3
         },
         {
-            "name": "AplPay AJM BUSINESS",
-            "cost": 6.24,
+            "name": "SEPTA Fare",
+            "cost": 15,
             "index": 4
         },
         {
-            "name": "Fast Food Restaurant",
-            "cost": 18.72,
+            "name": "null",
             "index": 5
         },
         {
-            "name": "Transportation-Taxis & Coach",
+            "name": "Amazon Purchase",
+            "cost": 5.84,
             "index": 6
         },
         {
-            "name": "LYFT Ride",
-            "cost": 12.73,
+            "name": "Restaurant-Bar & Café",
             "index": 7
         },
         {
-            "name": "Transportation-Rail Services",
+            "name": "AplPay L' ARTE DEL G",
+            "cost": 7.89,
             "index": 8
+        },
+        {
+            "name": "Transportation",
+            "index": 9
+        },
+        {
+            "name": "LYFT Ride",
+            "cost": 10.78,
+            "index": 10
+        },
+        {
+            "name": "Transportation-Taxis & Coach",
+            "index": 11
+        },
+        {
+            "name": "LYFT",
+            "cost": 12.73,
+            "index": 12
         },
         {
             "name": "AplPay NYCT PAYGO",
             "cost": 2.9,
-            "index": 9
+            "index": 13
         },
         {
-            "name": "Restaurant",
-            "index": 10
+            "name": "AplPay NYCT PAYGO",
+            "cost": 2.9,
+            "index": 14
         },
         {
-            "name": "Cheesecake Factory",
-            "cost": 45.53,
-            "index": 11
+            "name": "AplPay NYCT PAYGO",
+            "cost": 2.9,
+            "index": 15
+        },
+        {
+            "name": "AplPay NYCT PAYGO",
+            "cost": 2.9,
+            "index": 16
+        },
+        {
+            "name": "AplPay BIRD APP",
+            "cost": 1.08,
+            "index": 17
         },
         {
             "name": "Entertainment-Other Entertainment",
-            "index": 12
+            "index": 18
         },
         {
             "name": "AplPay BIRD APP",
             "cost": 2.15,
-            "index": 13
+            "index": 19
         }
     ]
 }
