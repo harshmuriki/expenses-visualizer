@@ -1,8 +1,23 @@
-import React from "react";
+import React, { useState } from "react";
 import { signIn } from "next-auth/react";
 import Image from "next/image";
 
 function WelcomeComponent() {
+    const [showWarning, setShowWarning] = useState(false);
+
+    const handleSignIn = () => {
+        setShowWarning(true);
+    };
+
+    const handleAccept = () => {
+        setShowWarning(false);
+        signIn(); // Proceed with sign-in
+    };
+
+    const handleCancel = () => {
+        setShowWarning(false);
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-r from-slate-700 to-slate-900 flex flex-col items-center justify-center p-4">
             <h1 className="text-5xl md:text-6xl font-extrabold mb-6 text-center text-white drop-shadow-lg">
@@ -15,11 +30,41 @@ function WelcomeComponent() {
             </p>
 
             <button
-                onClick={() => signIn()}
+                onClick={handleSignIn}
                 className="bg-white text-blue-700 hover:text-blue-800 hover:bg-gray-200 font-semibold py-3 px-6 rounded-lg shadow-lg transition duration-300"
             >
                 Sign in with Google
             </button>
+
+            {/* Warning Modal */}
+            {showWarning && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+                        <h3 className="text-xl font-bold text-gray-800 mb-4">Important Notice</h3>
+                        <p className="text-gray-600 mb-6">
+                            By signing in, you acknowledge that this application is hosted on
+                            Firebase and utilizes the OpenAI API. Your data may or may not be safe,
+                            and I hold no responsibility for any data breaches or misuse. You can
+                            self host this application by following the instructions on the GitHub
+                            repository for safer use.
+                        </p>
+                        <div className="flex justify-end space-x-4">
+                            <button
+                                onClick={handleCancel}
+                                className="bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleAccept}
+                                className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
+                            >
+                                Accept and Sign In
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Steps to Use the Software */}
             <div className="mt-16 w-full max-w-4xl">

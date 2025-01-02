@@ -2,10 +2,11 @@
 
 import React from "react";
 import { signOut, useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 import UploadComponent from "@/components/uploadComponent";
 import WelcomeComponent from "@/components/welcomeComponent";
 import Image from "next/image";
+import Footer from "@/components/footer";
 
 interface UserProfileProps {
   user: string;
@@ -42,7 +43,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
 // Main Home Page
 const HomePage: React.FC = () => {
   const { data: session, status } = useSession();
-  const router = useRouter();
+  // const router = useRouter();
 
   // Loading state
   if (status === "loading") {
@@ -59,43 +60,51 @@ const HomePage: React.FC = () => {
   }
 
   // Navigate to the chart page
-  const handleBypass = () => {
-    router.push("/chart");
-  };
+  // const handleBypass = () => {
+  //   router.push("/chart");
+  // };
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-slate-700 to-slate-900 flex flex-col items-center justify-center p-4">
-      <h1 className="text-5xl md:text-6xl font-extrabold mb-6 text-center text-white drop-shadow-lg">
-        AI Personal Expenses Tracker
-      </h1>
+    <div className="flex flex-col min-h-screen bg-gradient-to-r from-slate-700 to-slate-900">
+      {/* Title at the top */}
+      <header className="py-6 text-center">
+        <h1 className="text-5xl md:text-6xl font-extrabold text-white drop-shadow-lg">
+          AI Personal Expenses Tracker
+        </h1>
+      </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-4xl">
-        {/* Upload Card */}
-        <div className="bg-white text-gray-900 p-6 rounded-lg shadow-lg flex flex-col">
-          <UploadComponent
-            onUploadSuccess={() => {}}
-            useremail={session.user?.email as string}
+      {/* Main Content in the center */}
+      <main className="flex-grow flex items-center justify-center">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-4xl">
+          {/* Upload Card */}
+          <div className="bg-white text-gray-900 p-6 rounded-lg shadow-lg flex flex-col">
+            <UploadComponent
+              onUploadSuccess={() => {}}
+              useremail={session.user?.email as string}
+            />
+            {/* Future button to choose old charts */}
+            {/* <button
+              onClick={handleBypass}
+              className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring focus:ring-blue-400 self-end"
+            >
+              Go to Default Chart
+            </button> */}
+          </div>
+
+          {/* User Profile Card */}
+          <UserProfile
+            user={session?.user?.name || "No User Name"}
+            image={
+              (session?.user as { picture?: string })?.picture ||
+              "/images/defaultuser.jpg"
+            }
+            onSignOut={() => signOut()}
           />
-          <button
-            onClick={handleBypass}
-            className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring focus:ring-blue-400 self-end"
-          >
-            Go to Chart
-          </button>
         </div>
+      </main>
 
-        {/* User Profile Card */}
-        <UserProfile
-          user={session?.user?.name || "No User Name"}
-          image={
-            (session?.user as { picture?: string })?.picture ||
-            "/images/defaultuser.jpg"
-          }
-          onSignOut={() => signOut()}
-        />
-      </div>
-      {/* Uncomment if admin functionality is needed */}
-      {/* {isAdmin && <AdminAccess />} */}
+      {/* Footer at the bottom */}
+      <Footer />
     </div>
   );
 };
