@@ -15,6 +15,8 @@ import { Fields, Files } from "formidable";
 import { parentTags } from "@/components/variables";
 import { CSVRow, Map, SankeyNode } from "@/app/types/types";
 
+dotenv.config();
+
 export const config = {
   api: {
     bodyParser: false,
@@ -62,7 +64,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       // Read the file stream directly
       const fileStream = fs.createReadStream(file.filepath);
 
-      const test = true;
+      const test = process.env.NEXT_PUBLIC_TEST_KEY;
       let processedData: { nodes: SankeyNode[]; parentChildMap: Map };
       let parentChildMap: Map;
 
