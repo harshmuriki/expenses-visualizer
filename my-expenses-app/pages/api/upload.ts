@@ -5,15 +5,15 @@ import { NextApiRequest, NextApiResponse } from "next";
 import csv from "csv-parser";
 import { Document } from "@/components/process";
 import uploadTransaction from "@/components/sendDataFirebase";
-// import {
-//   data0,
-//   parentChildMap_data0,
-//   parentChildMap_testdatamini,
-//   testdatamini,
-// } from "@/data/testData";
+import {
+  // data0,
+  // parentChildMap_data0,
+  parentChildMap_testdatamini,
+  testdatamini,
+} from "@/data/testData";
 import { Fields, Files } from "formidable";
 import { parentTags } from "@/components/variables";
-import { CSVRow } from "@/app/types/types";
+import { CSVRow, Map, SankeyNode } from "@/app/types/types";
 
 export const config = {
   api: {
@@ -62,7 +62,9 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       // Read the file stream directly
       const fileStream = fs.createReadStream(file.filepath);
 
-      // const test = true;
+      const test = true;
+      let processedData: { nodes: SankeyNode[]; parentChildMap: Map };
+      let parentChildMap: Map;
 
       fileStream
         .pipe(csv())
@@ -72,12 +74,14 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
           const doc = new Document(results, allparenttags);
           await doc.convertDocToItems();
-          const { output, parentChildMap } = doc.convertData();
-          const processedData = { nodes: output.nodes, parentChildMap };
 
-          // const processedData = testdatamini;
-          // const processedData = testdatamini;
-          // const parentChildMap = parentChildMap_testdatamini;
+          if (test) {
+            processedData = testdatamini;
+            parentChildMap = parentChildMap_testdatamini;
+          } else {
+            const { output, parentChildMap } = doc.convertData();
+            processedData = { nodes: output.nodes, parentChildMap };
+          }
 
           // Send the nodes to firebase
           for (const node of processedData.nodes) {

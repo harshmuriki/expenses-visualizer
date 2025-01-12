@@ -205,36 +205,10 @@ export class Document {
     console.log("output", output);
     console.log("parentChildMap", parentChildMap);
 
-    console.log(
-      "Data successfully written to 'output.json' and 'parent_child_map.json'"
-    );
+    // console.log(
+    //   "Data successfully written to 'output.json' and 'parent_child_map.json'"
+    // );
 
     return { output, parentChildMap };
   }
 }
-
-// Main function
-// async function main(): Promise<void> {
-//   const csvFilePath = path.resolve(__dirname, "activity.csv");
-
-//   // "parentTags" is imported from testData, or you can define your own array
-//   // If you want a consistent type, you can define: const allparenttags: string[] = parentTags;
-
-//   const allparenttags = parentTags as string[];
-
-//   const document: CSVRow[] = [];
-
-//   fs.createReadStream(csvFilePath)
-//     .pipe(csv())
-//     .on("data", (row: CSVRow) => {
-//       document.push(row);
-//     })
-//     .on("end", async () => {
-//       const doc = new Document(document, allparenttags);
-//       await doc.convertDocToItems();
-//       const hierarchicalData = doc.convertData();
-//       console.log(hierarchicalData);
-//     });
-// }
-
-// main(); // Uncomment to run directly

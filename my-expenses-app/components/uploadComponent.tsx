@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { UploadComponentProps } from "@/app/types/types";
 import { useRouter } from "next/navigation";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "./firebaseConfig";
 
 const UploadComponent: React.FC<UploadComponentProps> = ({
   onUploadSuccess,
@@ -12,6 +14,7 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
   const [month, setMonth] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
   const router = useRouter();
+  const [months, setMonths] = useState([]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -57,6 +60,39 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
     }
   };
 
+  useEffect(() => {
+    const fetchUserFields = async () => {
+      try {
+        const userDocRef = doc(db, "users", useremail);
+        const userDocSnapshot = await getDoc(userDocRef);
+        if (userDocSnapshot.exists()) {
+          const userData = userDocSnapshot.data();
+          // console.log("User fields:", userData);
+
+          if (userData.months) {
+            setMonths(userData.months);
+          } else {
+            console.log("No months field found in user data");
+          }
+        } else {
+          console.log("No such document exists!");
+          return null;
+        }
+      } catch (error) {
+        console.error("Error fetching user document fields:", error);
+        return null;
+      }
+    };
+
+    fetchUserFields();
+  }, [useremail]);
+
+  const handleMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedMonth: string = e.target.value;
+    setMonth(selectedMonth);
+    router.push(`/chart?month=${encodeURIComponent(selectedMonth)}`);
+  };
+
   return (
     <div className="flex flex-col items-center justify-center space-y-4 p-6 bg-gray-800 text-gray-200 shadow-md rounded-lg border border-gray-700">
       <label className="flex flex-col items-center w-full">
@@ -92,9 +128,9 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
             : "bg-blue-500 hover:bg-blue-600 text-white"
         }`}
       >
+        {/* A simple spinning circle */}
         {isUploading ? (
           <div className="flex items-center">
-            {/* A simple spinning circle */}
             <svg
               className="animate-spin h-5 w-5 mr-3 text-white"
               viewBox="0 0 24 24"
@@ -119,6 +155,27 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
           "Upload"
         )}
       </button>
+
+      <div className="flex flex-col w-full">
+        <label htmlFor="month" className="mb-1 font-semibold">
+          Previous Months
+        </label>
+        <select
+          id="month"
+          value={month}
+          onChange={handleMonthChange}
+          className="p-2 border border-gray-600 rounded-md bg-gray-700 text-gray-200"
+        >
+          <option value="" disabled>
+            Select a month
+          </option>
+          {months.map((eachMonth) => (
+            <option key={eachMonth} value={eachMonth}>
+              {eachMonth}
+            </option>
+          ))}
+        </select>
+      </div>
     </div>
   );
 };
