@@ -3,5 +3,12 @@
     "pages/api/upload.ts": {
       "maxDuration": 60
     }
-  }
+  },
+  "routes": [
+    {
+      "src": "pages/api/upload",
+      "methods": ["POST"],
+      "dest": "pages/api/upload"
+    }
+  ]
 }
