@@ -11,7 +11,7 @@ import {
   OutputNode,
   HierarchicalData,
 } from "@/app/types/types";
-import path from 'path';
+import path from "path";
 
 // Load environment variables
 dotenv.config();
@@ -124,23 +124,76 @@ class Item {
 
 // Define the Document class
 export class Document {
-  document: CSVRow[];
+  document: CSVRow[] | null;
   items: Item[];
   alltags: string[] | null;
   allparenttags: string[] | null;
+  rawData: string | null;
+  pdf: boolean = false;
 
   constructor(
     document: CSVRow[],
+    items: Item[] = [],
     alltags: string[] | null = null,
-    allparenttags: string[] | null = null
+    allparenttags: string[] | null = null,
+    rawData: string | null = null,
+    pdf: boolean = false
   ) {
     this.document = document;
-    this.items = [];
+    this.items = items;
     this.alltags = alltags;
     this.allparenttags = allparenttags;
+    this.rawData = rawData;
+    this.pdf = pdf;
+  }
+
+  async convertPdfToCSVRow(): Promise<CSVRow[]> {
+    const tagPrompt = `
+      Convert the following raw credit card statement data into a valid JSON array. Don't add any token like '''json or anything like that
+      Each transaction should be represented as an object with the following fields:
+      
+      1. **Date**: The transaction date in the format 'MM/DD/YYYY'.
+      2. **Description**: A brief description of the transaction as it appears in the statement.
+      3. **Amount**: The transaction amount. Use a positive number for charges and a negative number for credits.
+      
+      ### Output Format:
+      [
+        { "Date": "12/03/2024", "Description": "UBER *EATS8005928996CA", "Amount": 45.41 },
+        { "Date": "12/13/2024", "Description": "LYFT *EATS8005928996CA", "Amount": -12.34 }
+      ]
+  
+      This is the raw data: ${this.rawData}
+    `;
+
+    try {
+      const completion: OpenAICompletionResponse = await this.runOpenAI(
+        tagPrompt
+      );
+      const content = completion.choices[0].message.content.trim();
+      
+      // Validate and parse the JSON output
+      let transactions: CSVRow[];
+      try {
+        transactions = JSON.parse(content);
+      } catch (error) {
+        throw new Error(`Invalid JSON response: ${error.message}`);
+      }
+
+      this.document = transactions;
+
+      return transactions;
+    } catch (error) {
+      console.error("Error converting PDF to CSV row:", error);
+      throw error;
+    }
   }
 
   async convertDocToItems(): Promise<void> {
+    if (this.pdf) {
+      console.log("Converting PDF to CSV row");
+      await this.convertPdfToCSVRow();
+    }
+
     for (const row of this.document) {
       const rawStr = JSON.stringify(row);
       const tempItem = new Item(
@@ -194,7 +247,7 @@ export class Document {
       currentIndex++;
     }
 
-    const tempFilePath = path.join('/tmp', 'output.json');
+    const tempFilePath = path.join("/tmp", "output.json");
 
     fs.writeFileSync(tempFilePath, JSON.stringify(output, null, 4));
     // fs.writeFileSync(
@@ -210,5 +263,29 @@ export class Document {
     // );
 
     return { output, parentChildMap };
+  }
+
+  async runOpenAI(prompt: string): Promise<OpenAICompletionResponse> {
+    const envConfig: EnvConfig = process.env as unknown as EnvConfig;
+    const apiKey = envConfig.OPENAI_KEY;
+    if (!apiKey) {
+      throw new Error("Missing OPENAI_KEY environment variable");
+    }
+
+    const response: AxiosResponse<OpenAICompletionResponse> = await axios.post(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response.data;
   }
 }
