@@ -11,6 +11,8 @@ import {
   OutputNode,
   HierarchicalData,
 } from "@/app/types/types";
+import path from 'path';
+
 // Load environment variables
 dotenv.config();
 // import OpenAI from "openai";
@@ -192,11 +194,13 @@ export class Document {
       currentIndex++;
     }
 
-    fs.writeFileSync("output.json", JSON.stringify(output, null, 4));
-    fs.writeFileSync(
-      "parent_child_map.json",
-      JSON.stringify(parentChildMap, null, 4)
-    );
+    const tempFilePath = path.join('/tmp', 'output.json');
+
+    fs.writeFileSync(tempFilePath, JSON.stringify(output, null, 4));
+    // fs.writeFileSync(
+    //   "parent_child_map.json",
+    //   JSON.stringify(parentChildMap, null, 4)
+    // );
 
     console.log("output", output);
     console.log("parentChildMap", parentChildMap);
