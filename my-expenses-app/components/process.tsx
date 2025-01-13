@@ -132,7 +132,7 @@ export class Document {
   pdf: boolean = false;
 
   constructor(
-    document: CSVRow[],
+    document: CSVRow[] | [] = [],
     items: Item[] = [],
     alltags: string[] | null = null,
     allparenttags: string[] | null = null,
@@ -170,13 +170,17 @@ export class Document {
         tagPrompt
       );
       const content = completion.choices[0].message.content.trim();
-      
+
       // Validate and parse the JSON output
       let transactions: CSVRow[];
       try {
         transactions = JSON.parse(content);
       } catch (error) {
-        throw new Error(`Invalid JSON response: ${error.message}`);
+        if (error instanceof Error) {
+          throw new Error(`Invalid JSON response: ${error.message}`);
+        } else {
+          throw new Error("Invalid JSON response");
+        }
       }
 
       this.document = transactions;
@@ -194,6 +198,9 @@ export class Document {
       await this.convertPdfToCSVRow();
     }
 
+    if (!this.document) {
+      throw new Error("Document is null");
+    }
     for (const row of this.document) {
       const rawStr = JSON.stringify(row);
       const tempItem = new Item(

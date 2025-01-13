@@ -13,18 +13,6 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
   colorThreshold,
   fixViz,
 }) => {
-  console.log(
-    "MyCustomNodeProps:",
-    payload,
-    width,
-    height,
-    index,
-    payload.dx,
-    payload.dy,
-    payload.x,
-    payload.y,
-    fixViz
-  );
   const isLeafNode = allNodes[index].isleaf;
 
   const handleClick = (event: React.MouseEvent<SVGElement>) => {
@@ -60,7 +48,7 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
         x={x}
         y={y}
         width={nodeWidth}
-        height={isLeafNode ? nodeHeight : (fixViz ? parentsHeight: height)}
+        height={isLeafNode ? nodeHeight : fixViz ? parentsHeight : height}
         fill={fillColor}
         strokeWidth={2}
         rx={6} // Rounded corners

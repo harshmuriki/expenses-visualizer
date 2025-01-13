@@ -46,7 +46,12 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
       if (!response.ok) {
         throw new Error("Failed to upload file");
       }
+      console.log("Starting upload...");
+      const startTime = performance.now();
       const data = await response.json();
+      const endTime = performance.now();
+      console.log(`Upload successful:`, data);
+      console.log(`Time taken: ${(endTime - startTime)/60} s`);
       console.log("Upload successful:", data);
 
       onUploadSuccess();
