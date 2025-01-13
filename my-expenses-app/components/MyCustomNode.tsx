@@ -1,7 +1,6 @@
 import React from "react";
 import { MyCustomNodeProps } from "@/app/types/types";
 
-
 export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
   x,
   y,
@@ -12,7 +11,20 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
   onNodeClick,
   allNodes,
   colorThreshold,
+  fixViz,
 }) => {
+  console.log(
+    "MyCustomNodeProps:",
+    payload,
+    width,
+    height,
+    index,
+    payload.dx,
+    payload.dy,
+    payload.x,
+    payload.y,
+    fixViz
+  );
   const isLeafNode = allNodes[index].isleaf;
 
   const handleClick = (event: React.MouseEvent<SVGElement>) => {
@@ -20,8 +32,10 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
     onNodeClick(payload.name, event); // Pass the event object
   };
 
-  const nodeWidth = isLeafNode ? 40 : width; // Set a constant width for leaf nodes
-  const nodeHeight = isLeafNode ? 25 : height; // Set a constant height for leaf nodes
+  let parentsHeight = 0;
+
+  const nodeWidth = isLeafNode ? 40 : Math.abs(10); // Set a constant width for leaf nodes
+  const nodeHeight = isLeafNode ? 25 : Math.abs(height); // Set a constant height for leaf nodes and ensure minimum height
   const fillColor =
     payload.value && payload.value > colorThreshold ? "#ff6347" : "#32a836";
   // const strokeColor = "#ggg"; // Highlight the first node
@@ -31,6 +45,14 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
       ? `${payload.name.substring(0, 15)}...`
       : payload.name;
 
+  if (fixViz) {
+    y = y - 20;
+    if (height < 2) {
+      // Default height
+      parentsHeight = 30;
+    }
+  }
+
   return (
     <g onClick={handleClick} style={{ cursor: "pointer" }}>
       {/* Rectangle for the node */}
@@ -38,7 +60,7 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
         x={x}
         y={y}
         width={nodeWidth}
-        height={nodeHeight}
+        height={isLeafNode ? nodeHeight : (fixViz ? parentsHeight: height)}
         fill={fillColor}
         strokeWidth={2}
         rx={6} // Rounded corners

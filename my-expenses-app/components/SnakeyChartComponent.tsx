@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Sankey, Tooltip, ResponsiveContainer } from "recharts";
 import { MyCustomNode } from "./MyCustomNode";
-import { calculateLinks } from "@/data/testData";
+import { calculateLinks } from "@/components/processLinks";
 import InputModal from "./editNodes";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "./firebaseConfig";
@@ -13,7 +13,7 @@ import {
   SnakeyChartComponentProps,
   Map,
 } from "@/app/types/types";
-import uploadTransaction from "./sendDataFirebase";
+import { uploadTransaction } from "./sendDataFirebase";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 
@@ -28,6 +28,8 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
   const [parentIndex, setParentIndex] = useState<number | null>(null);
   const [nodeIndex, setNodeIndex] = useState<number | null>(null);
   const [clickedNode, setNode] = useState<SankeyNode | null>(null);
+  const [userAdjustedWidth, setUserAdjustedWidth] = useState(1000);
+  const [fixViz, setFixViz] = useState(false);
   const router = useRouter();
   const { data: session } = useSession();
   const [user, setUser] = useState<{
@@ -391,7 +393,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
         </span>
 
         {/* Right Section: Buttons */}
-        <div style={{ display: "flex", gap: "10px" }}>
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
           <button
             onClick={recalculateLinks}
             style={{
@@ -420,12 +422,48 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
           >
             Save Data to Firebase
           </button>
+          <button
+            onClick={() => setFixViz(!fixViz)}
+            style={{
+              padding: "10px 20px",
+              backgroundColor: fixViz ? "#FF6347" : "#4CAF50",
+              color: "white",
+              border: "none",
+              borderRadius: "5px",
+              cursor: "pointer",
+              fontWeight: "bold",
+            }}
+          >
+            {fixViz ? "Disable Visual Fix" : "Enable Visual Fix"}
+          </button>
+          <span
+            style={{
+              color: "white",
+              fontWeight: "bold",
+              padding: "10px 20px",
+              backgroundColor: "#4CAF50",
+              borderRadius: "5px",
+            }}
+          >
+            Adjust Width:
+          </span>
+          <input
+            type="range"
+            min="400"
+            max="2500"
+            value={userAdjustedWidth}
+            onChange={(e) => setUserAdjustedWidth(Number(e.target.value))}
+            style={{ cursor: "pointer", color: "#4CAF50" }}
+          />
         </div>
       </div>
 
       {dataValue.nodes.length > 0 && dataValue.links.length > 0 ? (
         <>
-          <ResponsiveContainer width={baseWidth} height={adjustedHeight}>
+          <ResponsiveContainer
+            width={userAdjustedWidth}
+            height={adjustedHeight}
+          >
             <Sankey
               width={adjustedWidth}
               height={adjustedHeight}
@@ -436,6 +474,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
                   onNodeClick={(nodeId) => handleNodeClick(nodeId)}
                   allNodes={dataValue.nodes}
                   colorThreshold={10}
+                  fixViz={fixViz}
                 />
               )}
               nodePadding={60}
@@ -506,44 +545,6 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
                 parentOptions={parentOptions}
               />
             )}
-
-          {/* <div
-            style={{
-              position: "fixed",
-              bottom: "10px",
-              left: "10px",
-              zIndex: 1000,
-              display: "flex",
-              gap: "10px",
-            }}
-          >
-            <button
-              onClick={recalculateLinks}
-              style={{
-                padding: "10px 20px",
-                backgroundColor: "#4CAF50",
-                color: "white",
-                border: "none",
-                borderRadius: "5px",
-                cursor: "pointer",
-              }}
-            >
-              Recalculate Links
-            </button>
-            <button
-              onClick={sendDataToFirebase}
-              style={{
-                padding: "10px 20px",
-                backgroundColor: "#4CAF50",
-                color: "white",
-                border: "none",
-                borderRadius: "5px",
-                cursor: "pointer",
-              }}
-            >
-              Save Data to Firebase
-            </button>
-          </div> */}
         </>
       ) : (
         <div className="flex items-center justify-center h-full">

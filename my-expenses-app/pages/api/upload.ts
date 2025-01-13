@@ -3,7 +3,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import csv from "csv-parser";
 import pdfParse from "pdf-parse";
 import { Document } from "@/components/process";
-import uploadTransaction from "@/components/sendDataFirebase";
+import { uploadTransactionsInBatch } from "@/components/sendDataFirebase";
 import { parentChildMap_testdatamini, testdatamini } from "@/data/testData";
 import { Fields, Files } from "formidable";
 import { parentTags } from "@/components/variables";
@@ -139,11 +139,14 @@ const processAndUploadData = async (
   res: NextApiResponse
 ) => {
   try {
-    // Send the nodes to firebase
+    // Prepare batch data for nodes and parent-child maps
+    const batchData = [];
+
+    // Prepare nodes for batch upload
     for (const node of processedData.nodes) {
       const isLeaf =
         node.index === 0 ? false : !parentChildMap.hasOwnProperty(node.index);
-      await uploadTransaction({
+      batchData.push({
         useremail: useremail,
         month: month,
         transaction: node.name,
@@ -157,9 +160,9 @@ const processAndUploadData = async (
       });
     }
 
-    // Send the map to Firebase
+    // Prepare parent-child map for batch upload
     for (const [key, values] of Object.entries(parentChildMap)) {
-      await uploadTransaction({
+      batchData.push({
         useremail: useremail,
         month: month,
         transaction: null,
@@ -172,6 +175,9 @@ const processAndUploadData = async (
         visible: true,
       });
     }
+
+    // Upload all data in a single batch
+    await uploadTransactionsInBatch(batchData);
 
     res
       .status(200)

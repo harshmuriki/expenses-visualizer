@@ -42,6 +42,7 @@ export interface MyCustomNodeProps {
   onNodeClick: (nodeId: string, event: React.MouseEvent<SVGElement>) => void; // New click handler
   allNodes: SankeyNode[];
   colorThreshold: number;
+  fixViz: boolean;
 }
 
 export interface SnakeyChartComponentProps {
