@@ -63,7 +63,12 @@ const handlePdfFile = async (
     const pdfBytes = fs.readFileSync(file.filepath);
     const base64Pdf = pdfBytes.toString("base64");
 
-    const lambdaResponse = await fetch(process.env.AWS_LAMBDA_ENDPOINT, {
+    const lambdaEndpoint = process.env.AWS_LAMBDA_ENDPOINT;
+    if (!lambdaEndpoint) {
+      throw new Error("AWS_LAMBDA_ENDPOINT is not defined");
+    }
+
+    const lambdaResponse = await fetch(lambdaEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
