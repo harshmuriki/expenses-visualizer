@@ -37,12 +37,17 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
     email?: string | null;
     image?: string | null;
   } | null>(null);
+  const MAX_RETRIES = 5; // Maximum number of retries
+  const RETRY_DELAY = 3000; // Delay between retries in milliseconds (5 seconds)
 
   useEffect(() => {
     if (session) {
       setUser(session?.user || null);
+      console.log("User set:", session?.user);
     }
   }, [session]);
+
+  console.log("User set 2nd:", session?.user, user?.email);
 
   const searchParams = useSearchParams();
   let month = searchParams?.get("month") || "";
@@ -57,13 +62,22 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
    * then calculates and sets the Sankey links.
    */
   useEffect(() => {
-    const fetchData = async () => {
-      if (!user?.email) {
-        console.warn("User email is not set. Skipping data fetch.");
+    console.log("Fetching data for month:", month, user?.email);
+    const fetchData = async (retries = 0) => {
+      if (session?.user?.email === null) {
+        console.warn(
+          `Attempt ${retries + 1}: User email is not set. Retrying...`
+        );
+        if (retries < MAX_RETRIES) {
+          setTimeout(() => fetchData(retries + 1), RETRY_DELAY); // Retry after delay
+        } else {
+          console.error("Max retries reached. User email is still not set.");
+        }
         return;
       }
       try {
         // Fetch nodes
+        console.log("Fetching data for month:", month, user?.email, session?.user?.email);
         const userDocRef = doc(db, "users", user?.email);
         const nodesCollectionRef = collection(userDocRef, month);
         const nodesSnapshot = await getDocs(nodesCollectionRef);
@@ -78,6 +92,8 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
             visible: doc.data().visible,
           }))
           .sort((a, b) => a.index - b.index);
+
+        console.log("Nodes fetched:", nodes);
 
         // Fetch parentChildMap
         // const nodesCollectionRef = collection(userDocRef, month);
@@ -100,11 +116,15 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
           return acc;
         }, {});
 
-        // console.log("parentChildMapObj", parentChildMap);
+        console.log("parentChildMapObj", parentChildMap);
 
         // Calculate links from the nodes + parentChildMap
         const { nodes: calculatedNodes, links: calculatedLinks } =
           calculateLinks(nodes, parentChildMap);
+        
+        console.log("calculatedNodes", calculatedNodes);
+        console.log("calculatedLinks", calculatedLinks);
+        
         setDataValue({ nodes: calculatedNodes, links: calculatedLinks });
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -112,7 +132,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
     };
 
     fetchData();
-  }, [refresh, month, user?.email]);
+  }, [refresh, month, user?.email, session]);
 
   /**
    * Dynamically builds a parent->children map based on existing links.

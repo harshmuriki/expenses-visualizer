@@ -35,6 +35,7 @@ export const uploadTransaction = async ({ useremail, month, transaction, index, 
 
 export const uploadTransactionsInBatch = async (batchData) => {
     try {
+      console.log('Uploading batch data to Firestore:');
       const userDocRef = doc(db, "users", batchData[0].useremail); // Use first item to get user email
       const userDocSnapshot = await getDoc(userDocRef);
   
