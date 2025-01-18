@@ -13,7 +13,7 @@ import {
   SnakeyChartComponentProps,
   Map,
 } from "@/app/types/types";
-import { uploadTransaction } from "./sendDataFirebase";
+import { uploadTransactionsInBatch } from "@/components/sendDataFirebase";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 
@@ -151,44 +151,49 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
     setDataValue({ ...newData, links: coloredLinks });
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const sendDataToFirebase = async () => {
     console.log("uploading data to firebase");
     try {
-      // Send nodes to Firebase
-      for (const node of dataValue.nodes) {
+      // Send the parent-child map to Firebase
+      const parentChildMap = updateParentChildMap();
+
+      const batchData = [];
+
+      // Prepare batch upload data for Firebase
+      dataValue.nodes.forEach((node) => {
         const isLeaf =
-          node.index === 0
-            ? false
-            : !dataValue.links.some((link) => link.source === node.index);
-        await uploadTransaction({
+          !parentChildMap.hasOwnProperty(node.index) && node.index !== 0;
+        batchData.push({
           useremail: user?.email?.toString() || "",
           month: month,
           transaction: node.name,
           index: node.index,
+          cost: node.cost || 0,
           isleaf: isLeaf,
-          cost: node.cost || 100,
           isMap: false,
           key: null,
           values: null,
           visible: true,
         });
-      }
-      // Send the parent-child map to Firebase
-      const parentChildMap = updateParentChildMap();
+      });
+
       for (const [key, values] of Object.entries(parentChildMap)) {
-        await uploadTransaction({
+        batchData.push({
           useremail: user?.email?.toString() || "",
-          month: month,
+          month,
           transaction: null,
           index: null,
           cost: null,
           isleaf: null,
           isMap: true,
-          key: key,
-          values: values,
+          key,
+          values,
           visible: true,
         });
       }
+      await uploadTransactionsInBatch(batchData);
+
       console.log("Data saved to Firebase successfully!");
       alert("Data uploaded successfully!");
     } catch (error) {
@@ -408,7 +413,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
           >
             Recalculate Links
           </button>
-          <button
+          {/* <button
             onClick={sendDataToFirebase}
             style={{
               padding: "10px 20px",
@@ -421,7 +426,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
             }}
           >
             Save Data to Firebase
-          </button>
+          </button> */}
           <button
             onClick={() => setFixViz(!fixViz)}
             style={{

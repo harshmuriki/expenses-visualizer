@@ -38,23 +38,6 @@ export const uploadTransactionsInBatch = async (batchData) => {
       const userDocRef = doc(db, "users", batchData[0].useremail); // Use first item to get user email
       const userDocSnapshot = await getDoc(userDocRef);
   
-      if (userDocSnapshot.exists()) {
-        // Update the months array with the new month
-        await updateDoc(userDocRef, {
-          months: arrayUnion(batchData[0].month),
-        });
-      } else {
-        // Create the document with the months array if it doesn't exist
-        console.log('Creating user document with months array');
-        await setDoc(
-          userDocRef,
-          {
-            months: [batchData[0].month],
-          },
-          { merge: true }
-        );
-      }
-  
       // Initialize Firestore batch
       const batch = writeBatch(db);
   
@@ -80,6 +63,24 @@ export const uploadTransactionsInBatch = async (batchData) => {
   
       // Commit the batch operation
       await batch.commit();
+
+      if (userDocSnapshot.exists()) {
+        // Update the months array with the new month
+        await updateDoc(userDocRef, {
+          months: arrayUnion(batchData[0].month),
+        });
+      } else {
+        // Create the document with the months array if it doesn't exist
+        console.log('Creating user document with months array');
+        await setDoc(
+          userDocRef,
+          {
+            months: [batchData[0].month],
+          },
+          { merge: true }
+        );
+      }
+
       console.log('Batch upload successful!');
     } catch (error) {
       console.error('Error during batch upload:', error);

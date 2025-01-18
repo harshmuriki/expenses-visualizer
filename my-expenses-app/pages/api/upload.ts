@@ -1,154 +1,163 @@
 import fs from "fs";
 import { NextApiRequest, NextApiResponse } from "next";
+import formidable, { Fields, Files } from "formidable";
 import csv from "csv-parser";
-import pdfParse from "pdf-parse";
-import { Document } from "@/components/process";
 import { uploadTransactionsInBatch } from "@/components/sendDataFirebase";
-import { parentChildMap_testdatamini, testdatamini } from "@/data/testData";
-import { Fields, Files } from "formidable";
-import { parentTags } from "@/components/variables";
 import { CSVRow, Map, SankeyNode } from "@/app/types/types";
 
 export const config = {
   api: {
-    bodyParser: false,
+    bodyParser: false, // Disabling Next.js' default body parsing
   },
 };
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
-  try {
-    if (req.method !== "POST") {
-      return res.status(405).json({ message: "Method not allowed" });
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const formidable = require("formidable");
+  const form = new formidable.IncomingForm();
+
+  form.parse(req, async (err: Error | null, fields: Fields, files: Files) => {
+    if (err) {
+      console.error("Error parsing form data:", err);
+      return res.status(500).json({ error: "File upload failed" });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const formidable = require("formidable");
-    const form = new formidable.IncomingForm();
-
-    form.parse(req, async (err: Error | null, fields: Fields, files: Files) => {
-      if (err) {
-        return res.status(500).json({ error: "File upload failed" });
-      }
-
-      const month =
-        Array.isArray(fields?.month) && fields.month.length > 0
-          ? fields.month[0]
-          : "default";
-      const file =
-        Array.isArray(files.file) && files.file.length > 0
-          ? files.file[0]
-          : null;
-      const useremail =
-        Array.isArray(fields.useremail) && fields.useremail.length > 0
-          ? fields.useremail[0]
-          : "default";
-
+    try {
+      const file = Array.isArray(files.file) ? files.file[0] : files.file;
       if (!file) {
-        console.log("error??", file);
         return res.status(400).json({ error: "No file uploaded" });
       }
 
-      const results: CSVRow[] = [];
-      const fileStream = fs.createReadStream(file.filepath);
-      const test = process.env.NEXT_PUBLIC_TEST_KEY == "true";
-      let processedData: { nodes: SankeyNode[]; parentChildMap: Map };
-      let parentChildMap: Map;
+      const useremail = Array.isArray(fields.useremail)
+        ? fields.useremail[0]
+        : fields.useremail || "default";
+      const month = Array.isArray(fields.month)
+        ? fields.month[0]
+        : fields.month || "default";
 
-      if (file.mimetype === "text/csv") {
-        fileStream
-          .pipe(csv())
-          .on("data", (data) => results.push(data))
-          .on("end", async () => {
-            const allparenttags = parentTags;
-            console.log("results", results);
-            const doc = new Document(results, allparenttags);
-            await doc.convertDocToItems();
-
-            if (test) {
-              processedData = testdatamini;
-              parentChildMap = parentChildMap_testdatamini;
-            } else {
-              const { output, parentChildMap: convertedParentChildMap } =
-                doc.convertData();
-              processedData = {
-                nodes: output.nodes,
-                parentChildMap: convertedParentChildMap,
-              };
-              parentChildMap = convertedParentChildMap;
-            }
-
-            await processAndUploadData(
-              processedData,
-              parentChildMap,
-              useremail,
-              month,
-              res
-            );
-          })
-          .on("error", () => {
-            res.status(500).json({ error: "Error processing CSV file" });
-          });
-      } else if (file.mimetype === "application/pdf") {
-        console.log("PDF file uploaded");
-
-        const pdfBytes = fs.readFileSync(file.filepath);
-        let text = "";
-
-        const data = await pdfParse(pdfBytes);
-
-        text = data.text;
-        const allparenttags = parentTags;
-        const doc = new Document(null, [], null, allparenttags, text, true);
-        await doc.convertDocToItems();
-
-        if (test) {
-          processedData = testdatamini;
-          parentChildMap = parentChildMap_testdatamini;
-        } else {
-          const { output, parentChildMap: convertedParentChildMap } =
-            doc.convertData();
-          processedData = {
-            nodes: output.nodes,
-            parentChildMap: convertedParentChildMap,
-          };
-          parentChildMap = convertedParentChildMap;
-        }
-
-        await processAndUploadData(
-          processedData,
-          parentChildMap,
-          useremail,
-          month,
-          res
-        );
+      if (file.mimetype === "application/pdf") {
+        await handlePdfFile(file, useremail, month, res);
+      } else if (file.mimetype === "text/csv") {
+        await handleCsvFile(file, useremail, month, res);
       } else {
-        res.status(400).json({ error: "Unsupported file type" });
+        return res.status(400).json({ error: "Unsupported file type" });
       }
-    });
-  } catch (error) {
-    console.error("Error in /api/upload:", error);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
+    } catch (error) {
+      console.error("Error processing file:", error);
+      res.status(500).json({ error: "Internal Server Error" });
+    }
+  });
 };
 
-const processAndUploadData = async (
-  processedData: { nodes: SankeyNode[]; parentChildMap: Map },
-  parentChildMap: Map,
+const handlePdfFile = async (
+  file: formidable.File,
   useremail: string,
   month: string,
   res: NextApiResponse
 ) => {
   try {
-    // Prepare batch data for nodes and parent-child maps
+    const pdfBytes = fs.readFileSync(file.filepath);
+    const base64Pdf = pdfBytes.toString("base64");
+
+    const lambdaResponse = await fetch(process.env.AWS_LAMBDA_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        isBase64Encoded: true,
+        body: base64Pdf,
+      }),
+    });
+
+    if (!lambdaResponse.ok) {
+      const errorMessage = await lambdaResponse.text();
+      console.error("Lambda error:", errorMessage);
+      throw new Error("Failed to process file in Lambda");
+    }
+
+    const lambdaResponseJson = await lambdaResponse.json();
+    // console.log("Lambda response:", lambdaResponseJson);
+    const lambdaResponseBody = JSON.parse(lambdaResponseJson.body);
+
+    const output: SankeyNode[] = parseSankeyNodes(lambdaResponseBody.output);
+
+    const parent_child_map: Map = lambdaResponseBody.parent_child_map;
+    const parentChildMap: Map = {};
+    for (const [parent, children] of Object.entries(parent_child_map)) {
+      parentChildMap[parent] = children;
+    }
+    res.status(200).json({ output, parent_child_map });
+    await uploadDataToFirebase(output, parent_child_map, useremail, month);
+  } catch (error) {
+    console.error("Error handling PDF file:", error);
+    res.status(500).json({ error: "Error processing PDF file" });
+  }
+};
+
+const parseSankeyNodes = (output): SankeyNode[] => {
+  return Array.isArray(output)
+    ? output.map((item: { name: string; index: number; cost?: number }) => ({
+        name: item.name,
+        index: item.index,
+        cost: item.cost || 0,
+      }))
+    : [];
+};
+
+const handleCsvFile = async (
+  file: formidable.File,
+  useremail: string,
+  month: string,
+  res: NextApiResponse
+) => {
+  const results: CSVRow[] = [];
+  try {
+    const fileStream = fs.createReadStream(file.filepath);
+
+    fileStream
+      .pipe(csv())
+      .on("data", (data) => results.push(data))
+      .on("end", async () => {
+        // Process CSV rows here
+        const processedData = processCsvData(results);
+        await uploadDataToFirebase(processedData, useremail, month);
+        res.status(200).json({ message: "CSV data processed successfully" });
+      })
+      .on("error", (error) => {
+        console.error("Error reading CSV file:", error);
+        res.status(500).json({ error: "Error processing CSV file" });
+      });
+  } catch (error) {
+    console.error("Error handling CSV file:", error);
+    res.status(500).json({ error: "Error processing CSV file" });
+  }
+};
+
+const processCsvData = (): { nodes: SankeyNode[]; parentChildMap: Map } => {
+  // Implement CSV processing logic here
+  return { nodes: [], parentChildMap: {} };
+};
+
+const uploadDataToFirebase = async (
+  nodes: SankeyNode[],
+  parentChildMap: Map,
+  useremail: string,
+  month: string
+) => {
+  try {
+    console.log("Uploading data to Firebase:", nodes, parentChildMap);
     const batchData = [];
 
-    // Prepare nodes for batch upload
-    for (const node of processedData.nodes) {
+    // Prepare batch upload data for Firebase
+    nodes.forEach((node) => {
       const isLeaf =
-        node.index === 0 ? false : !parentChildMap.hasOwnProperty(node.index);
+        !parentChildMap.hasOwnProperty(node.index) && node.index !== 0;
       batchData.push({
-        useremail: useremail,
-        month: month,
+        useremail,
+        month,
         transaction: node.name,
         index: node.index,
         cost: node.cost || 0,
@@ -158,33 +167,27 @@ const processAndUploadData = async (
         values: null,
         visible: true,
       });
-    }
+    });
 
-    // Prepare parent-child map for batch upload
     for (const [key, values] of Object.entries(parentChildMap)) {
       batchData.push({
-        useremail: useremail,
-        month: month,
+        useremail,
+        month,
         transaction: null,
         index: null,
         cost: null,
         isleaf: null,
         isMap: true,
-        key: key,
-        values: values,
+        key,
+        values,
         visible: true,
       });
     }
 
-    // Upload all data in a single batch
     await uploadTransactionsInBatch(batchData);
-
-    res
-      .status(200)
-      .json({ message: "Data processed successfully", success: true });
   } catch (error) {
-    console.error("Error processing and uploading data:", error);
-    res.status(500).json({ error: "Error processing and uploading data" });
+    console.error("Error uploading data to Firebase:", error);
+    throw new Error("Failed to upload data");
   }
 };
 
