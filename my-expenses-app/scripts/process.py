@@ -1,9 +1,7 @@
 import json
 import pandas as pd
 from openai import OpenAI
-from dotenv import load_dotenv
 import os
-import json
 
 # Set your OpenAI API key
 client = OpenAI()
@@ -90,6 +88,7 @@ class Item:
 class Document:
     def __init__(self, df: pd.DataFrame, alltags=None, allparenttags=None):
         self.document = df
+        # document doesn't have to be a pd.DataFrame, it can be any iterable/dict
         self.items = []
         self.alltags = alltags
         self.allparenttags = allparenttags
@@ -167,10 +166,10 @@ def main():
     df = pd.read_csv(
         r"C:\Users\harsh\OneDrive - Georgia Institute of Technology\Documents\Georgia Tech\Payments All\activity.csv")
 
-    with open(r"C:\Users\harsh\OneDrive - Georgia Institute of Technology\Documents\Projects\expenses-visualizer\scripts\tags.txt", "r") as file:
+    with open(r"C:\Users\harsh\OneDrive - Georgia Institute of Technology\Documents\Projects\expenses-visualizer\my-expenses-app\scripts\tags.txt", "r") as file:
         alltags = [line.strip() for line in file.readlines()]
 
-    with open(r"C:\Users\harsh\OneDrive - Georgia Institute of Technology\Documents\Projects\expenses-visualizer\scripts\parenttags.txt", "r") as file:
+    with open(r"C:\Users\harsh\OneDrive - Georgia Institute of Technology\Documents\Projects\expenses-visualizer\my-expenses-app\scripts\parenttags.txt", "r") as file:
         allparenttags = [line.strip() for line in file.readlines()]
 
     # print(alltags, allparenttags)

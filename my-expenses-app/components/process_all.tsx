@@ -147,22 +147,28 @@ export class Document {
     this.pdf = pdf;
   }
 
-  async convertPdfToCSVRow(): Promise<CSVRow[]> {
+  async convertPdfToItems(): Promise<CSVRow[]> {
     const tagPrompt = `
-      Convert the following raw credit card statement data into a valid JSON array. Don't add any token like '''json or anything like that
-      Each transaction should be represented as an object with the following fields:
-      
-      1. **Date**: The transaction date in the format 'MM/DD/YYYY'.
-      2. **Description**: A brief description of the transaction as it appears in the statement.
-      3. **Amount**: The transaction amount. Use a positive number for charges and a negative number for credits.
-      
-      ### Output Format:
-      [
-        { "Date": "12/03/2024", "Description": "UBER *EATS8005928996CA", "Amount": 45.41 },
-        { "Date": "12/13/2024", "Description": "LYFT *EATS8005928996CA", "Amount": -12.34 }
-      ]
-  
-      This is the raw data: ${this.rawData}
+        Convert the following raw credit card statement data into a valid JSON array. Don't add any token like '''json or anything like that
+        Extract the following details and return them in the exact format shown
+
+        1. **Name**: The name should be a concise version of what the transaction should be
+        1. **Date**: The transaction date in the format 'MM/DD/YYYY'.
+        2. **Raw Transaction**: The raw transaction as it appears in the statement. 
+        3. **cost**: The transaction amount. Use a positive number for charges and a negative number for credits.
+        4. **index**: The index of the transaction or the parent tag
+        5. **parenttag**: Choose the parent tags from this list: ${this.allparenttags}. The broader category from the parent tag list given. Choose the best parent tag for each transaction separately.
+        
+        ### Output Format:
+
+        [
+            {"name": <item name>
+            "date": <transaction date>
+            "cost": <item price>
+            "raw_str": <raw transaction>
+            "index": <index of the transaction or the parent tag>
+            "parenttag": <broader category from the parent tag list given>}
+        ]
     `;
 
     try {
@@ -170,6 +176,26 @@ export class Document {
         tagPrompt
       );
       const content = completion.choices[0].message.content.trim();
+
+      const lines = content.trim().split("\n");
+      let temp_transaction: Item;
+
+      for (const line of lines) {
+        const trimmedLine = line.trim().toLowerCase();
+
+        temp_transaction = new Item();
+
+        if (trimmedLine.startsWith("name:")) {
+          temp_transaction.name = line.split(":", 2)[1].trim();
+        } else if (trimmedLine.startsWith("cost:")) {
+          const priceStr = line.split(":", 2)[1].trim();
+          temp_transaction.cost = parseFloat(priceStr) || null;
+        } else if (trimmedLine.startsWith("index:")) {
+          temp_transaction.index = line.split(":", 2)[1].trim();
+        } else if (trimmedLine.startsWith("parenttag:")) {
+          temp_transaction.parenttag = line.split(":", 2)[1].trim();
+        }
+      }
 
       // Validate and parse the JSON output
       let transactions: CSVRow[];
@@ -192,7 +218,7 @@ export class Document {
     }
   }
 
-  async convertDocToItems(): Promise<void> {
+  async convertDocToAllItems(): Promise<void> {
     if (this.pdf) {
       console.log("Converting PDF to CSV row");
       await this.convertPdfToCSVRow();

@@ -1,0 +1,6 @@
+# pip install --platform manylinux2014_x86_64 --target=python --implementation cp --python-version 3.12 --only-binary=:all: --upgrade -r requirements.txt
+openai==1.58.1
+# pandas==2.2.3
+pypdf==5.1.0
+csv2pdf==0.1.4
+requests_toolbelt==1.0.0
