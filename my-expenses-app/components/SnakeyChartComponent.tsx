@@ -60,7 +60,11 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
     const fetchData = async () => {
       if (!user?.email) {
         console.warn("User email is not set. Skipping data fetch.");
-        return;
+        if (session?.user?.email) {
+          setUser(session?.user);
+        } else {
+          return;
+        }
       }
       try {
         // Fetch nodes
