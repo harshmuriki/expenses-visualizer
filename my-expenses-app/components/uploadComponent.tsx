@@ -49,6 +49,7 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
       console.log("Starting upload...");
       onUploadSuccess();
       alert("File uploaded successfully!");
+      console.log("File uploaded successfully!");
       router.push(`/chart?month=${encodeURIComponent(month)}`);
     } catch (error) {
       console.error("Error uploading file:", error);

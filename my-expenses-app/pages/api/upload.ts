@@ -94,20 +94,31 @@ const handlePdfFile = async (
     for (const [parent, children] of Object.entries(parent_child_map)) {
       parentChildMap[parent] = children;
     }
-    res.status(200).json({ output, parent_child_map });
-    await uploadDataToFirebase(output, parent_child_map, useremail, month);
+
+    // await uploadDataToFirebase(output, parent_child_map, useremail, month);
+    await processAndUploadData(
+      { nodes: output, parentChildMap: parentChildMap },
+      parentChildMap,
+      useremail,
+      month,
+      res
+    );
+    res.status(200).json({ message: "PDF data processed successfully" });
   } catch (error) {
     console.error("Error handling PDF file:", error);
     res.status(500).json({ error: "Error processing PDF file" });
   }
 };
 
-const parseSankeyNodes = (output): SankeyNode[] => {
+const parseSankeyNodes = (
+  output: { name: string; index: number; cost?: number }[]
+): SankeyNode[] => {
   return Array.isArray(output)
     ? output.map((item: { name: string; index: number; cost?: number }) => ({
         name: item.name,
         index: item.index,
         cost: item.cost || 0,
+        visible: true,
       }))
     : [];
 };
@@ -127,8 +138,8 @@ const handleCsvFile = async (
       .on("data", (data) => results.push(data))
       .on("end", async () => {
         // Process CSV rows here
-        const processedData = processCsvData(results);
-        await uploadDataToFirebase(processedData, useremail, month);
+        // const processedData = processCsvData();
+        // await uploadDataToFirebase(processedData, useremail, month);
         res.status(200).json({ message: "CSV data processed successfully" });
       })
       .on("error", (error) => {
@@ -141,28 +152,80 @@ const handleCsvFile = async (
   }
 };
 
-const processCsvData = (): { nodes: SankeyNode[]; parentChildMap: Map } => {
-  // Implement CSV processing logic here
-  return { nodes: [], parentChildMap: {} };
-};
+// const processCsvData = (): { nodes: SankeyNode[]; parentChildMap: Map } => {
+//   // Implement CSV processing logic here
+//   return { nodes: [], parentChildMap: {} };
+// };
 
-const uploadDataToFirebase = async (
-  nodes: SankeyNode[],
+// const uploadDataToFirebase = async (
+//   nodes: SankeyNode[],
+//   parentChildMap: Map,
+//   useremail: string,
+//   month: string
+// ) => {
+//   try {
+//     console.log("Uploading data to Firebase:", nodes, parentChildMap);
+//     const batchData = [];
+
+//     // Prepare batch upload data for Firebase
+//     nodes.forEach((node) => {
+//       const isLeaf =
+//         !parentChildMap.hasOwnProperty(node.index) && node.index !== 0;
+//       batchData.push({
+//         useremail,
+//         month,
+//         transaction: node.name,
+//         index: node.index,
+//         cost: node.cost || 0,
+//         isleaf: isLeaf,
+//         isMap: false,
+//         key: null,
+//         values: null,
+//         visible: true,
+//       });
+//     });
+
+//     for (const [key, values] of Object.entries(parentChildMap)) {
+//       console.log("Sending data to firebase key:", key, "Values:", values);
+//       batchData.push({
+//         useremail,
+//         month,
+//         transaction: null,
+//         index: null,
+//         cost: null,
+//         isleaf: null,
+//         isMap: true,
+//         key,
+//         values,
+//         visible: true,
+//       });
+//     }
+
+//     await uploadTransactionsInBatch(batchData);
+//   } catch (error) {
+//     console.error("Error uploading data to Firebase:", error);
+//     throw new Error("Failed to upload data");
+//   }
+// };
+
+const processAndUploadData = async (
+  processedData: { nodes: SankeyNode[]; parentChildMap: Map },
   parentChildMap: Map,
   useremail: string,
-  month: string
+  month: string,
+  res: NextApiResponse
 ) => {
   try {
-    console.log("Uploading data to Firebase:", nodes, parentChildMap);
+    // Prepare batch data for nodes and parent-child maps
     const batchData = [];
 
-    // Prepare batch upload data for Firebase
-    nodes.forEach((node) => {
+    // Prepare nodes for batch upload
+    for (const node of processedData.nodes) {
       const isLeaf =
-        !parentChildMap.hasOwnProperty(node.index) && node.index !== 0;
+        node.index === 0 ? false : !parentChildMap.hasOwnProperty(node.index);
       batchData.push({
-        useremail,
-        month,
+        useremail: useremail,
+        month: month,
         transaction: node.name,
         index: node.index,
         cost: node.cost || 0,
@@ -172,27 +235,33 @@ const uploadDataToFirebase = async (
         values: null,
         visible: true,
       });
-    });
+    }
 
+    // Prepare parent-child map for batch upload
     for (const [key, values] of Object.entries(parentChildMap)) {
       batchData.push({
-        useremail,
-        month,
+        useremail: useremail,
+        month: month,
         transaction: null,
         index: null,
         cost: null,
         isleaf: null,
         isMap: true,
-        key,
-        values,
+        key: key,
+        values: values,
         visible: true,
       });
     }
 
+    // Upload all data in a single batch
     await uploadTransactionsInBatch(batchData);
+
+    res
+      .status(200)
+      .json({ message: "Data processed successfully", success: true });
   } catch (error) {
-    console.error("Error uploading data to Firebase:", error);
-    throw new Error("Failed to upload data");
+    console.error("Error processing and uploading data:", error);
+    res.status(500).json({ error: "Error processing and uploading data" });
   }
 };
 

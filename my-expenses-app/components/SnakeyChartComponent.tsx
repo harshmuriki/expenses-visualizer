@@ -43,11 +43,8 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
   useEffect(() => {
     if (session) {
       setUser(session?.user || null);
-      console.log("User set:", session?.user);
     }
   }, [session]);
-
-  console.log("User set 2nd:", session?.user, user?.email);
 
   const searchParams = useSearchParams();
   let month = searchParams?.get("month") || "";
@@ -62,7 +59,6 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
    * then calculates and sets the Sankey links.
    */
   useEffect(() => {
-    console.log("Fetching data for month:", month, user?.email);
     const fetchData = async (retries = 0) => {
       if (session?.user?.email === null) {
         console.warn(
@@ -77,7 +73,6 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
       }
       try {
         // Fetch nodes
-        console.log("Fetching data for month:", month, user?.email, session?.user?.email);
         const userDocRef = doc(db, "users", user?.email);
         const nodesCollectionRef = collection(userDocRef, month);
         const nodesSnapshot = await getDocs(nodesCollectionRef);
@@ -92,8 +87,6 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
             visible: doc.data().visible,
           }))
           .sort((a, b) => a.index - b.index);
-
-        console.log("Nodes fetched:", nodes);
 
         // Fetch parentChildMap
         // const nodesCollectionRef = collection(userDocRef, month);
@@ -115,15 +108,9 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
           acc[key] = parentChildMapArr[index];
           return acc;
         }, {});
-
-        console.log("parentChildMapObj", parentChildMap);
-
         // Calculate links from the nodes + parentChildMap
         const { nodes: calculatedNodes, links: calculatedLinks } =
           calculateLinks(nodes, parentChildMap);
-        
-        console.log("calculatedNodes", calculatedNodes);
-        console.log("calculatedLinks", calculatedLinks);
         
         setDataValue({ nodes: calculatedNodes, links: calculatedLinks });
       } catch (error) {
@@ -171,6 +158,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
     setDataValue({ ...newData, links: coloredLinks });
   };
 
+  // To update the data in Firebase
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const sendDataToFirebase = async () => {
     console.log("uploading data to firebase");
