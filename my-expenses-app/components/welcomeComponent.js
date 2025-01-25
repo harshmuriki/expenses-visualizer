@@ -83,7 +83,7 @@ function WelcomeComponent() {
                             className="mb-4 rounded-lg shadow-md object-cover"
                         />
                         <p className="text-white text-lg font-medium">
-                            <span className="font-bold">Step 1:</span> Upload your CSV file
+                            <span className="font-bold">Step 1:</span> Upload your PDF file
                             containing your transactions.
                         </p>
                     </div>

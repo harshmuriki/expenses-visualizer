@@ -121,6 +121,24 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
     fetchData();
   }, [refresh, month, user?.email, session]);
 
+  useEffect(() => {
+    const handleResize = () => {
+      const newWidth = Math.min(window.innerWidth, 2500);
+      setUserAdjustedWidth(newWidth);
+    };
+
+    // Set initial width based on window size
+    handleResize();
+
+    // Add event listener for window resize
+    window.addEventListener("resize", handleResize);
+
+    // Clean up event listener on component unmount
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
   /**
    * Dynamically builds a parent->children map based on existing links.
    */
@@ -435,39 +453,6 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
           >
             Save Data to Firebase
           </button> */}
-          <button
-            onClick={() => setFixViz(!fixViz)}
-            style={{
-              padding: "10px 20px",
-              backgroundColor: fixViz ? "#FF6347" : "#4CAF50",
-              color: "white",
-              border: "none",
-              borderRadius: "5px",
-              cursor: "pointer",
-              fontWeight: "bold",
-            }}
-          >
-            {fixViz ? "Disable Visual Fix" : "Enable Visual Fix"}
-          </button>
-          <span
-            style={{
-              color: "white",
-              fontWeight: "bold",
-              padding: "10px 20px",
-              backgroundColor: "#4CAF50",
-              borderRadius: "5px",
-            }}
-          >
-            Adjust Width:
-          </span>
-          <input
-            type="range"
-            min="400"
-            max="2500"
-            value={userAdjustedWidth}
-            onChange={(e) => setUserAdjustedWidth(Number(e.target.value))}
-            style={{ cursor: "pointer", color: "#4CAF50" }}
-          />
         </div>
       </div>
 

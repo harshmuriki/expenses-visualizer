@@ -95,10 +95,12 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
   return (
     <div className="flex flex-col items-center justify-center space-y-4 p-6 bg-gray-800 text-gray-200 shadow-md rounded-lg border border-gray-700">
       <label className="flex flex-col items-center w-full">
-        <span className="mb-2 font-semibold">Select a PDF or CSV File</span>
+        <span className="mb-2 font-semibold">Upload PDF Files</span>
+        {/* Enabled multiple pdf files upload */}
         <input
           type="file"
           accept=".csv, application/pdf"
+          multiple
           onChange={handleFileChange}
           className="p-2 border border-gray-600 rounded-md bg-gray-700 text-gray-200 w-full cursor-pointer"
         />
