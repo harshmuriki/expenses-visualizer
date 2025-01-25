@@ -11,7 +11,6 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
   onNodeClick,
   allNodes,
   colorThreshold,
-  fixViz,
 }) => {
   const isLeafNode = allNodes[index].isleaf;
 
@@ -20,7 +19,7 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
     onNodeClick(payload.name, event); // Pass the event object
   };
 
-  let parentsHeight = 0;
+  const parentsHeight = 0;
 
   const nodeWidth = isLeafNode ? 40 : Math.abs(10); // Set a constant width for leaf nodes
   const nodeHeight = isLeafNode ? 25 : Math.abs(height); // Set a constant height for leaf nodes and ensure minimum height
@@ -33,14 +32,6 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
       ? `${payload.name.substring(0, 15)}...`
       : payload.name;
 
-  if (fixViz) {
-    y = y - 20;
-    if (height < 2) {
-      // Default height
-      parentsHeight = 30;
-    }
-  }
-
   return (
     <g onClick={handleClick} style={{ cursor: "pointer" }}>
       {/* Rectangle for the node */}
@@ -48,7 +39,7 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
         x={x}
         y={y}
         width={nodeWidth}
-        height={isLeafNode ? nodeHeight : fixViz ? parentsHeight : height}
+        height={isLeafNode ? nodeHeight : false ? parentsHeight : height}
         fill={fillColor}
         strokeWidth={2}
         rx={6} // Rounded corners

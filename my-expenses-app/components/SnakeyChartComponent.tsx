@@ -29,7 +29,6 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
   const [nodeIndex, setNodeIndex] = useState<number | null>(null);
   const [clickedNode, setNode] = useState<SankeyNode | null>(null);
   const [userAdjustedWidth, setUserAdjustedWidth] = useState(1000);
-  const [fixViz, setFixViz] = useState(false);
   const router = useRouter();
   const { data: session } = useSession();
   const [user, setUser] = useState<{
@@ -73,7 +72,11 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
       }
       try {
         // Fetch nodes
-        const userDocRef = doc(db, "users", user?.email);
+        if (!user?.email) {
+          console.error("User email is not set.");
+          return;
+        }
+        const userDocRef = doc(db, "users", user.email);
         const nodesCollectionRef = collection(userDocRef, month);
         const nodesSnapshot = await getDocs(nodesCollectionRef);
         const nodes: SankeyNode[] = nodesSnapshot.docs
@@ -472,7 +475,6 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
                   onNodeClick={(nodeId) => handleNodeClick(nodeId)}
                   allNodes={dataValue.nodes}
                   colorThreshold={10}
-                  fixViz={fixViz}
                 />
               )}
               nodePadding={60}
