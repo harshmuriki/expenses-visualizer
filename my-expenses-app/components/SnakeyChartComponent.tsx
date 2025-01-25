@@ -114,7 +114,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
         // Calculate links from the nodes + parentChildMap
         const { nodes: calculatedNodes, links: calculatedLinks } =
           calculateLinks(nodes, parentChildMap);
-        
+
         setDataValue({ nodes: calculatedNodes, links: calculatedLinks });
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -157,6 +157,8 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
     });
     return newMap;
   };
+
+  //
 
   /**
    * Recalculates links after nodes or parent-child relationships change,
@@ -478,6 +480,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
                 />
               )}
               nodePadding={60}
+              nodeWidth={30}
               margin={margin}
               link={(linkProps) => {
                 const {

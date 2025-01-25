@@ -21,7 +21,7 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
 
   const parentsHeight = 0;
 
-  const nodeWidth = isLeafNode ? 40 : Math.abs(10); // Set a constant width for leaf nodes
+  const nodeWidth = isLeafNode ? 40 : Math.abs(30); // Set a constant width for leaf nodes
   const nodeHeight = isLeafNode ? 25 : Math.abs(height); // Set a constant height for leaf nodes and ensure minimum height
   const fillColor =
     payload.value && payload.value > colorThreshold ? "#ff6347" : "#32a836";
@@ -32,6 +32,12 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
       ? `${payload.name.substring(0, 15)}...`
       : payload.name;
 
+  // Calculate the edges of the rectangle
+  const topLeft = x;
+  const topRight = x + nodeWidth;
+  const bottomLeft = y;
+  const bottomRight = y + (isLeafNode ? nodeHeight : Math.max(height, 30));
+
   return (
     <g onClick={handleClick} style={{ cursor: "pointer" }}>
       {/* Rectangle for the node */}
@@ -39,7 +45,7 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
         x={x}
         y={y}
         width={nodeWidth}
-        height={isLeafNode ? nodeHeight : false ? parentsHeight : height}
+        height={isLeafNode ? nodeHeight : false ? parentsHeight : Math.max(height, 30)}
         fill={fillColor}
         strokeWidth={2}
         rx={6} // Rounded corners
@@ -49,8 +55,8 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
       />
       {/* Text for node name */}
       <text
-        x={x + nodeWidth / 2}
-        y={y + nodeHeight / 2 - 18}
+        x={(topLeft + topRight) / 2} // Center the text horizontally
+        y={(bottomLeft + bottomRight) / 2 - 18}
         textAnchor="middle"
         fill="#fff"
         fontSize={fontSize}
@@ -62,8 +68,8 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
       </text>
       {/* Text for node value */}
       <text
-        x={x + nodeWidth / 2}
-        y={y + nodeHeight / 2} // Position below name
+        x={(topLeft + topRight) / 2}
+        y={(bottomLeft + bottomRight) / 2} // Position below the name text
         textAnchor="middle"
         fill="#fff"
         fontSize={fontSize}
