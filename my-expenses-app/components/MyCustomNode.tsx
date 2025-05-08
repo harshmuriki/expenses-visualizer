@@ -21,18 +21,16 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
 
   const parentsHeight = 0;
 
-  const nodeWidth = isLeafNode ? 40 : Math.abs(30); // Set a constant width for leaf nodes
-  const nodeHeight = isLeafNode ? 25 : Math.abs(height); // Set a constant height for leaf nodes and ensure minimum height
-  const fillColor =
-    payload.value && payload.value > colorThreshold ? "#ff6347" : "#32a836";
-  // const strokeColor = "#ggg"; // Highlight the first node
-  const fontSize = Math.max(12, width / 10);
+  const nodeWidth = isLeafNode ? 40 : Math.abs(30);
+  const nodeHeight = isLeafNode ? 25 : Math.abs(height);
+  const fillColor = isLeafNode ? "#4fd1c5" : "#232946";
+  const borderColor = isLeafNode ? "#4fd1c5" : "#2a334a";
+  const fontSize = Math.max(15, width / 8);
   const truncatedName =
     payload.name.length > 15
       ? `${payload.name.substring(0, 15)}...`
       : payload.name;
 
-  // Calculate the edges of the rectangle
   const topLeft = x;
   const topRight = x + nodeWidth;
   const bottomLeft = y;
@@ -45,23 +43,33 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
         x={x}
         y={y}
         width={nodeWidth}
-        height={isLeafNode ? nodeHeight : false ? parentsHeight : Math.max(height, 30)}
+        height={isLeafNode ? nodeHeight : Math.max(height, 30)}
         fill={fillColor}
+        stroke={borderColor}
         strokeWidth={2}
-        rx={6} // Rounded corners
-        ry={6}
-        onClick={handleClick}
-        style={{ cursor: "pointer", filter: "drop-shadow(1px 1px 1px #aaa)" }} // Add shadow
+        rx={10}
+        ry={10}
+        style={{
+          cursor: "pointer",
+          transition: "fill 0.3s, stroke 0.3s",
+        }}
       />
       {/* Text for node name */}
       <text
-        x={(topLeft + topRight) / 2} // Center the text horizontally
-        y={(bottomLeft + bottomRight) / 2 - 18}
+        x={(topLeft + topRight) / 2}
+        y={(bottomLeft + bottomRight) / 2 - (isLeafNode ? 2 : 8)}
         textAnchor="middle"
         fill="#fff"
-        fontSize={fontSize}
+        fontSize={isLeafNode ? fontSize * 0.95 : fontSize * 1.15}
+        fontWeight="bold"
+        fontFamily="'Inter', 'Segoe UI', 'Arial', sans-serif"
         dy={4}
-        className="font-sans font-medium" // Apply Tailwind font classes
+        style={{
+          transition: "fill 0.3s, font-size 0.3s",
+          pointerEvents: "none",
+          textShadow: "0 1px 6px #181f2a, 0 0px 2px #0008",
+          dominantBaseline: "middle",
+        }}
       >
         {truncatedName}
         <title>{payload.name}</title>
@@ -69,14 +77,22 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
       {/* Text for node value */}
       <text
         x={(topLeft + topRight) / 2}
-        y={(bottomLeft + bottomRight) / 2} // Position below the name text
+        y={(bottomLeft + bottomRight) / 2 + (isLeafNode ? 12 : 14)}
         textAnchor="middle"
-        fill="#fff"
-        fontSize={fontSize}
+        fill={isLeafNode ? "#00ffd0" : "#fff"}
+        opacity={isLeafNode ? 1 : 0.7}
+        fontSize={isLeafNode ? fontSize * 0.85 : fontSize * 0.95}
+        fontWeight={isLeafNode ? "bold" : 500}
+        fontFamily="'Inter', 'Segoe UI', 'Arial', sans-serif"
         dy={4}
-        className="font-sans font-medium" // Apply Tailwind font classes
+        style={{
+          transition: "fill 0.3s, font-size 0.3s",
+          pointerEvents: "none",
+          textShadow: "0 1px 6px #181f2a, 0 0px 2px #0008",
+          dominantBaseline: "middle",
+        }}
       >
-        {payload.value !== undefined ? payload.value.toFixed(1) : "N/A"}
+        {payload.cost !== undefined ? payload.cost.toFixed(1) : "N/A"}
       </text>
     </g>
   );

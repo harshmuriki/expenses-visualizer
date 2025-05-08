@@ -16,6 +16,8 @@ import {
 import { uploadTransactionsInBatch } from "@/components/sendDataFirebase";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
+// @ts-ignore: If you don't have @types/d3 installed, this will suppress the error.
+import * as d3 from "d3";
 
 const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
   refresh,
@@ -38,6 +40,8 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
   } | null>(null);
   const MAX_RETRIES = 5; // Maximum number of retries
   const RETRY_DELAY = 3000; // Delay between retries in milliseconds (5 seconds)
+  const parentColors = d3.schemeSet2;
+  const [sankeyKey, setSankeyKey] = useState(0); // Add a key for forcing re-render
 
   useEffect(() => {
     if (session) {
@@ -122,7 +126,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
     };
 
     fetchData();
-  }, [refresh, month, user?.email, session]);
+  }, [month, user?.email, session]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -145,9 +149,9 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
   /**
    * Dynamically builds a parent->children map based on existing links.
    */
-  const updateParentChildMap = () => {
+  const updateParentChildMap = (linksArg = dataValue.links) => {
     const newMap: Record<number, number[]> = {};
-    dataValue.links.forEach((link) => {
+    linksArg.forEach((link) => {
       if (link.source !== 0) {
         if (!newMap[link.source]) {
           newMap[link.source] = [];
@@ -158,8 +162,6 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
     return newMap;
   };
 
-  //
-
   /**
    * Recalculates links after nodes or parent-child relationships change,
    * applying strokeWidth scaling based on relative link values.
@@ -167,17 +169,23 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
   const recalculateLinks = () => {
     const updatedParentChildMap = updateParentChildMap();
     const newData = calculateLinks(dataValue.nodes, updatedParentChildMap);
+    // Tweak these for visual scaling:
+    const baseWidth = 2; // Minimum link width
+    const maxWidth = 100; // Maximum link width
     const maxLinkValue = Math.max(...newData.links.map((link) => link.value));
     const coloredLinks = newData.links.map((link) => {
       // Scale strokeWidth based on link's value
-      const baseWidth = 3;
-      const maxWidth = 75; // tweak as needed
       const strokeWidth = maxLinkValue
         ? Math.max(baseWidth, (link.value / maxLinkValue) * maxWidth)
         : baseWidth;
-
       return { ...link, strokeWidth };
     });
+    console.log(
+      "Recalculating links. Nodes:",
+      newData.nodes,
+      "Links:",
+      coloredLinks
+    );
     setDataValue({ ...newData, links: coloredLinks });
   };
 
@@ -305,6 +313,13 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
           value: newPrice,
         };
       }
+      const editedNode = updatedNodes[nodeIndex];
+      console.log("Edited node:", {
+        index: nodeIndex,
+        name: editedNode.name,
+        cost: editedNode.cost,
+        value: editedNode.value,
+      });
 
       // Build links from the old data
       let updatedLinks = [...prevData.links];
@@ -331,7 +346,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
         }
 
         // Update parent-child relationships
-        const updatedMap = updateParentChildMap();
+        const updatedMap = updateParentChildMap(updatedLinks);
         if (!updatedMap[newParentIndex]) {
           updatedMap[newParentIndex] = [];
         }
@@ -350,15 +365,18 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
 
         // Recalculate links with the updated map
         const recalculatedData = calculateLinks(updatedNodes, updatedMap);
-        return { nodes: updatedNodes, links: recalculatedData.links };
+        // Force Sankey re-render by incrementing sankeyKey
+        setSankeyKey((k) => k + 1);
+        return { nodes: [...updatedNodes], links: [...recalculatedData.links] };
       }
 
       // No parent change, just cost
-      const recalculatedData = calculateLinks(
-        updatedNodes,
-        updateParentChildMap()
-      );
-      return { nodes: updatedNodes, links: recalculatedData.links };
+      const updatedMap = updateParentChildMap();
+      console.log("Updated parentChildMap:", updatedMap);
+      const recalculatedData = calculateLinks(updatedNodes, updatedMap);
+      // Force Sankey re-render by incrementing sankeyKey
+      setSankeyKey((k) => k + 1);
+      return { nodes: [...updatedNodes], links: [...recalculatedData.links] };
     });
   };
 
@@ -384,8 +402,27 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
     )
   );
 
+  // Helper to find the top-level parent for a given node index
+  function findTopLevelParent(nodeIndex: number, links: any[]): number {
+    let current = nodeIndex;
+    let parent = links.find((l: any) => l.target === current)?.source;
+    while (parent !== undefined && parent !== 0) {
+      current = parent;
+      parent = links.find((l: any) => l.target === current)?.source;
+    }
+    return parent === 0 ? current : nodeIndex;
+  }
+
   return (
-    <div style={{ width: "100%", overflowX: "scroll", position: "relative" }}>
+    <div
+      style={{
+        width: "100%",
+        minHeight: "100vh",
+        background: "#181f2a",
+        overflowX: "scroll",
+        position: "relative",
+      }}
+    >
       <div
         style={{
           position: "fixed",
@@ -396,9 +433,9 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          background: "linear-gradient(to right, #4b5563, #6b7280)", // Soft gray gradient
+          background: "linear-gradient(to right, #232946, #181f2a)",
           padding: "10px 20px",
-          boxShadow: "0 2px 5px rgba(0,0,0,0.3)", // Subtle shadow
+          boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
         }}
       >
         {/* Left Section: Back to Home Button */}
@@ -406,8 +443,8 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
           onClick={() => router.push("/")}
           style={{
             padding: "10px 20px",
-            backgroundColor: "#007AFF",
-            color: "white",
+            backgroundColor: "#4fd1c5",
+            color: "#181f2a",
             border: "none",
             borderRadius: "5px",
             cursor: "pointer",
@@ -416,48 +453,34 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
         >
           Back to Home
         </button>
-
         {/* Center: Month Label */}
         <span
           style={{
-            color: "white",
+            color: "#fff",
             fontWeight: "bold",
             fontSize: "1.1rem",
           }}
         >
           Editing Month: {month}
         </span>
-
-        {/* Right Section: Buttons */}
+        {/* Right Section: Sync to Cloud Button */}
         <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
           <button
-            onClick={recalculateLinks}
-            style={{
-              padding: "10px 20px",
-              backgroundColor: "#4CAF50",
-              color: "white",
-              border: "none",
-              borderRadius: "5px",
-              cursor: "pointer",
-              fontWeight: "bold",
-            }}
-          >
-            Recalculate Links
-          </button>
-          {/* <button
             onClick={sendDataToFirebase}
             style={{
               padding: "10px 20px",
-              backgroundColor: "#4CAF50",
-              color: "white",
+              backgroundColor: "#00ffd0",
+              color: "#181f2a",
               border: "none",
               borderRadius: "5px",
               cursor: "pointer",
               fontWeight: "bold",
+              boxShadow: "0 2px 5px rgba(0,0,0,0.15)",
+              marginLeft: "10px",
             }}
           >
-            Save Data to Firebase
-          </button> */}
+            Sync to Cloud
+          </button>
         </div>
       </div>
 
@@ -468,6 +491,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
             height={adjustedHeight}
           >
             <Sankey
+              key={sankeyKey}
               width={adjustedWidth}
               height={adjustedHeight}
               data={{ nodes: dataValue.nodes, links: dataValue.links }}
@@ -492,40 +516,40 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
                   targetControlX,
                   payload,
                 } = linkProps;
-
                 const sourceIndex = payload.source.index;
                 const targetIndex = payload.target.index;
-
-                // Default link color and width
-                let linkColor = "#8884d8";
-                let linkStrokeWidth = 2;
-
-                // Match the link in our dataValue to get custom styling
+                let linkStrokeWidth = 8;
                 const matchingLink = dataValue.links.find(
                   (l) => l.source === sourceIndex && l.target === targetIndex
                 );
-
                 if (matchingLink) {
-                  linkColor = matchingLink.color || linkColor;
-                  linkStrokeWidth = matchingLink.strokeWidth || 2;
+                  linkStrokeWidth = matchingLink.strokeWidth;
                 }
-
-                const path = `
-                  M${sourceX},${sourceY}
-                  C${sourceControlX},${sourceY}
-                  ${targetControlX},${targetY}
-                  ${targetX},${targetY}
-                `;
-
+                // Assign color by top-level parent
+                const topParent = findTopLevelParent(
+                  sourceIndex,
+                  dataValue.links
+                );
+                const colorIdx = topParent % parentColors.length;
+                const linkColor = parentColors[colorIdx];
+                const path = `M${sourceX},${sourceY}C${sourceControlX},${sourceY},${targetControlX},${targetY},${targetX},${targetY}`;
                 return (
-                  <path
-                    key={`link-${sourceIndex}-${targetIndex}`}
-                    d={path}
-                    stroke={linkColor}
-                    strokeWidth={linkStrokeWidth}
-                    strokeOpacity={0.2}
-                    fill="none"
-                  />
+                  <g key={`link-group-${sourceIndex}-${targetIndex}`}>
+                    {/* Main path only, remove debug line */}
+                    <path
+                      d={path}
+                      stroke={linkColor}
+                      strokeWidth={linkStrokeWidth}
+                      strokeOpacity={1}
+                      fill="none"
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
+                      style={{
+                        transition:
+                          "stroke-width 0.4s, stroke 0.4s, stroke-opacity 0.4s",
+                      }}
+                    />
+                  </g>
                 );
               }}
             >

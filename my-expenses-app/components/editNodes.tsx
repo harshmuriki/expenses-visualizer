@@ -17,7 +17,7 @@ const InputModal: React.FC<InputModalProps> = ({
     const parsedPrice = parseFloat(newPrice);
     if (!isNaN(parsedPrice)) {
       onSubmit(newParentName, parsedPrice);
-      onClose();
+      setTimeout(onClose, 0);
     } else {
       alert("Please enter a valid number for the price.");
     }
@@ -87,7 +87,9 @@ const InputModal: React.FC<InputModalProps> = ({
         }}
       >
         Transaction:{" "}
-        <span style={{ fontWeight: "normal", color: "#222" }}>{clickedNode.name}</span>
+        <span style={{ fontWeight: "normal", color: "#222" }}>
+          {clickedNode.name}
+        </span>
       </h2>{" "}
       <div style={{ marginBottom: "15px" }}>
         <label
