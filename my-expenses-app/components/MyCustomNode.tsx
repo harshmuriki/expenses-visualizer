@@ -10,7 +10,6 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
   payload,
   onNodeClick,
   allNodes,
-  colorThreshold,
 }) => {
   const isLeafNode = allNodes[index].isleaf;
 
@@ -18,8 +17,6 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
     event.stopPropagation(); // Prevent propagation
     onNodeClick(payload.name, event); // Pass the event object
   };
-
-  const parentsHeight = 0;
 
   const nodeWidth = isLeafNode ? 40 : Math.abs(30);
   const nodeHeight = isLeafNode ? 25 : Math.abs(height);

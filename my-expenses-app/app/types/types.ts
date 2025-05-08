@@ -10,6 +10,7 @@ export interface InputModalProps {
 export interface Payload {
   name: string;
   value?: number;
+  cost?: number;
 }
 
 export interface SankeyNode {
@@ -41,7 +42,6 @@ export interface MyCustomNodeProps {
   containerWidth: number;
   onNodeClick: (nodeId: string, event: React.MouseEvent<SVGElement>) => void; // New click handler
   allNodes: SankeyNode[];
-  colorThreshold: number;
   fixViz: boolean;
 }
 

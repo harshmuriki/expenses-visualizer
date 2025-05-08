@@ -12,16 +12,15 @@ import {
   SankeyData,
   SnakeyChartComponentProps,
   Map,
+  SankeyLink,
 } from "@/app/types/types";
 import { uploadTransactionsInBatch } from "@/components/sendDataFirebase";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-// @ts-ignore: If you don't have @types/d3 installed, this will suppress the error.
+// ts-expect-error: If you don't have @types/d3 installed, this will suppress the error.
 import * as d3 from "d3";
 
-const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
-  refresh,
-}) => {
+const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
   const [dataValue, setDataValue] = useState<SankeyData>({
     nodes: [],
     links: [],
@@ -190,7 +189,6 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
   };
 
   // To update the data in Firebase
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const sendDataToFirebase = async () => {
     console.log("uploading data to firebase");
     try {
@@ -403,12 +401,12 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
   );
 
   // Helper to find the top-level parent for a given node index
-  function findTopLevelParent(nodeIndex: number, links: any[]): number {
+  function findTopLevelParent(nodeIndex: number, links: SankeyLink[]): number {
     let current = nodeIndex;
-    let parent = links.find((l: any) => l.target === current)?.source;
+    let parent = links.find((l: SankeyLink) => l.target === current)?.source;
     while (parent !== undefined && parent !== 0) {
       current = parent;
-      parent = links.find((l: any) => l.target === current)?.source;
+      parent = links.find((l: SankeyLink) => l.target === current)?.source;
     }
     return parent === 0 ? current : nodeIndex;
   }
@@ -530,7 +528,9 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
                   sourceIndex,
                   dataValue.links
                 );
-                const colorIdx = topParent % parentColors.length;
+                const colorIdx =
+                  (typeof topParent === "number" ? topParent : 0) %
+                  parentColors.length;
                 const linkColor = parentColors[colorIdx];
                 const path = `M${sourceX},${sourceY}C${sourceControlX},${sourceY},${targetControlX},${targetY},${targetX},${targetY}`;
                 return (

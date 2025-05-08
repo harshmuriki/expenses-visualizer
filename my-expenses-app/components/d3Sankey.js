@@ -15,16 +15,12 @@ export function SankeyChart({
   nodeGroup,
   nodeGroups,
   nodeLabel,
-  nodeTitle = d => `${d.id}\n${format(d.value)}`,
+  // nodeTitle = d => `${d.id}\n${format(d.value)}`,
   nodeAlign = align,
   nodeSort,
   nodeWidth = 15,
   nodePadding = 10,
   nodeLabelPadding = 6,
-  nodeStroke = "#fff",
-  nodeStrokeWidth = 1.5,
-  nodeStrokeOpacity = 1,
-  nodeStrokeLinejoin = "round",
   linkSource = ({ source }) => source,
   linkTarget = ({ target }) => target,
   linkValue = ({ value }) => value,
@@ -82,7 +78,6 @@ export function SankeyChart({
   // Compute titles and labels using layout nodes, so as to access aggregate values.
   if (typeof format !== "function") format = d3.format(format);
   const Tl = nodeLabel === undefined ? N : nodeLabel == null ? null : d3.map(nodes, nodeLabel);
-  const Tt = nodeTitle == null ? null : d3.map(nodes, nodeTitle);
   const Lt = linkTitle == null ? null : d3.map(links, linkTitle);
 
   // A unique identifier for gradients (if needed)
@@ -98,21 +93,21 @@ export function SankeyChart({
     .attr("aria-label", "Sankey diagram");
 
   // NODES
-  const node = svg.append("g")
-    .attr("stroke", nodeStroke)
-    .attr("stroke-width", nodeStrokeWidth)
-    .attr("stroke-opacity", nodeStrokeOpacity)
-    .attr("stroke-linejoin", nodeStrokeLinejoin)
-    .selectAll("rect")
-    .data(nodes)
-    .join("rect")
-    .attr("x", d => d.x0)
-    .attr("y", d => d.y0)
-    .attr("height", d => d.y1 - d.y0)
-    .attr("width", d => d.x1 - d.x0)
-    .attr("fill", G ? ({ index: i }) => color(G[i]) : "#888")
-    .append("title")
-    .text(({ index: i }) => Tt ? Tt[i] : Tl[i]);
+  // const node = svg.append("g")
+  //   .attr("stroke", nodeStroke)
+  //   .attr("stroke-width", nodeStrokeWidth)
+  //   .attr("stroke-opacity", nodeStrokeOpacity)
+  //   .attr("stroke-linejoin", nodeStrokeLinejoin)
+  //   .selectAll("rect")
+  //   .data(nodes)
+  //   .join("rect")
+  //   .attr("x", d => d.x0)
+  //   .attr("y", d => d.y0)
+  //   .attr("height", d => d.y1 - d.y0)
+  //   .attr("width", d => d.x1 - d.x0)
+  //   .attr("fill", G ? ({ index: i }) => color(G[i]) : "#888")
+  //   .append("title")
+  //   .text(({ index: i }) => Tt ? Tt[i] : Tl[i]);
 
   // LINKS
   const link = svg.append("g")
