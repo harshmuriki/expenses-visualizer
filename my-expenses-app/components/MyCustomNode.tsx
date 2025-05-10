@@ -10,6 +10,8 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
   payload,
   onNodeClick,
   allNodes,
+  links,
+  // @typescript-eslint/no-unused-vars
 }) => {
   const isLeafNode = allNodes[index].isleaf;
 
@@ -19,7 +21,15 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
   };
 
   const nodeWidth = isLeafNode ? 40 : Math.abs(30);
-  const nodeHeight = isLeafNode ? 25 : Math.abs(height);
+  // Find the incoming link for this node (where this node is the target)
+  let incomingEdgeWidth = 25;
+  if (links) {
+    const incomingLink = links.find((l) => l.target === index);
+    if (incomingLink && typeof incomingLink.strokeWidth === "number") {
+      incomingEdgeWidth = incomingLink.strokeWidth;
+    }
+  }
+  const nodeHeight = isLeafNode ? incomingEdgeWidth : Math.abs(height);
   const fillColor = isLeafNode ? "#4fd1c5" : "#232946";
   const borderColor = isLeafNode ? "#4fd1c5" : "#2a334a";
   const fontSize = Math.max(15, width / 8);
@@ -31,7 +41,7 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
   const topLeft = x;
   const topRight = x + nodeWidth;
   const bottomLeft = y;
-  const bottomRight = y + (isLeafNode ? nodeHeight : Math.max(height, 30));
+  const bottomRight = y + nodeHeight;
 
   return (
     <g onClick={handleClick} style={{ cursor: "pointer" }}>
@@ -40,7 +50,7 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
         x={x}
         y={y}
         width={nodeWidth}
-        height={isLeafNode ? nodeHeight : Math.max(height, 30)}
+        height={nodeHeight}
         fill={fillColor}
         stroke={borderColor}
         strokeWidth={2}

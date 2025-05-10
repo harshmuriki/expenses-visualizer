@@ -43,6 +43,7 @@ export interface MyCustomNodeProps {
   onNodeClick: (nodeId: string, event: React.MouseEvent<SVGElement>) => void; // New click handler
   allNodes: SankeyNode[];
   fixViz: boolean;
+  links?: SankeyLink[]; // Add this prop to allow access to links for edge width
 }
 
 export interface SnakeyChartComponentProps {

@@ -48,11 +48,29 @@ export const calculateLinks = (nodes: SankeyNode[], map: Map) => {
     colorIndex++;
   }
   // Update node values based on calculated parent values
-  //   const updatedNodes = nodes.map((node, index) => ({
-  //     ...node,
-  //     value: parentValues[index] || node.cost || 0,
-  //     visible: index == 0 || parentIndices.has(index) ? true : null, // Set visibility
-  //     isleaf: index == 0 || parentIndices.has(index) ? false : true,
-  //   }));
-  return { nodes: nodes, links: links };
+  const updatedNodes = nodes.map((node) => {
+    if (parentValues[node.index] !== undefined) {
+      return {
+        ...node,
+        value: parentValues[node.index],
+        cost: parentValues[node.index],
+      };
+    }
+    return node;
+  });
+
+  // Calculate root node value as the sum of all its direct children
+  const rootChildren = links
+    .filter((link) => link.source === 0)
+    .map((link) => link.target);
+  const rootValue = rootChildren.reduce((sum, childIdx) => {
+    const node = updatedNodes.find((n) => n.index === childIdx);
+    return sum + (node?.cost || 0);
+  }, 0);
+  // Update the root node (index 0)
+  const finalNodes = updatedNodes.map((node) =>
+    node.index === 0 ? { ...node, value: rootValue, cost: rootValue } : node
+  );
+
+  return { nodes: finalNodes, links: links };
 };

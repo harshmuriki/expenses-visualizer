@@ -12,7 +12,6 @@ import {
   SankeyData,
   SnakeyChartComponentProps,
   Map,
-  SankeyLink,
 } from "@/app/types/types";
 import { uploadTransactionsInBatch } from "@/components/sendDataFirebase";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -401,12 +400,12 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
   );
 
   // Helper to find the top-level parent for a given node index
-  function findTopLevelParent(nodeIndex: number, links: SankeyLink[]): number {
+  function findTopLevelParent(nodeIndex: number, links: any[]): number {
     let current = nodeIndex;
-    let parent = links.find((l: SankeyLink) => l.target === current)?.source;
+    let parent = links.find((l: any) => l.target === current)?.source;
     while (parent !== undefined && parent !== 0) {
       current = parent;
-      parent = links.find((l: SankeyLink) => l.target === current)?.source;
+      parent = links.find((l: any) => l.target === current)?.source;
     }
     return parent === 0 ? current : nodeIndex;
   }
@@ -499,6 +498,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
                   onNodeClick={(nodeId) => handleNodeClick(nodeId)}
                   allNodes={dataValue.nodes}
                   colorThreshold={10}
+                  links={dataValue.links}
                 />
               )}
               nodePadding={60}
@@ -528,9 +528,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
                   sourceIndex,
                   dataValue.links
                 );
-                const colorIdx =
-                  (typeof topParent === "number" ? topParent : 0) %
-                  parentColors.length;
+                const colorIdx = topParent % parentColors.length;
                 const linkColor = parentColors[colorIdx];
                 const path = `M${sourceX},${sourceY}C${sourceControlX},${sourceY},${targetControlX},${targetY},${targetX},${targetY}`;
                 return (
