@@ -9,9 +9,11 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
   index,
   payload,
   onNodeClick,
+  onNodeDrop,
+  isDragging,
+  isDragNode,
   allNodes,
-  links,
-  // @typescript-eslint/no-unused-vars
+  colorThreshold,
 }) => {
   const isLeafNode = allNodes[index].isleaf;
 
@@ -20,18 +22,32 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
     onNodeClick(payload.name, event); // Pass the event object
   };
 
-  const nodeWidth = isLeafNode ? 40 : Math.abs(30);
-  // Find the incoming link for this node (where this node is the target)
-  let incomingEdgeWidth = 25;
-  if (links) {
-    const incomingLink = links.find((l) => l.target === index);
-    if (incomingLink && typeof incomingLink.strokeWidth === "number") {
-      incomingEdgeWidth = incomingLink.strokeWidth;
+  const handleDrop = (event: React.MouseEvent<SVGElement>) => {
+    event.stopPropagation();
+    if (onNodeDrop && isDragging) {
+      onNodeDrop(payload.name);
     }
+  };
+
+  const parentsHeight = 0;
+
+  const nodeWidth = isLeafNode ? 40 : Math.abs(30);
+  const nodeHeight = isLeafNode ? 25 : Math.abs(height);
+
+  // Change colors based on drag state
+  let fillColor = isLeafNode ? "#4fd1c5" : "#232946";
+  let borderColor = isLeafNode ? "#4fd1c5" : "#2a334a";
+
+  if (isDragNode) {
+    // Highlight the node being dragged
+    fillColor = "#ff9500";
+    borderColor = "#ff5e00";
+  } else if (isDragging && !isLeafNode && index !== 0) {
+    // Highlight potential drop targets (only parent nodes, not root)
+    fillColor = "#4CAF50";
+    borderColor = "#2E7D32";
   }
-  const nodeHeight = isLeafNode ? incomingEdgeWidth : Math.abs(height);
-  const fillColor = isLeafNode ? "#4fd1c5" : "#232946";
-  const borderColor = isLeafNode ? "#4fd1c5" : "#2a334a";
+
   const fontSize = Math.max(15, width / 8);
   const truncatedName =
     payload.name.length > 15
@@ -41,23 +57,41 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
   const topLeft = x;
   const topRight = x + nodeWidth;
   const bottomLeft = y;
-  const bottomRight = y + nodeHeight;
+  const bottomRight = y + (isLeafNode ? nodeHeight : Math.max(height, 30));
 
   return (
-    <g onClick={handleClick} style={{ cursor: "pointer" }}>
+    <g
+      onClick={handleClick}
+      onMouseUp={handleDrop}
+      style={{
+        cursor: isDragging
+          ? isLeafNode
+            ? "not-allowed"
+            : "pointer"
+          : "pointer",
+        opacity: isDragNode ? 0.7 : 1,
+      }}
+      data-node-index={index}
+    >
       {/* Rectangle for the node */}
       <rect
         x={x}
         y={y}
         width={nodeWidth}
-        height={nodeHeight}
+        height={isLeafNode ? nodeHeight : Math.max(height, 30)}
         fill={fillColor}
         stroke={borderColor}
-        strokeWidth={2}
+        strokeWidth={
+          isDragNode || (isDragging && !isLeafNode && index !== 0) ? 3 : 2
+        }
         rx={10}
         ry={10}
         style={{
-          cursor: "pointer",
+          cursor: isDragging
+            ? isLeafNode
+              ? "not-allowed"
+              : "pointer"
+            : "pointer",
           transition: "fill 0.3s, stroke 0.3s",
         }}
       />

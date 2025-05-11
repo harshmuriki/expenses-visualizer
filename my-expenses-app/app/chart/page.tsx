@@ -1,15 +1,18 @@
 "use client";
 
-import React, { Suspense } from "react";
-import SnakeyChartComponent from "@/components/SnakeyChartComponent";
+import React from "react";
+import EChartsSankeyComponent from "@/components/EChartsSankeyComponent";
+import { useState } from "react";
 
 export default function ChartPage() {
   return (
-    <div className="min-h-screen bg-gray-900 text-gray-200 flex items-center justify-center">
-      <Suspense fallback={<div>Loading...</div>}>
-        {/* Pass in any props your SnakeyChartComponent needs */}
-        <SnakeyChartComponent refresh={true} />
-      </Suspense>
+    <div className="flex flex-col items-center p-4 min-h-screen bg-gradient-to-b from-gray-900 to-gray-800">
+      <h1 className="text-3xl font-bold text-white mb-4">
+        Expenses Visualization
+      </h1>
+      <div className="w-full flex justify-center">
+        <EChartsSankeyComponent />
+      </div>
     </div>
   );
 }

@@ -16,10 +16,10 @@ import {
 import { uploadTransactionsInBatch } from "@/components/sendDataFirebase";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-// ts-expect-error: If you don't have @types/d3 installed, this will suppress the error.
-import * as d3 from "d3";
 
-const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
+const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
+  refresh,
+}) => {
   const [dataValue, setDataValue] = useState<SankeyData>({
     nodes: [],
     links: [],
@@ -38,8 +38,6 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
   } | null>(null);
   const MAX_RETRIES = 5; // Maximum number of retries
   const RETRY_DELAY = 3000; // Delay between retries in milliseconds (5 seconds)
-  const parentColors = d3.schemeSet2;
-  const [sankeyKey, setSankeyKey] = useState(0); // Add a key for forcing re-render
 
   useEffect(() => {
     if (session) {
@@ -124,7 +122,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
     };
 
     fetchData();
-  }, [month, user?.email, session]);
+  }, [refresh, month, user?.email, session]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -147,9 +145,9 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
   /**
    * Dynamically builds a parent->children map based on existing links.
    */
-  const updateParentChildMap = (linksArg = dataValue.links) => {
+  const updateParentChildMap = () => {
     const newMap: Record<number, number[]> = {};
-    linksArg.forEach((link) => {
+    dataValue.links.forEach((link) => {
       if (link.source !== 0) {
         if (!newMap[link.source]) {
           newMap[link.source] = [];
@@ -161,33 +159,47 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
   };
 
   /**
+   * Recalculate all parent node values as the sum of their children's costs.
+   */
+  function recalculateParentValues(nodes: SankeyNode[], parentChildMap: Map) {
+    const updatedNodes = [...nodes];
+    Object.entries(parentChildMap).forEach(([parentIdx, children]) => {
+      const parentIndex = parseInt(parentIdx, 10);
+      const sum = (children as number[]).reduce((acc, childIdx) => {
+        const child = updatedNodes[childIdx];
+        return acc + (child?.cost || 0);
+      }, 0);
+      if (updatedNodes[parentIndex]) {
+        updatedNodes[parentIndex].value = sum;
+        updatedNodes[parentIndex].cost = sum;
+      }
+    });
+    return updatedNodes;
+  }
+
+  /**
    * Recalculates links after nodes or parent-child relationships change,
    * applying strokeWidth scaling based on relative link values.
    */
   const recalculateLinks = () => {
     const updatedParentChildMap = updateParentChildMap();
     const newData = calculateLinks(dataValue.nodes, updatedParentChildMap);
-    // Tweak these for visual scaling:
-    const baseWidth = 2; // Minimum link width
-    const maxWidth = 100; // Maximum link width
     const maxLinkValue = Math.max(...newData.links.map((link) => link.value));
     const coloredLinks = newData.links.map((link) => {
       // Scale strokeWidth based on link's value
+      const baseWidth = 3;
+      const maxWidth = 75; // tweak as needed
       const strokeWidth = maxLinkValue
         ? Math.max(baseWidth, (link.value / maxLinkValue) * maxWidth)
         : baseWidth;
+
       return { ...link, strokeWidth };
     });
-    console.log(
-      "Recalculating links. Nodes:",
-      newData.nodes,
-      "Links:",
-      coloredLinks
-    );
     setDataValue({ ...newData, links: coloredLinks });
   };
 
   // To update the data in Firebase
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const sendDataToFirebase = async () => {
     console.log("uploading data to firebase");
     try {
@@ -275,20 +287,28 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
    * - Update the parent's cost
    * - Update parentChildMap, recalculate links
    */
-  const handleModalSubmit = (newParentName: string, newPrice: number) => {
+  const handleModalSubmit = (newParentString: string, newPrice: number) => {
     if (parentIndex === null || nodeIndex === null) return;
+
+    // Try to extract index from "Parent Name [index]"
+    const match = newParentString.match(/\[(\d+)\]$/);
+    let newParentIndex: number | null = null;
+    let isNewParent = false;
+    let newParentName = newParentString;
+
+    if (match) {
+      newParentIndex = parseInt(match[1], 10);
+    } else {
+      // No index found, treat as new parent
+      isNewParent = true;
+    }
 
     setDataValue((prevData) => {
       const updatedNodes = [...prevData.nodes];
-      let newParentIndex = parentIndex;
+      let actualNewParentIndex = newParentIndex;
 
-      // Check if the new parent name already exists
-      const existingParentIndex = updatedNodes.findIndex(
-        (n) => n.name === newParentName
-      );
-
-      // If parent doesn't exist, create it
-      if (existingParentIndex === -1) {
+      if (isNewParent) {
+        // Create new parent node
         const newParentNode: SankeyNode = {
           name: newParentName,
           value: updatedNodes[nodeIndex].cost || 0,
@@ -297,9 +317,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
           index: updatedNodes.length,
         };
         updatedNodes.push(newParentNode);
-        newParentIndex = updatedNodes.length - 1;
-      } else {
-        newParentIndex = existingParentIndex;
+        actualNewParentIndex = updatedNodes.length - 1;
       }
 
       // Update the node's cost/value
@@ -310,70 +328,39 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
           value: newPrice,
         };
       }
-      const editedNode = updatedNodes[nodeIndex];
-      console.log("Edited node:", {
-        index: nodeIndex,
-        name: editedNode.name,
-        cost: editedNode.cost,
-        value: editedNode.value,
+
+      // Update parent-child relationships directly
+      // Build parentChildMap from current links, then update
+      const updatedMap = updateParentChildMap();
+      // Remove nodeIndex from all parents
+      Object.entries(updatedMap).forEach(([parentIdx, children]) => {
+        const parentKey = parseInt(parentIdx, 10);
+        updatedMap[parentKey] = (children as number[]).filter(
+          (val: number) => val !== nodeIndex
+        );
+      });
+      // Add nodeIndex to the new parent
+      if (actualNewParentIndex === null) return prevData; // Defensive
+      if (!updatedMap[actualNewParentIndex]) {
+        updatedMap[actualNewParentIndex] = [];
+      }
+      updatedMap[actualNewParentIndex].push(nodeIndex);
+      // Clean up any empty arrays
+      Object.entries(updatedMap).forEach(([k, v]) => {
+        const keyNum = parseInt(k, 10);
+        if (Array.isArray(v) && v.length === 0) {
+          delete updatedMap[keyNum];
+        }
       });
 
-      // Build links from the old data
-      let updatedLinks = [...prevData.links];
-
-      // If the user actually changed the parent (not just the price)
-      if (newParentIndex !== parentIndex) {
-        // Subtract the node's value from the old parent
-        // updatedNodes?[parentIndex].value -= prevData.nodes[nodeIndex].cost ?? 0;
-        (updatedNodes as { value: number }[])[parentIndex].value -=
-          prevData.nodes[nodeIndex].cost ?? 0;
-
-        // Reassign the leaf to the new parent
-        updatedLinks = updatedLinks.map((link) =>
-          link.target === nodeIndex ? { ...link, source: newParentIndex } : link
-        );
-
-        // If we created a brand-new parent node, add a link from root (index 0)
-        if (existingParentIndex === -1) {
-          updatedLinks.push({
-            source: 0,
-            target: newParentIndex,
-            value: updatedNodes[nodeIndex].cost ?? 0,
-          });
-        }
-
-        // Update parent-child relationships
-        const updatedMap = updateParentChildMap(updatedLinks);
-        if (!updatedMap[newParentIndex]) {
-          updatedMap[newParentIndex] = [];
-        }
-        // Add the node to the new parent
-        updatedMap[newParentIndex].push(nodeIndex);
-
-        // Remove the node from the old parent
-        updatedMap[parentIndex] = updatedMap[parentIndex].filter(
-          (val) => val !== nodeIndex
-        );
-
-        // If the old parent has no children left, remove that parent link from root
-        if (updatedMap[parentIndex]?.length === 0) {
-          delete updatedMap[parentIndex];
-        }
-
-        // Recalculate links with the updated map
-        const recalculatedData = calculateLinks(updatedNodes, updatedMap);
-        // Force Sankey re-render by incrementing sankeyKey
-        setSankeyKey((k) => k + 1);
-        return { nodes: [...updatedNodes], links: [...recalculatedData.links] };
-      }
-
-      // No parent change, just cost
-      const updatedMap = updateParentChildMap();
-      console.log("Updated parentChildMap:", updatedMap);
-      const recalculatedData = calculateLinks(updatedNodes, updatedMap);
-      // Force Sankey re-render by incrementing sankeyKey
-      setSankeyKey((k) => k + 1);
-      return { nodes: [...updatedNodes], links: [...recalculatedData.links] };
+      // Recalculate parent values
+      const recalculatedNodes = recalculateParentValues(
+        updatedNodes,
+        updatedMap
+      );
+      // Recalculate links with the updated map
+      const recalculatedData = calculateLinks(recalculatedNodes, updatedMap);
+      return { nodes: recalculatedNodes, links: recalculatedData.links };
     });
   };
 
@@ -394,32 +381,14 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
     new Set(
       dataValue.links.map((link) => {
         const sourceIndex = link.source;
-        return dataValue.nodes[sourceIndex]?.name ?? "";
+        const node = dataValue.nodes[sourceIndex];
+        return node ? `${node.name} [${node.index}]` : "";
       })
     )
   );
 
-  // Helper to find the top-level parent for a given node index
-  function findTopLevelParent(nodeIndex: number, links: any[]): number {
-    let current = nodeIndex;
-    let parent = links.find((l: any) => l.target === current)?.source;
-    while (parent !== undefined && parent !== 0) {
-      current = parent;
-      parent = links.find((l: any) => l.target === current)?.source;
-    }
-    return parent === 0 ? current : nodeIndex;
-  }
-
   return (
-    <div
-      style={{
-        width: "100%",
-        minHeight: "100vh",
-        background: "#181f2a",
-        overflowX: "scroll",
-        position: "relative",
-      }}
-    >
+    <div style={{ width: "100%", overflowX: "scroll", position: "relative" }}>
       <div
         style={{
           position: "fixed",
@@ -430,9 +399,9 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          background: "linear-gradient(to right, #232946, #181f2a)",
+          background: "linear-gradient(to right, #4b5563, #6b7280)", // Soft gray gradient
           padding: "10px 20px",
-          boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
+          boxShadow: "0 2px 5px rgba(0,0,0,0.3)", // Subtle shadow
         }}
       >
         {/* Left Section: Back to Home Button */}
@@ -440,8 +409,8 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
           onClick={() => router.push("/")}
           style={{
             padding: "10px 20px",
-            backgroundColor: "#4fd1c5",
-            color: "#181f2a",
+            backgroundColor: "#007AFF",
+            color: "white",
             border: "none",
             borderRadius: "5px",
             cursor: "pointer",
@@ -450,34 +419,48 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
         >
           Back to Home
         </button>
+
         {/* Center: Month Label */}
         <span
           style={{
-            color: "#fff",
+            color: "white",
             fontWeight: "bold",
             fontSize: "1.1rem",
           }}
         >
           Editing Month: {month}
         </span>
-        {/* Right Section: Sync to Cloud Button */}
+
+        {/* Right Section: Buttons */}
         <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
           <button
-            onClick={sendDataToFirebase}
+            onClick={recalculateLinks}
             style={{
               padding: "10px 20px",
-              backgroundColor: "#00ffd0",
-              color: "#181f2a",
+              backgroundColor: "#4CAF50",
+              color: "white",
               border: "none",
               borderRadius: "5px",
               cursor: "pointer",
               fontWeight: "bold",
-              boxShadow: "0 2px 5px rgba(0,0,0,0.15)",
-              marginLeft: "10px",
             }}
           >
-            Sync to Cloud
+            Recalculate Links
           </button>
+          {/* <button
+            onClick={sendDataToFirebase}
+            style={{
+              padding: "10px 20px",
+              backgroundColor: "#4CAF50",
+              color: "white",
+              border: "none",
+              borderRadius: "5px",
+              cursor: "pointer",
+              fontWeight: "bold",
+            }}
+          >
+            Save Data to Firebase
+          </button> */}
         </div>
       </div>
 
@@ -488,7 +471,6 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
             height={adjustedHeight}
           >
             <Sankey
-              key={sankeyKey}
               width={adjustedWidth}
               height={adjustedHeight}
               data={{ nodes: dataValue.nodes, links: dataValue.links }}
@@ -498,7 +480,6 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
                   onNodeClick={(nodeId) => handleNodeClick(nodeId)}
                   allNodes={dataValue.nodes}
                   colorThreshold={10}
-                  links={dataValue.links}
                 />
               )}
               nodePadding={60}
@@ -514,40 +495,40 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
                   targetControlX,
                   payload,
                 } = linkProps;
+
                 const sourceIndex = payload.source.index;
                 const targetIndex = payload.target.index;
-                let linkStrokeWidth = 8;
+
+                // Default link color and width
+                let linkColor = "#8884d8";
+                let linkStrokeWidth = 2;
+
+                // Match the link in our dataValue to get custom styling
                 const matchingLink = dataValue.links.find(
                   (l) => l.source === sourceIndex && l.target === targetIndex
                 );
+
                 if (matchingLink) {
-                  linkStrokeWidth = matchingLink.strokeWidth;
+                  linkColor = matchingLink.color || linkColor;
+                  linkStrokeWidth = matchingLink.strokeWidth || 2;
                 }
-                // Assign color by top-level parent
-                const topParent = findTopLevelParent(
-                  sourceIndex,
-                  dataValue.links
-                );
-                const colorIdx = topParent % parentColors.length;
-                const linkColor = parentColors[colorIdx];
-                const path = `M${sourceX},${sourceY}C${sourceControlX},${sourceY},${targetControlX},${targetY},${targetX},${targetY}`;
+
+                const path = `
+                  M${sourceX},${sourceY}
+                  C${sourceControlX},${sourceY}
+                  ${targetControlX},${targetY}
+                  ${targetX},${targetY}
+                `;
+
                 return (
-                  <g key={`link-group-${sourceIndex}-${targetIndex}`}>
-                    {/* Main path only, remove debug line */}
-                    <path
-                      d={path}
-                      stroke={linkColor}
-                      strokeWidth={linkStrokeWidth}
-                      strokeOpacity={1}
-                      fill="none"
-                      strokeLinejoin="round"
-                      strokeLinecap="round"
-                      style={{
-                        transition:
-                          "stroke-width 0.4s, stroke 0.4s, stroke-opacity 0.4s",
-                      }}
-                    />
-                  </g>
+                  <path
+                    key={`link-${sourceIndex}-${targetIndex}`}
+                    d={path}
+                    stroke={linkColor}
+                    strokeWidth={linkStrokeWidth}
+                    strokeOpacity={0.2}
+                    fill="none"
+                  />
                 );
               }}
             >
@@ -561,7 +542,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
             clickedNode !== null && (
               <InputModal
                 clickedNode={clickedNode}
-                initialParentName={dataValue.nodes[parentIndex]?.name}
+                initialParentName={`${dataValue.nodes[parentIndex]?.name} [${dataValue.nodes[parentIndex]?.index}]`}
                 initialPrice={
                   dataValue.nodes[nodeIndex]?.value?.toString() || "0"
                 }

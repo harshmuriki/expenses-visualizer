@@ -1,95 +1,95 @@
 {
-    "nodes": [
-        {
-            "name": "Expenses",
-            "index": 0
-        },
-        {
-            "name": "Restaurant",
-            "index": 1
-        },
-        {
-            "name": "AplPay Marrakech Express",
-            "cost": 9.74,
-            "index": 2
-        },
-        {
-            "name": "Restaurant-Bar & Café",
-            "index": 3
-        },
-        {
-            "name": "AplPay AJM BUSINESS",
-            "cost": 6.24,
-            "index": 4
-        },
-        {
-            "name": "null",
-            "index": 5
-        },
-        {
-            "name": "Fast Food Restaurant",
-            "cost": 18.72,
-            "index": 6
-        },
-        {
-            "name": "Joe's Pizza",
-            "cost": 4.5,
-            "index": 7
-        },
-        {
-            "name": "Transportation",
-            "index": 8
-        },
-        {
-            "name": "LYFT",
-            "cost": 10.78,
-            "index": 9
-        },
-        {
-            "name": "Transportation-Taxis & Coach",
-            "index": 10
-        },
-        {
-            "name": "LYFT",
-            "cost": 12.73,
-            "index": 11
-        },
-        {
-            "name": "Transportation-Rail Services",
-            "index": 12
-        },
-        {
-            "name": "AplPay NYCT PAYGO",
-            "cost": 2.9,
-            "index": 13
-        },
-        {
-            "name": "AplPay NYCT PAYGO",
-            "cost": 2.9,
-            "index": 14
-        },
-        {
-            "name": "AplPay NYCT PAYGO",
-            "cost": 2.9,
-            "index": 15
-        },
-        {
-            "name": "Restaurant-Restaurant",
-            "index": 16
-        },
-        {
-            "name": "Cheesecake Factory",
-            "cost": 45.53,
-            "index": 17
-        },
-        {
-            "name": "Entertainment-Other Entertainment",
-            "index": 18
-        },
-        {
-            "name": "AplPay Bird App",
-            "cost": 1.08,
-            "index": 19
-        }
-    ]
+  "nodes": [
+    {
+      "name": "Expenses",
+      "index": 0
+    },
+    {
+      "name": "Restaurant",
+      "index": 1
+    },
+    {
+      "name": "AplPay Marrakech Express",
+      "cost": 9.74,
+      "index": 2
+    },
+    {
+      "name": "Restaurant-Bar & Café",
+      "index": 3
+    },
+    {
+      "name": "AplPay AJM BUSINESS",
+      "cost": 6.24,
+      "index": 4
+    },
+    {
+      "name": "Fast Food",
+      "index": 5
+    },
+    {
+      "name": "Fast Food Restaurant",
+      "cost": 18.72,
+      "index": 6
+    },
+    {
+      "name": "Joe's Pizza",
+      "cost": 4.5,
+      "index": 7
+    },
+    {
+      "name": "Transportation",
+      "index": 8
+    },
+    {
+      "name": "LYFT",
+      "cost": 10.78,
+      "index": 9
+    },
+    {
+      "name": "Transportation-Taxis & Coach",
+      "index": 10
+    },
+    {
+      "name": "LYFT 2",
+      "cost": 12.73,
+      "index": 11
+    },
+    {
+      "name": "Transportation-Rail Services",
+      "index": 12
+    },
+    {
+      "name": "AplPay NYCT PAYGO",
+      "cost": 2.9,
+      "index": 13
+    },
+    {
+      "name": "AplPay NYCT PAYGO 2",
+      "cost": 2.9,
+      "index": 14
+    },
+    {
+      "name": "AplPay NYCT PAYGO 3",
+      "cost": 2.9,
+      "index": 15
+    },
+    {
+      "name": "Restaurant-Restaurant",
+      "index": 16
+    },
+    {
+      "name": "Cheesecake Factory",
+      "cost": 45.53,
+      "index": 17
+    },
+    {
+      "name": "Entertainment-Other Entertainment",
+      "index": 18
+    },
+    {
+      "name": "AplPay Bird App",
+      "cost": 1.08,
+      "index": 19
+    }
+  ]
 }
