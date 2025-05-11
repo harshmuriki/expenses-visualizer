@@ -90,6 +90,10 @@
       "name": "AplPay Bird App",
       "cost": 1.08,
       "index": 19
+    },
+    {
+      "name": "final",
+      "index": 20
     }
   ]
 }

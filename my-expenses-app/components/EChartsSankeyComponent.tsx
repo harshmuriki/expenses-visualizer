@@ -25,6 +25,10 @@ interface NodeData {
   }>;
 }
 
+interface FixedNodeOrder {
+  [nodeName: string]: number;
+}
+
 // Helper to get unique name by index
 const getNodeNameByIndex = (nodesData: NodeData, idx: number) => {
   const node = nodesData.nodes.find((n) => n.index === idx);
@@ -58,6 +62,33 @@ function buildSankeyData(
         nodeCostMap: { "Error [0]": 0 },
       };
     }
+
+    // Calculate the total value for each parent node upfront
+    // This helps us sort parents consistently by their value
+    const calculateParentValues = () => {
+      const parentValues: Record<number, number> = {};
+
+      // Calculate the value for each parent based on the sum of their children
+      Object.entries(parentChildMap).forEach(([parentIdx, children]) => {
+        if (!children || !Array.isArray(children) || children.length === 0) {
+          return;
+        }
+
+        const parentIndex = Number(parentIdx);
+        let totalValue = 0;
+
+        children.forEach((childIdx) => {
+          const childNode = nodesData.nodes.find((n) => n.index === childIdx);
+          totalValue += childNode?.cost || 0;
+        });
+
+        parentValues[parentIndex] = totalValue;
+      });
+
+      return parentValues;
+    };
+
+    const parentValues = calculateParentValues();
 
     // Get all nodes that should be hidden (direct and indirect children of collapsed nodes)
     const getNodesToHide = () => {
@@ -95,14 +126,17 @@ function buildSankeyData(
         opacity?: number;
         borderColor?: string;
         borderWidth?: number;
+        cursor?: string;
       };
       sumCost?: number;
+      parentIndex?: number; // For sorting purposes
     }[] = nodesData.nodes
       .filter((n) => !nodesToHide.has(n.index)) // Filter out hidden nodes
       .map((n) => {
         // Create basic node
         const node = {
           name: `${n.name} [${n.index}]`,
+          parentIndex: n.index, // Store the index for sorting later
         };
 
         // We'll set colors later
@@ -153,6 +187,24 @@ function buildSankeyData(
           value: childNode.cost || 1,
         });
       }
+
+      // Add explicit handling for Expenses' direct children
+      if (parentIndex === 0) {
+        // Expenses is the parent
+        for (const childIdx of children as number[]) {
+          const childNode = nodesData.nodes.find((n) => n.index === childIdx);
+          if (!childNode) continue;
+
+          const childName = getNodeNameByIndex(nodesData, childIdx);
+
+          // Always create link from Expenses to its direct children
+          links.push({
+            source: parentName,
+            target: childName,
+            value: childNode.cost || 1,
+          });
+        }
+      }
     }
 
     // Ensure 'Expenses' is the leftmost root node
@@ -160,6 +212,50 @@ function buildSankeyData(
     if (expensesNode) {
       nodes.splice(nodes.indexOf(expensesNode), 1);
       nodes.unshift(expensesNode);
+    }
+
+    // Sort the top-level parent nodes (direct children of Expenses) by their value in descending order
+    // First, identify top-level parents
+    const topLevelParentIndices = new Set<number>();
+    Object.entries(parentChildMap).forEach(([parentIdx, children]) => {
+      const parentIndex = Number(parentIdx);
+      // If it's not the root and has children
+      if (parentIndex !== 0 && children && children.length > 0) {
+        // Check if it's a direct child of Expenses (index 0)
+        const expensesChildren = parentChildMap["0"] || [];
+        if (expensesChildren.includes(parentIndex)) {
+          topLevelParentIndices.add(parentIndex);
+        }
+      }
+    });
+
+    // Force a stable sort for parent nodes
+    nodes.sort((a, b) => {
+      const idxA = Number(a.name.match(/\[(\d+)\]/)?.[1]);
+      const idxB = Number(b.name.match(/\[(\d+)\]/)?.[1]);
+
+      // Always keep Expenses (index 0) first
+      if (idxA === 0) return -1;
+      if (idxB === 0) return 1;
+
+      // If both are top-level parents, sort by value descending
+      if (topLevelParentIndices.has(idxA) && topLevelParentIndices.has(idxB)) {
+        return (parentValues[idxB] || 0) - (parentValues[idxA] || 0);
+      }
+
+      // If only one is a top-level parent, give it priority
+      if (topLevelParentIndices.has(idxA)) return -1;
+      if (topLevelParentIndices.has(idxB)) return 1;
+
+      // Otherwise, maintain original order for stability
+      return idxA - idxB;
+    });
+
+    // Need to reposition expenses node after the sort (should be first)
+    const expensesIdx = nodes.findIndex((n) => n.name.startsWith("Expenses"));
+    if (expensesIdx > 0) {
+      const expenses = nodes.splice(expensesIdx, 1)[0];
+      nodes.unshift(expenses);
     }
 
     // Assign a unique color to each parent node (direct child of 'Expenses')
@@ -189,21 +285,21 @@ function buildSankeyData(
       nodes.forEach((node) => {
         // Extract index from node name
         const idx = Number(node.name.match(/\[(\d+)\]/)?.[1]);
+        const isParent =
+          parentChildMap[String(idx)] &&
+          Array.isArray(parentChildMap[String(idx)]) &&
+          parentChildMap[String(idx)].length > 0;
+        const isCollapsed = collapsedNodes.includes(idx);
 
-        // If node is collapsed, use a distinctive style
-        if (collapsedNodes.includes(idx)) {
-          // Use a darker shade but maintain some of the original color if available
-          const baseColor = nodeColorMap[node.name] || "#888888";
-          node.itemStyle = {
-            color: baseColor,
-            opacity: 0.7,
-            borderColor: "#ffffff",
-            borderWidth: 2,
-          };
-        }
-        // Otherwise use the color from the map if available
-        else if (nodeColorMap[node.name]) {
-          node.itemStyle = { color: nodeColorMap[node.name] };
+        // Use the node styling function
+        node.itemStyle = {
+          color: nodeColorMap[node.name] || "#888888",
+          ...nodeStyle(node, isParent, isCollapsed),
+        };
+
+        // Add cursor style to make it obvious these can be clicked
+        if (isParent) {
+          node.itemStyle.cursor = "pointer";
         }
       });
     } catch (colorError) {
@@ -313,6 +409,9 @@ function buildSankeyData(
           node.sumCost = orig.cost || 0;
           nodeCostMap[node.name] = orig.cost || 0;
         }
+
+        // Remove the temporary parentIndex property as it's not needed for ECharts
+        delete node.parentIndex;
       });
     } catch (costError) {
       console.error("Error calculating node costs:", costError);
@@ -366,6 +465,7 @@ interface ModalNodeType {
 const EChartsSankeyComponent: React.FC = () => {
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<echarts.ECharts | null>(null);
+  const fixedNodeOrderRef = useRef<FixedNodeOrder>({});
   const [nodesData, setNodesData] = useState<NodeData>(
     JSON.parse(JSON.stringify(nodesDataRaw))
   );
@@ -408,6 +508,47 @@ const EChartsSankeyComponent: React.FC = () => {
   const [sankeyData, setSankeyData] = useState(() =>
     buildSankeyData(nodesData, parentChildMap, collapsedNodes)
   );
+
+  // Initialize the fixed node order on first render
+  useEffect(() => {
+    // Initialize fixed order for top-level parent nodes (direct children of Expenses)
+    if (Object.keys(fixedNodeOrderRef.current).length === 0) {
+      const expensesChildren = parentChildMap["0"] || [];
+      if (expensesChildren && expensesChildren.length > 0) {
+        console.log("Initializing fixed node order for top-level parents");
+
+        // Calculate initial values for parents for sorting
+        const parentValues: Record<number, number> = {};
+        expensesChildren.forEach((childIdx) => {
+          const children = parentChildMap[String(childIdx)];
+          if (!children || !Array.isArray(children)) return;
+
+          // Calculate sum of this parent's children costs
+          const sum = children.reduce((total, idx) => {
+            const node = nodesData.nodes.find((n) => n.index === idx);
+            return total + (node?.cost || 0);
+          }, 0);
+
+          parentValues[childIdx] = sum;
+        });
+
+        // Sort parents by value (descending)
+        const sortedParents = [...expensesChildren].sort(
+          (a, b) => (parentValues[b] || 0) - (parentValues[a] || 0)
+        );
+
+        // Create a map of node name to fixed order index
+        sortedParents.forEach((idx, order) => {
+          const node = nodesData.nodes.find((n) => n.index === idx);
+          if (node) {
+            const nodeName = `${node.name} [${node.index}]`;
+            fixedNodeOrderRef.current[nodeName] = order;
+            console.log(`Assigned fixed order ${order} to node ${nodeName}`);
+          }
+        });
+      }
+    }
+  }, [nodesData, parentChildMap]);
 
   // Initialize chart only once
   useEffect(() => {
@@ -464,6 +605,50 @@ const EChartsSankeyComponent: React.FC = () => {
       // Force a resize before updating options to ensure the chart area is properly sized
       chartInstanceRef.current.resize();
 
+      // Create explicit node layout constraints to enforce fixed order
+      const levels: Record<string, string[]> = {
+        "0": [], // Level 0 (first column)
+        "1": [], // Level 1 (second column)
+        "2": [], // Level 2 (third column)
+      };
+
+      // Create custom node order based on our fixed order reference
+      const nodeOrder: Record<string, number> = {};
+
+      // Place nodes in their appropriate levels
+      sankeyData.nodes.forEach((node) => {
+        const idx = Number(node.name.match(/\[(\d+)\]/)?.[1]);
+        if (idx === 0) {
+          // Root node (Expenses) always goes in first column at top
+          levels["0"].push(node.name);
+          nodeOrder[node.name] = 0;
+        } else {
+          // Find this node's parent
+          let parentLevel = null;
+          for (const [parentIdx, children] of Object.entries(parentChildMap)) {
+            if ((children as number[]).includes(idx)) {
+              parentLevel = parentIdx === "0" ? "1" : "2";
+              break;
+            }
+          }
+
+          // If it's a direct child of Expenses, use our fixed order
+          if (parentLevel === "1" && node.name in fixedNodeOrderRef.current) {
+            levels["1"].push(node.name);
+            nodeOrder[node.name] = fixedNodeOrderRef.current[node.name] + 1; // +1 because 0 is reserved for Expenses
+          }
+          // Otherwise place in appropriate level
+          else if (parentLevel) {
+            levels[parentLevel].push(node.name);
+            // Just use any order for non top-level parents
+            nodeOrder[node.name] = levels[parentLevel].length;
+          }
+        }
+      });
+
+      console.log("Node levels:", levels);
+      console.log("Node fixed order:", nodeOrder);
+
       const option = {
         title: {
           text: "Sankey Diagram",
@@ -492,15 +677,18 @@ const EChartsSankeyComponent: React.FC = () => {
                 // Get child count for parent nodes
                 const childCount = parentChildMap[String(idx)]?.length || 0;
 
-                return `<div style="padding: 8px;">
-                  <div style="font-weight: bold; font-size: 14px; margin-bottom: 4px;">${displayText}</div>
+                return `<div style="padding: 8px; max-width: 250px;">
+                  <div style="font-weight: bold; font-size: 16px; margin-bottom: 8px;">${displayText}</div>
                   <div>Total: ${cost}</div>
                   <div>Children: ${childCount}</div>
-                  <div style="margin-top: 8px; color: #aaa; font-style: italic;">
+                  <div style="margin-top: 12px; padding: 8px; background: ${
+                    isCollapsed ? "#4a5568" : "#2d3748"
+                  }; 
+                              border-radius: 4px; cursor: pointer; text-align: center; font-weight: bold;">
                     ${
                       isCollapsed
-                        ? "🔍 Click to expand children"
-                        : "🔽 Click to collapse children"
+                        ? "📦 Click to expand children"
+                        : "📂 Click to collapse children"
                     }
                   </div>
                 </div>`;
@@ -518,6 +706,9 @@ const EChartsSankeyComponent: React.FC = () => {
           containLabel: true,
           left: "5%",
           right: "5%",
+          top: "5%",
+          bottom: "5%",
+          height: "auto",
         },
         series: [
           {
@@ -526,15 +717,38 @@ const EChartsSankeyComponent: React.FC = () => {
             links: sankeyData.links,
             emphasis: {
               focus: "adjacency",
+              itemStyle: {
+                shadowBlur: 10,
+                shadowColor: "rgba(255, 255, 255, 0.5)",
+              },
+              label: {
+                fontWeight: "bold",
+                fontSize: 16,
+              },
             },
-            nodeWidth: 20,
-            nodeGap: 12,
-            layoutIterations: 64,
+            nodeWidth: 24,
+            nodeGap: 30,
+            layoutIterations: 128,
             orient: "horizontal",
             lineStyle: {
               color: "source",
               opacity: 0.6,
-              curveness: 0.5,
+              curveness: 0.7,
+            },
+            levels: [
+              { depth: 0, itemStyle: { color: null } },
+              { depth: 1, itemStyle: { color: null } },
+              { depth: 2, itemStyle: { color: null } },
+            ],
+            layoutConstraint: {
+              nodeGap: 30,
+              nodeWidth: 24,
+              nodePosition: Object.keys(nodeOrder).map((nodeName) => {
+                return {
+                  name: nodeName,
+                  value: nodeOrder[nodeName] * 1.5,
+                };
+              }),
             },
             label: {
               color: "#fff",
@@ -555,17 +769,48 @@ const EChartsSankeyComponent: React.FC = () => {
                   const isCollapsed = collapsedNodes.includes(idx);
                   const childCount = parentChildMap[String(idx)]?.length || 0;
 
-                  // Add a visual indicator for collapsible/expandable nodes
+                  // Make collapsible nodes more obvious with better icons and formatting
                   return `${displayText} (${cost}) ${
-                    isCollapsed ? "🔍" : "🔽"
+                    isCollapsed
+                      ? "📦" // A box icon for collapsed state
+                      : "📂" // An open folder for expanded state
                   } [${childCount}]`;
                 }
 
                 return `${displayText} (${cost})`;
               },
             },
+            nodeStyle: (node, isParent, isCollapsed) => {
+              // Basic style
+              const style = {
+                opacity: 0.9,
+                borderWidth: isParent ? 2 : 0,
+                borderColor: "#ffffff",
+              };
+
+              // Special styling for collapsible nodes
+              if (isParent) {
+                style.opacity = isCollapsed ? 0.7 : 0.9;
+                style.borderWidth = 2;
+                // Add visual indicator that this node is interactive
+                style.shadowBlur = 5;
+                style.shadowColor = isCollapsed ? "#f6ad55" : "#63b3ed";
+              }
+
+              return style;
+            },
+            draggable: true,
+            animation: true,
+            animationDuration: 1000,
+            animationEasingUpdate: "quinticInOut",
           },
         ],
+        layout: {
+          rankdir: "LR",
+          nodesep: 50,
+          ranksep: 150,
+          align: "justify", //options: "center", "justify", "left", "right"
+        },
       };
 
       // If chart is still valid, update it
@@ -619,6 +864,13 @@ const EChartsSankeyComponent: React.FC = () => {
           } catch (error) {
             console.error("Error handling chart click:", error);
           }
+        });
+
+        // Then modify the chart initialization to save positions after drag
+        chartInstanceRef.current.on("dragend", function (params) {
+          // Save the new position after dragging
+          console.log(`Node ${params.name} position updated`);
+          // You could save custom positions to localStorage if desired
         });
 
         // Force a second resize after update to ensure content is properly laid out
@@ -890,8 +1142,16 @@ const EChartsSankeyComponent: React.FC = () => {
         safeNodes.push(newParentNode);
         newParentIdx = newIdx;
 
-        // Create entry for the new parent
-        safeParentChildMap[String(newIdx)] = [idx];
+        // Explicitly create link from Expenses to new parent
+        const expensesName = getNodeNameByIndex(nodesData, 0);
+        const newParentName = `${realName} [${newIdx}]`;
+
+        // Add this link immediately to ensure it's present
+        links.push({
+          source: expensesName,
+          target: newParentName,
+          value: newPrice, // Or calculate from children if needed
+        });
       } else {
         // Use our improved parent lookup function
         const parentNode = findParentByDisplayName(newParentName);
@@ -970,51 +1230,75 @@ const EChartsSankeyComponent: React.FC = () => {
             Array.isArray(safeParentChildMap[k]) &&
             safeParentChildMap[k].length === 0
           ) {
+            // Remove from fixed node order if exists
+            const parentNode = nodesData.nodes.find(
+              (n) => n.index === Number(k)
+            );
+            if (parentNode) {
+              const nodeName = `${parentNode.name} [${k}]`;
+              delete fixedNodeOrderRef.current[nodeName];
+            }
             delete safeParentChildMap[k];
           }
         });
 
-        // Remove the parent node if needed
-        if (willRemoveParent && parentToRemove !== null) {
-          console.log(`Removing parent node with index ${parentToRemove}`);
-          // Remove from nodes array
-          safeNodes = safeNodes.filter(
-            (n: { index: number }) => n.index !== parentToRemove
-          );
-
-          // Remove from parentChildMap (already done by cleaning up empty arrays)
-
-          // Check if removed parent was a child of some other parent and remove it from there
-          for (const [grandParentIdx, children] of Object.entries(
-            safeParentChildMap
-          )) {
-            safeParentChildMap[grandParentIdx] = (children as number[]).filter(
-              (c) => c !== parentToRemove
-            );
-          }
-
-          // Clean up any newly empty arrays after removing parent
-          Object.keys(safeParentChildMap).forEach((k) => {
-            if (
-              Array.isArray(safeParentChildMap[k]) &&
-              safeParentChildMap[k].length === 0
-            ) {
-              delete safeParentChildMap[k];
-            }
-          });
-        }
-
-        // Log the updated parentChildMap for debugging
-        console.log(
-          "Updated parentChildMap:",
-          JSON.stringify(safeParentChildMap, null, 2)
+        // After parent cleanup, update fixed node order for remaining top-level parents
+        const currentTopLevelParents = (parentChildMap["0"] || []).filter(
+          (idx) => safeParentChildMap[String(idx)]?.length > 0
         );
+
+        currentTopLevelParents.forEach((idx, order) => {
+          const node = nodesData.nodes.find((n) => n.index === idx);
+          if (node) {
+            const nodeName = `${node.name} [${node.index}]`;
+            if (!(nodeName in fixedNodeOrderRef.current)) {
+              fixedNodeOrderRef.current[nodeName] = Object.keys(
+                fixedNodeOrderRef.current
+              ).length;
+            }
+          }
+        });
       } else {
         console.error("Failed to determine a new parent index");
         alert(
           "Could not find a valid parent. The operation will be cancelled."
         );
         return;
+      }
+
+      // Before updating state
+      // If we're adding a new top-level parent, add it to our fixed order
+      if (newParentName === "Create New Parent") {
+        const newParentIdx = Math.max(
+          ...safeNodes.map((n: { index: number }) => n.index)
+        );
+
+        // Check if it will be a direct child of Expenses
+        const rootChildren = safeParentChildMap["0"] || [];
+        if (rootChildren.includes(newParentIdx)) {
+          // Find the maximum order and add this new node after it
+          const maxOrder = Object.values(fixedNodeOrderRef.current).reduce(
+            (max, order) => Math.max(max, order),
+            0
+          );
+
+          // Create a node name that matches what will be generated
+          let realName = "New Parent"; // default fallback
+          const newNode = safeNodes.find(
+            (n: { index: number }) => n.index === newParentIdx
+          );
+          if (newNode) {
+            realName = newNode.name;
+          }
+
+          const newNodeName = `${realName} [${newParentIdx}]`;
+          fixedNodeOrderRef.current[newNodeName] = maxOrder + 1;
+          console.log(
+            `Added new parent to fixed order: ${newNodeName} at position ${
+              maxOrder + 1
+            }`
+          );
+        }
       }
 
       // Update the state in a controlled sequence to avoid blank screen
