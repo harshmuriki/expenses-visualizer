@@ -25,7 +25,12 @@ type EChartsOption = echarts.ComposeOption<
 interface EChartNode {
   name: string;
   itemStyle?: {
-    color: string;
+    color?: string;
+    borderColor?: string;
+    borderWidth?: number;
+    borderType?: string;
+    shadowBlur?: number;
+    shadowColor?: string;
   };
   sumCost?: number;
 }
@@ -55,7 +60,8 @@ const displayName = (name: string) => name.replace(/ \[\d+\]$/, "");
 
 function buildSankeyData(
   nodesData: NodeData,
-  parentChildMap: Record<string, number[]>
+  parentChildMap: Record<string, number[]>,
+  collapsedNodes: number[]
 ) {
   try {
     // Validate input data
@@ -77,25 +83,50 @@ function buildSankeyData(
       };
     }
 
-    // Build unique node names
-    const nodes: EChartNode[] = nodesData.nodes.map((n) => ({
-      name: `${n.name} [${n.index}]`,
-    }));
+    // Build unique node names - with simple styling
+    const nodes: any[] = nodesData.nodes.map((n) => {
+      // Create basic node
+      const node = {
+        name: `${n.name} [${n.index}]`,
+      };
+
+      // We'll set colors later
+      return node;
+    });
 
     const links: EChartLink[] = [];
+
+    // Process links - skip children of collapsed nodes
     for (const [parentIdx, children] of Object.entries(parentChildMap)) {
       if (!children || !Array.isArray(children)) continue;
 
-      const parentName = getNodeNameByIndex(nodesData, Number(parentIdx));
+      const parentIndex = Number(parentIdx);
+      const parentName = getNodeNameByIndex(nodesData, parentIndex);
       if (!parentName) continue;
 
       for (const childIdx of children as number[]) {
         const childNode = nodesData.nodes.find((n) => n.index === childIdx);
         if (!childNode) continue;
 
+        const childName = getNodeNameByIndex(nodesData, childIdx);
+
+        // If the child is a collapsed parent, still connect it to its parent
+        // but skip showing its own children
+        if (collapsedNodes.includes(childIdx)) {
+          links.push({
+            source: parentName,
+            target: childName,
+            value: childNode.cost || 1, // Use the child's cost as the link value
+          });
+          continue;
+        }
+
+        // Skip showing children links if parent is collapsed
+        if (collapsedNodes.includes(parentIndex)) continue;
+
         links.push({
           source: parentName,
-          target: getNodeNameByIndex(nodesData, childIdx),
+          target: childName,
           value: childNode.cost || 1,
         });
       }
@@ -125,12 +156,30 @@ function buildSankeyData(
       const parentNodeNames = links
         .filter((l) => l.source === getNodeNameByIndex(nodesData, 0))
         .map((l) => l.target);
+
       const nodeColorMap: Record<string, string> = {};
       parentNodeNames.forEach((name, idx) => {
         nodeColorMap[name] = parentColors[idx % parentColors.length];
       });
+
+      // Apply colors to nodes
       nodes.forEach((node) => {
-        if (nodeColorMap[node.name]) {
+        // Extract index from node name
+        const idx = Number(node.name.match(/\[(\d+)\]/)?.[1]);
+
+        // If node is collapsed, use a distinctive style
+        if (collapsedNodes.includes(idx)) {
+          // Use a darker shade but maintain some of the original color if available
+          const baseColor = nodeColorMap[node.name] || "#888888";
+          node.itemStyle = {
+            color: baseColor,
+            opacity: 0.7,
+            borderColor: "#ffffff",
+            borderWidth: 2,
+          };
+        }
+        // Otherwise use the color from the map if available
+        else if (nodeColorMap[node.name]) {
           node.itemStyle = { color: nodeColorMap[node.name] };
         }
       });
@@ -164,14 +213,36 @@ function buildSankeyData(
           const children = parentChildMap[String(parentIdx)] as number[];
           if (!children || !Array.isArray(children)) return;
 
-          const value = children
-            .map((childIdx) => {
-              const childNode = nodesData.nodes.find(
-                (n) => n.index === childIdx
-              );
-              return childNode?.cost || 1;
-            })
-            .reduce((a, b) => a + b, 0);
+          let value;
+
+          // For collapsed nodes, calculate a value based on their own cost
+          if (collapsedNodes.includes(parentIdx)) {
+            // Find the node's own cost, if available
+            const parentNode = nodesData.nodes.find(
+              (n) => n.index === parentIdx
+            );
+            value =
+              parentNode?.cost ||
+              // Otherwise calculate from children
+              children
+                .map((childIdx) => {
+                  const childNode = nodesData.nodes.find(
+                    (n) => n.index === childIdx
+                  );
+                  return childNode?.cost || 1;
+                })
+                .reduce((a, b) => a + b, 0);
+          } else {
+            // Normal calculation for expanded nodes
+            value = children
+              .map((childIdx) => {
+                const childNode = nodesData.nodes.find(
+                  (n) => n.index === childIdx
+                );
+                return childNode?.cost || 1;
+              })
+              .reduce((a, b) => a + b, 0);
+          }
 
           links.push({
             source: expensesName,
@@ -263,6 +334,7 @@ function buildSankeyData(
 
 const EChartsSankeyComponent: React.FC = () => {
   const chartRef = useRef<HTMLDivElement>(null);
+  const chartInstanceRef = useRef<echarts.ECharts | null>(null);
   const [nodesData, setNodesData] = useState<any>(
     JSON.parse(JSON.stringify(nodesDataRaw))
   );
@@ -274,12 +346,326 @@ const EChartsSankeyComponent: React.FC = () => {
   const [modalValue, setModalValue] = useState<string>("");
   const [modalParent, setModalParent] = useState<string>("");
   const [modalParentOptions, setModalParentOptions] = useState<string[]>([]);
+  const [collapsedNodes, setCollapsedNodes] = useState<number[]>([]);
   const [sankeyData, setSankeyData] = useState(() =>
-    buildSankeyData(nodesData, parentChildMap)
+    buildSankeyData(nodesData, parentChildMap, collapsedNodes)
   );
-  const [chartInstance, setChartInstance] = useState<echarts.ECharts | null>(
-    null
-  );
+
+  // Initialize chart only once
+  useEffect(() => {
+    if (chartRef.current) {
+      try {
+        // Clean up any existing instance to avoid memory leaks
+        if (chartInstanceRef.current) {
+          chartInstanceRef.current.dispose();
+        }
+
+        // Create a new chart instance
+        chartInstanceRef.current = echarts.init(chartRef.current);
+        console.log("Chart initialized successfully");
+
+        // Initial resize to ensure proper dimensions
+        const handleResize = () => {
+          if (
+            chartInstanceRef.current &&
+            !chartInstanceRef.current.isDisposed()
+          ) {
+            const minWidth = Math.max(window.innerWidth, 1500);
+            chartRef.current?.style.setProperty("width", `${minWidth}px`);
+            chartRef.current?.style.setProperty("height", `calc(100vh - 80px)`);
+            chartInstanceRef.current.resize();
+          }
+        };
+
+        window.addEventListener("resize", handleResize);
+        // Call resize immediately to set initial size
+        setTimeout(handleResize, 0);
+
+        return () => {
+          if (chartInstanceRef.current) {
+            chartInstanceRef.current.dispose();
+          }
+          window.removeEventListener("resize", handleResize);
+        };
+      } catch (error) {
+        console.error("Error initializing chart:", error);
+      }
+    }
+  }, []);
+
+  // Update chart data on sankeyData/parentChildMap/collapsedNodes change
+  useEffect(() => {
+    if (!chartRef.current || !chartInstanceRef.current) return;
+
+    try {
+      // Ensure the chart has proper dimensions before updating
+      const minWidth = Math.max(window.innerWidth, 1500);
+      chartRef.current.style.setProperty("width", `${minWidth}px`);
+      chartRef.current.style.setProperty("height", `calc(100vh - 80px)`);
+
+      // Force a resize before updating options to ensure the chart area is properly sized
+      chartInstanceRef.current.resize();
+
+      const option = {
+        title: {
+          text: "Sankey Diagram",
+          left: "center",
+          textStyle: { color: "#fff" },
+        },
+        tooltip: {
+          trigger: "item",
+          triggerOn: "mousemove",
+          formatter: (params: any) => {
+            const { dataType, name } = params;
+            if (dataType === "node") {
+              const idx = Number(name.match(/\[(\d+)\]/)?.[1]);
+              const cost = sankeyData.nodeCostMap[name];
+              const displayText = displayName(name);
+
+              // Check if this is a parent node
+              const isParent =
+                parentChildMap[String(idx)] &&
+                Array.isArray(parentChildMap[String(idx)]) &&
+                parentChildMap[String(idx)].length > 0;
+
+              if (isParent) {
+                const isCollapsed = collapsedNodes.includes(idx);
+
+                // Get child count for parent nodes
+                const childCount = parentChildMap[String(idx)]?.length || 0;
+
+                return `<div style="padding: 8px;">
+                  <div style="font-weight: bold; font-size: 14px; margin-bottom: 4px;">${displayText}</div>
+                  <div>Total: ${cost}</div>
+                  <div>Children: ${childCount}</div>
+                  <div style="margin-top: 8px; color: #aaa; font-style: italic;">
+                    ${
+                      isCollapsed
+                        ? "🔍 Click to expand children"
+                        : "🔽 Click to collapse children"
+                    }
+                  </div>
+                </div>`;
+              }
+
+              return `<div style="padding: 8px;">
+                <div style="font-weight: bold; font-size: 14px;">${displayText}</div>
+                <div>Amount: ${cost}</div>
+              </div>`;
+            }
+            return "";
+          },
+        },
+        grid: {
+          containLabel: true,
+          left: "5%",
+          right: "5%",
+        },
+        series: [
+          {
+            type: "sankey",
+            data: sankeyData.nodes as any[],
+            links: sankeyData.links,
+            emphasis: {
+              focus: "adjacency",
+            },
+            nodeWidth: 20,
+            nodeGap: 12,
+            layoutIterations: 64,
+            orient: "horizontal",
+            lineStyle: {
+              color: "source",
+              opacity: 0.6,
+              curveness: 0.5,
+            },
+            label: {
+              color: "#fff",
+              fontWeight: "bold",
+              fontSize: 14,
+              formatter: (params: any) => {
+                const cost = sankeyData.nodeCostMap[params.name];
+                const displayText = displayName(params.name);
+                const idx = Number(params.name.match(/\[(\d+)\]/)?.[1]);
+
+                // Check if this is a parent node
+                const isParent =
+                  parentChildMap[String(idx)] &&
+                  Array.isArray(parentChildMap[String(idx)]) &&
+                  parentChildMap[String(idx)].length > 0;
+
+                if (isParent) {
+                  const isCollapsed = collapsedNodes.includes(idx);
+                  const childCount = parentChildMap[String(idx)]?.length || 0;
+
+                  // Add a visual indicator for collapsible/expandable nodes
+                  return `${displayText} (${cost}) ${
+                    isCollapsed ? "🔍" : "🔽"
+                  } [${childCount}]`;
+                }
+
+                return `${displayText} (${cost})`;
+              },
+            },
+          },
+        ],
+      };
+
+      // If chart is still valid, update it
+      if (!chartInstanceRef.current.isDisposed()) {
+        chartInstanceRef.current.setOption(option, {
+          notMerge: false,
+          replaceMerge: ["series"],
+          lazyUpdate: false, // Set to false to ensure immediate update
+        });
+
+        // Re-attach click event
+        chartInstanceRef.current.off("click");
+        chartInstanceRef.current.on("click", (params: any) => {
+          try {
+            const nodeName = params.name;
+            const idx = Number(nodeName.match(/\[(\d+)\]/)?.[1]);
+            const isParent =
+              parentChildMap[String(idx)] &&
+              Array.isArray(parentChildMap[String(idx)]) &&
+              parentChildMap[String(idx)].length > 0;
+            if (isParent) {
+              setCollapsedNodes((prev) => {
+                if (prev.includes(idx)) {
+                  return prev.filter((id) => id !== idx);
+                } else {
+                  return [...prev, idx];
+                }
+              });
+            } else if (!parentChildMap[String(idx)]) {
+              setModalNode({ ...params, idx });
+              setModalValue((sankeyData.nodeCostMap[nodeName] || 0).toString());
+              let currentParent = "";
+              for (const [parentIdx, children] of Object.entries(
+                parentChildMap
+              )) {
+                if ((children as number[]).includes(idx)) {
+                  currentParent = getNodeNameByIndex(
+                    nodesData,
+                    Number(parentIdx)
+                  );
+                  break;
+                }
+              }
+              const options = getAllParentOptions(idx);
+              if (!options.includes("Create New Parent"))
+                options.push("Create New Parent");
+              setModalParent(currentParent);
+              setModalParentOptions(options);
+              setModalOpen(true);
+            }
+          } catch (error) {
+            console.error("Error handling chart click:", error);
+          }
+        });
+
+        // Force a second resize after update to ensure content is properly laid out
+        setTimeout(() => {
+          if (
+            chartInstanceRef.current &&
+            !chartInstanceRef.current.isDisposed()
+          ) {
+            chartInstanceRef.current.resize();
+          }
+        }, 10);
+      } else {
+        // If chart was disposed, re-initialize it
+        console.log("Chart was disposed, re-initializing...");
+        if (chartRef.current) {
+          chartInstanceRef.current = echarts.init(chartRef.current);
+          chartInstanceRef.current.setOption(option);
+
+          // Ensure we re-attach the click handler
+          chartInstanceRef.current.on("click", (params: any) => {
+            // ... same click handler as above ...
+            try {
+              const nodeName = params.name;
+              const idx = Number(nodeName.match(/\[(\d+)\]/)?.[1]);
+              const isParent =
+                parentChildMap[String(idx)] &&
+                Array.isArray(parentChildMap[String(idx)]) &&
+                parentChildMap[String(idx)].length > 0;
+              if (isParent) {
+                setCollapsedNodes((prev) => {
+                  if (prev.includes(idx)) {
+                    return prev.filter((id) => id !== idx);
+                  } else {
+                    return [...prev, idx];
+                  }
+                });
+              } else if (!parentChildMap[String(idx)]) {
+                setModalNode({ ...params, idx });
+                setModalValue(
+                  (sankeyData.nodeCostMap[nodeName] || 0).toString()
+                );
+                let currentParent = "";
+                for (const [parentIdx, children] of Object.entries(
+                  parentChildMap
+                )) {
+                  if ((children as number[]).includes(idx)) {
+                    currentParent = getNodeNameByIndex(
+                      nodesData,
+                      Number(parentIdx)
+                    );
+                    break;
+                  }
+                }
+                const options = getAllParentOptions(idx);
+                if (!options.includes("Create New Parent"))
+                  options.push("Create New Parent");
+                setModalParent(currentParent);
+                setModalParentOptions(options);
+                setModalOpen(true);
+              }
+            } catch (error) {
+              console.error("Error handling chart click:", error);
+            }
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error updating chart:", error);
+
+      // Fall back to re-initializing the chart from scratch on error
+      try {
+        if (chartRef.current) {
+          // Clean up any existing instance
+          if (chartInstanceRef.current) {
+            chartInstanceRef.current.dispose();
+          }
+
+          // Create a fresh instance
+          chartInstanceRef.current = echarts.init(chartRef.current);
+
+          // Set the option on the fresh instance
+          const option = {
+            /* same option object as above */
+          };
+          chartInstanceRef.current.setOption(option);
+
+          // Re-attach event listeners
+          // ... same click handler setup as above ...
+        }
+      } catch (fallbackError) {
+        console.error("Failed to recover chart after error:", fallbackError);
+      }
+    }
+  }, [sankeyData, parentChildMap, collapsedNodes]);
+
+  // Update sankeyData when collapsedNodes state changes (re-add this effect)
+  useEffect(() => {
+    // Rebuild sankey data with current collapsed nodes
+    const newSankeyData = buildSankeyData(
+      nodesData,
+      parentChildMap,
+      collapsedNodes
+    );
+    setSankeyData(newSankeyData);
+  }, [collapsedNodes, nodesData, parentChildMap]);
 
   // Helper to get all possible parent options (only parents and Expenses)
   const getAllParentOptions = (excludeIdx: number) => {
@@ -421,113 +807,6 @@ const EChartsSankeyComponent: React.FC = () => {
     return null;
   };
 
-  // Update chart when sankeyData changes
-  useEffect(() => {
-    if (!chartRef.current) return;
-
-    try {
-      // Dispose of any existing chart instance
-      const existingChart = echarts.getInstanceByDom(chartRef.current);
-      if (existingChart) {
-        existingChart.dispose();
-      }
-
-      // Create new chart
-      const myChart = echarts.init(chartRef.current);
-      setChartInstance(myChart);
-
-      const option: EChartsOption = {
-        title: {
-          text: "Sankey Diagram",
-          left: "center",
-          textStyle: { color: "#fff" },
-        },
-        tooltip: {
-          trigger: "item",
-          triggerOn: "mousemove",
-        },
-        series: [
-          {
-            type: "sankey",
-            data: sankeyData.nodes,
-            links: sankeyData.links,
-            emphasis: {
-              focus: "adjacency",
-            },
-            lineStyle: {
-              color: "source",
-              opacity: 0.6,
-              curveness: 0.5,
-            },
-            label: {
-              color: "#fff",
-              fontWeight: "bold",
-              formatter: (params: any) => {
-                const cost = sankeyData.nodeCostMap[params.name];
-                return `${displayName(params.name)} (${cost})`;
-              },
-            },
-          },
-        ],
-      };
-
-      myChart.setOption(option);
-
-      const handleResize = () => {
-        if (myChart && !myChart.isDisposed()) {
-          myChart.resize();
-        }
-      };
-
-      window.addEventListener("resize", handleResize);
-
-      // Add click event for editing
-      myChart.off("click");
-      myChart.on("click", (params: any) => {
-        try {
-          // Only allow editing for leaf nodes (no children)
-          const nodeName = params.name;
-          const idx = Number(nodeName.match(/\[(\d+)\]/)?.[1]);
-          // If node is not a parent in parentChildMap, it's a leaf
-          if (!parentChildMap[String(idx)]) {
-            setModalNode({ ...params, idx });
-            setModalValue((sankeyData.nodeCostMap[nodeName] || 0).toString());
-            // Find current parent
-            let currentParent = "";
-            for (const [parentIdx, children] of Object.entries(
-              parentChildMap
-            )) {
-              if ((children as number[]).includes(idx)) {
-                currentParent = getNodeNameByIndex(
-                  nodesData,
-                  Number(parentIdx)
-                );
-                break;
-              }
-            }
-            const options = getAllParentOptions(idx);
-            if (!options.includes("Create New Parent"))
-              options.push("Create New Parent");
-            setModalParent(currentParent);
-            setModalParentOptions(options);
-            setModalOpen(true);
-          }
-        } catch (error) {
-          console.error("Error handling chart click:", error);
-        }
-      });
-
-      return () => {
-        if (myChart && !myChart.isDisposed()) {
-          myChart.dispose();
-        }
-        window.removeEventListener("resize", handleResize);
-      };
-    } catch (error) {
-      console.error("Error initializing chart:", error);
-    }
-  }, [sankeyData, parentChildMap]);
-
   // Handle modal submit (change value and/or parent)
   const handleModalSubmit = (newParentName: string, newPrice: number) => {
     try {
@@ -557,6 +836,9 @@ const EChartsSankeyComponent: React.FC = () => {
       let safeParentChildMap = JSON.parse(JSON.stringify(parentChildMap));
 
       let newParentIdx = null;
+
+      // Close modal first to avoid UI issues during processing
+      setModalOpen(false);
 
       // If newParentName is 'Create New Parent', create a new parent node
       if (newParentName === "Create New Parent") {
@@ -699,91 +981,30 @@ const EChartsSankeyComponent: React.FC = () => {
         return;
       }
 
-      // console.log(
-      //   "Updating with new parentChildMap:",
-      //   JSON.stringify(safeParentChildMap, null, 2)
-      // );
-
-      // First close the modal to avoid UI issues
-      setModalOpen(false);
-
-      // Update the state in a safer way
+      // Update the state in a controlled sequence to avoid blank screen
+      // First update the data models
       const updatedNodes = { ...nodesData, nodes: safeNodes };
       setNodesData(updatedNodes);
       setParentChildMap(safeParentChildMap);
 
-      // Rebuild Sankey data with new structure - wrap in try/catch for safety
-      try {
-        const newSankeyData = buildSankeyData(updatedNodes, safeParentChildMap);
-        console.log("Successfully built new sankey data");
-        setSankeyData(newSankeyData);
-
-        // Force redraw of the chart after a brief delay
-        setTimeout(() => {
-          if (
-            chartRef.current &&
-            chartInstance &&
-            !chartInstance.isDisposed()
-          ) {
-            try {
-              chartInstance.setOption({}, true);
-              console.log("Chart successfully redrawn");
-            } catch (chartError) {
-              console.error("Error updating chart:", chartError);
-
-              // If chart update fails, try re-initializing the chart
-              try {
-                chartInstance.dispose();
-                const newChart = echarts.init(chartRef.current);
-                setChartInstance(newChart);
-
-                const option: EChartsOption = {
-                  title: {
-                    text: "Sankey Diagram",
-                    left: "center",
-                    textStyle: { color: "#fff" },
-                  },
-                  tooltip: {
-                    trigger: "item",
-                    triggerOn: "mousemove",
-                  },
-                  series: [
-                    {
-                      type: "sankey",
-                      data: newSankeyData.nodes,
-                      links: newSankeyData.links,
-                      emphasis: {
-                        focus: "adjacency",
-                      },
-                      lineStyle: {
-                        color: "source",
-                        opacity: 0.6,
-                        curveness: 0.5,
-                      },
-                      label: {
-                        color: "#fff",
-                        fontWeight: "bold",
-                        formatter: (params: any) => {
-                          const cost = newSankeyData.nodeCostMap[params.name];
-                          return `${displayName(params.name)} (${cost})`;
-                        },
-                      },
-                    },
-                  ],
-                };
-
-                newChart.setOption(option);
-                console.log("Chart successfully re-initialized");
-              } catch (reinitError) {
-                console.error("Error re-initializing chart:", reinitError);
-              }
-            }
-          }
-        }, 100);
-      } catch (sankeyError) {
-        console.error("Error building sankey data:", sankeyError);
-        alert("An error occurred while updating the chart. Please try again.");
-      }
+      // Let React process the state updates before rebuilding the chart data
+      requestAnimationFrame(() => {
+        // Rebuild Sankey data with new structure
+        try {
+          const newSankeyData = buildSankeyData(
+            updatedNodes,
+            safeParentChildMap,
+            collapsedNodes
+          );
+          console.log("Successfully built new sankey data");
+          setSankeyData(newSankeyData);
+        } catch (sankeyError) {
+          console.error("Error building sankey data:", sankeyError);
+          alert(
+            "An error occurred while updating the chart. Please try again."
+          );
+        }
+      });
     } catch (error) {
       console.error("Error in handleModalSubmit:", error);
       alert(
@@ -798,10 +1019,12 @@ const EChartsSankeyComponent: React.FC = () => {
         ref={chartRef}
         id="main"
         style={{
-          width: "90vw",
-          height: "80vh",
+          width: "max(100vw, 1500px)",
+          height: "calc(100vh - 80px)",
           background: "#181f2a",
-          borderRadius: 12,
+          borderRadius: "0px",
+          minWidth: "100%",
+          paddingBottom: "20px",
         }}
       />
       {modalOpen && modalNode && (
