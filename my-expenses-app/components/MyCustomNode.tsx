@@ -13,7 +13,6 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
   isDragging,
   isDragNode,
   allNodes,
-  colorThreshold,
 }) => {
   const isLeafNode = allNodes[index].isleaf;
 
@@ -28,8 +27,6 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
       onNodeDrop(payload.name);
     }
   };
-
-  const parentsHeight = 0;
 
   const nodeWidth = isLeafNode ? 40 : Math.abs(30);
   const nodeHeight = isLeafNode ? 25 : Math.abs(height);

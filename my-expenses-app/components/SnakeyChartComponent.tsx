@@ -294,7 +294,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({
     const match = newParentString.match(/\[(\d+)\]$/);
     let newParentIndex: number | null = null;
     let isNewParent = false;
-    let newParentName = newParentString;
+    const newParentName = newParentString;
 
     if (match) {
       newParentIndex = parseInt(match[1], 10);

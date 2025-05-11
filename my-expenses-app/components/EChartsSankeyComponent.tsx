@@ -1,39 +1,15 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import * as echarts from "echarts/core";
-import {
-  TitleComponent,
-  TitleComponentOption,
-  TooltipComponent,
-  TooltipComponentOption,
-} from "echarts/components";
-import { SankeyChart, SankeySeriesOption } from "echarts/charts";
+import { TitleComponent, TooltipComponent } from "echarts/components";
+import { SankeyChart } from "echarts/charts";
 import { CanvasRenderer } from "echarts/renderers";
 import nodesDataRaw from "../output.json";
 import parentChildMapRaw from "../parent_child_map.json";
 import InputModal from "./editNodes";
-import { SankeyNode } from "@/app/types/types";
 
 echarts.use([TitleComponent, TooltipComponent, SankeyChart, CanvasRenderer]);
-
-type EChartsOption = echarts.ComposeOption<
-  TitleComponentOption | TooltipComponentOption | SankeySeriesOption
->;
-
-// Define types for our chart data
-interface EChartNode {
-  name: string;
-  itemStyle?: {
-    color?: string;
-    borderColor?: string;
-    borderWidth?: number;
-    borderType?: string;
-    shadowBlur?: number;
-    shadowColor?: string;
-  };
-  sumCost?: number;
-}
 
 interface EChartLink {
   source: string;
@@ -84,7 +60,16 @@ function buildSankeyData(
     }
 
     // Build unique node names - with simple styling
-    const nodes: any[] = nodesData.nodes.map((n) => {
+    const nodes: {
+      name: string;
+      itemStyle?: {
+        color?: string;
+        opacity?: number;
+        borderColor?: string;
+        borderWidth?: number;
+      };
+      sumCost?: number;
+    }[] = nodesData.nodes.map((n) => {
       // Create basic node
       const node = {
         name: `${n.name} [${n.index}]`,
@@ -332,21 +317,53 @@ function buildSankeyData(
   }
 }
 
+interface ModalNodeType {
+  name: string;
+  idx: number;
+}
+
 const EChartsSankeyComponent: React.FC = () => {
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<echarts.ECharts | null>(null);
-  const [nodesData, setNodesData] = useState<any>(
+  const [nodesData, setNodesData] = useState<NodeData>(
     JSON.parse(JSON.stringify(nodesDataRaw))
   );
-  const [parentChildMap, setParentChildMap] = useState<any>(
-    JSON.parse(JSON.stringify(parentChildMapRaw))
-  );
+  const [parentChildMap, setParentChildMap] = useState<
+    Record<string, number[]>
+  >(JSON.parse(JSON.stringify(parentChildMapRaw)));
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalNode, setModalNode] = useState<any>(null);
+  const [modalNode, setModalNode] = useState<ModalNodeType | null>(null);
   const [modalValue, setModalValue] = useState<string>("");
   const [modalParent, setModalParent] = useState<string>("");
   const [modalParentOptions, setModalParentOptions] = useState<string[]>([]);
   const [collapsedNodes, setCollapsedNodes] = useState<number[]>([]);
+
+  // Helper to get all possible parent options (only parents and Expenses)
+  const getAllParentOptions = useCallback(
+    (excludeIdx: number) => {
+      // Get indices of all nodes that are parents (have children)
+      const parentIndices = Object.keys(parentChildMap).map(Number);
+
+      // Create options for all parent nodes and the root "Expenses" node
+      const options = nodesData.nodes
+        .filter(
+          (n) =>
+            // Include if it's a parent (in parentIndices) or the root (index 0)
+            (parentIndices.includes(n.index) || n.index === 0) &&
+            // Exclude the node itself
+            n.index !== excludeIdx
+        )
+        .map((n) => `${n.name} [${n.index}]`);
+
+      console.log(
+        `Generated ${options.length} parent options for node ${excludeIdx}:`,
+        options
+      );
+      return options;
+    },
+    [parentChildMap, nodesData]
+  );
+
   const [sankeyData, setSankeyData] = useState(() =>
     buildSankeyData(nodesData, parentChildMap, collapsedNodes)
   );
@@ -415,7 +432,7 @@ const EChartsSankeyComponent: React.FC = () => {
         tooltip: {
           trigger: "item",
           triggerOn: "mousemove",
-          formatter: (params: any) => {
+          formatter: (params: { dataType: string; name: string }) => {
             const { dataType, name } = params;
             if (dataType === "node") {
               const idx = Number(name.match(/\[(\d+)\]/)?.[1]);
@@ -464,7 +481,7 @@ const EChartsSankeyComponent: React.FC = () => {
         series: [
           {
             type: "sankey",
-            data: sankeyData.nodes as any[],
+            data: sankeyData.nodes,
             links: sankeyData.links,
             emphasis: {
               focus: "adjacency",
@@ -482,7 +499,7 @@ const EChartsSankeyComponent: React.FC = () => {
               color: "#fff",
               fontWeight: "bold",
               fontSize: 14,
-              formatter: (params: any) => {
+              formatter: (params: { name: string }) => {
                 const cost = sankeyData.nodeCostMap[params.name];
                 const displayText = displayName(params.name);
                 const idx = Number(params.name.match(/\[(\d+)\]/)?.[1]);
@@ -520,7 +537,7 @@ const EChartsSankeyComponent: React.FC = () => {
 
         // Re-attach click event
         chartInstanceRef.current.off("click");
-        chartInstanceRef.current.on("click", (params: any) => {
+        chartInstanceRef.current.on("click", (params: { name: string }) => {
           try {
             const nodeName = params.name;
             const idx = Number(nodeName.match(/\[(\d+)\]/)?.[1]);
@@ -580,7 +597,7 @@ const EChartsSankeyComponent: React.FC = () => {
           chartInstanceRef.current.setOption(option);
 
           // Ensure we re-attach the click handler
-          chartInstanceRef.current.on("click", (params: any) => {
+          chartInstanceRef.current.on("click", (params: { name: string }) => {
             // ... same click handler as above ...
             try {
               const nodeName = params.name;
@@ -654,7 +671,13 @@ const EChartsSankeyComponent: React.FC = () => {
         console.error("Failed to recover chart after error:", fallbackError);
       }
     }
-  }, [sankeyData, parentChildMap, collapsedNodes]);
+  }, [
+    sankeyData,
+    parentChildMap,
+    collapsedNodes,
+    getAllParentOptions,
+    nodesData,
+  ]);
 
   // Update sankeyData when collapsedNodes state changes (re-add this effect)
   useEffect(() => {
@@ -667,29 +690,6 @@ const EChartsSankeyComponent: React.FC = () => {
     setSankeyData(newSankeyData);
   }, [collapsedNodes, nodesData, parentChildMap]);
 
-  // Helper to get all possible parent options (only parents and Expenses)
-  const getAllParentOptions = (excludeIdx: number) => {
-    // Get indices of all nodes that are parents (have children)
-    const parentIndices = Object.keys(parentChildMap).map(Number);
-
-    // Create options for all parent nodes and the root "Expenses" node
-    const options = nodesData.nodes
-      .filter(
-        (n: any) =>
-          // Include if it's a parent (in parentIndices) or the root (index 0)
-          (parentIndices.includes(n.index) || n.index === 0) &&
-          // Exclude the node itself
-          n.index !== excludeIdx
-      )
-      .map((n: any) => `${n.name} [${n.index}]`);
-
-    console.log(
-      `Generated ${options.length} parent options for node ${excludeIdx}:`,
-      options
-    );
-    return options;
-  };
-
   // Add this enhanced helper function for direct parent lookup with multiple strategies
   const findParentByDisplayName = (name: string) => {
     if (!name) return null;
@@ -701,7 +701,7 @@ const EChartsSankeyComponent: React.FC = () => {
     const indexMatch = name.match(/\[(\d+)\]$/);
     if (indexMatch) {
       const idx = Number(indexMatch[1]);
-      const parent = nodesData.nodes.find((n: any) => n.index === idx);
+      const parent = nodesData.nodes.find((n) => n.index === idx);
       if (parent) {
         console.log(`Found parent by exact index [${idx}]: ${parent.name}`);
         return parent;
@@ -712,7 +712,7 @@ const EChartsSankeyComponent: React.FC = () => {
     if (normalizedName === "fast food") {
       // First try exact match for "Fast Food"
       const fastFoodNode = nodesData.nodes.find(
-        (n: any) => n.name.toLowerCase() === "fast food"
+        (n) => n.name.toLowerCase() === "fast food"
       );
 
       if (fastFoodNode) {
@@ -723,11 +723,9 @@ const EChartsSankeyComponent: React.FC = () => {
       }
 
       // Then try to find food-related parent nodes
-      for (const [parentIdx, _] of Object.entries(parentChildMap)) {
+      for (const [parentIdx] of Object.entries(parentChildMap)) {
         const parentNodeIdx = Number(parentIdx);
-        const parent = nodesData.nodes.find(
-          (n: any) => n.index === parentNodeIdx
-        );
+        const parent = nodesData.nodes.find((n) => n.index === parentNodeIdx);
 
         if (
           parent &&
@@ -743,11 +741,9 @@ const EChartsSankeyComponent: React.FC = () => {
     }
 
     // Strategy 3: Exact name match of any parent
-    for (const [parentIdx, _] of Object.entries(parentChildMap)) {
+    for (const [parentIdx] of Object.entries(parentChildMap)) {
       const parentNodeIdx = Number(parentIdx);
-      const parent = nodesData.nodes.find(
-        (n: any) => n.index === parentNodeIdx
-      );
+      const parent = nodesData.nodes.find((n) => n.index === parentNodeIdx);
 
       if (parent && parent.name.toLowerCase() === normalizedName) {
         console.log(
@@ -758,11 +754,9 @@ const EChartsSankeyComponent: React.FC = () => {
     }
 
     // Strategy 4: Substring match for any parent
-    for (const [parentIdx, _] of Object.entries(parentChildMap)) {
+    for (const [parentIdx] of Object.entries(parentChildMap)) {
       const parentNodeIdx = Number(parentIdx);
-      const parent = nodesData.nodes.find(
-        (n: any) => n.index === parentNodeIdx
-      );
+      const parent = nodesData.nodes.find((n) => n.index === parentNodeIdx);
 
       if (parent && parent.name.toLowerCase().includes(normalizedName)) {
         console.log(
@@ -775,11 +769,9 @@ const EChartsSankeyComponent: React.FC = () => {
     // Strategy 5: Check if any parent name contains words from the search
     const words = normalizedName.split(/\s+/).filter((w) => w.length > 2);
     if (words.length > 0) {
-      for (const [parentIdx, _] of Object.entries(parentChildMap)) {
+      for (const [parentIdx] of Object.entries(parentChildMap)) {
         const parentNodeIdx = Number(parentIdx);
-        const parent = nodesData.nodes.find(
-          (n: any) => n.index === parentNodeIdx
-        );
+        const parent = nodesData.nodes.find((n) => n.index === parentNodeIdx);
 
         if (parent) {
           for (const word of words) {
@@ -795,7 +787,7 @@ const EChartsSankeyComponent: React.FC = () => {
     }
 
     // Strategy 6: If all else fails, default to Expenses (root)
-    const rootNode = nodesData.nodes.find((n: any) => n.index === 0);
+    const rootNode = nodesData.nodes.find((n) => n.index === 0);
     if (rootNode) {
       console.log(
         `Defaulting to root node: ${rootNode.name} [${rootNode.index}]`
@@ -833,7 +825,7 @@ const EChartsSankeyComponent: React.FC = () => {
 
       // Create a safe copy of the data before modifications
       let safeNodes = JSON.parse(JSON.stringify(nodesData.nodes));
-      let safeParentChildMap = JSON.parse(JSON.stringify(parentChildMap));
+      const safeParentChildMap = JSON.parse(JSON.stringify(parentChildMap));
 
       let newParentIdx = null;
 
@@ -847,7 +839,8 @@ const EChartsSankeyComponent: React.FC = () => {
           "New Parent"
         );
         if (!realName) realName = "New Parent";
-        const newIdx = Math.max(...safeNodes.map((n: any) => n.index)) + 1;
+        const newIdx =
+          Math.max(...safeNodes.map((n: { index: number }) => n.index)) + 1;
         const newParentNode = {
           name: realName,
           index: newIdx,
@@ -944,7 +937,9 @@ const EChartsSankeyComponent: React.FC = () => {
         if (willRemoveParent && parentToRemove !== null) {
           console.log(`Removing parent node with index ${parentToRemove}`);
           // Remove from nodes array
-          safeNodes = safeNodes.filter((n: any) => n.index !== parentToRemove);
+          safeNodes = safeNodes.filter(
+            (n: { index: number }) => n.index !== parentToRemove
+          );
 
           // Remove from parentChildMap (already done by cleaning up empty arrays)
 

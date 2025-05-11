@@ -135,7 +135,7 @@ const InputModal: React.FC<InputModalProps> = ({
     cleanParentName(initialParentName).toLowerCase();
 
   // Prepare display-friendly parent options
-  const displayParentOptions = parentOptions.map(cleanParentName);
+  // const displayParentOptions = parentOptions.map(cleanParentName);
 
   return (
     <div
@@ -195,7 +195,7 @@ const InputModal: React.FC<InputModalProps> = ({
               textAlign: "center",
             }}
           >
-            Moving "{clickedNode.name}"<br />
+            Moving {clickedNode.name}<br />
             to {isCreatingNewParent ? "new parent" : selectedParentName}
           </div>
           <div
