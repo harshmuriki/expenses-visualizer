@@ -59,7 +59,35 @@ function buildSankeyData(
       };
     }
 
-    // Build unique node names - with simple styling
+    // Get all nodes that should be hidden (direct and indirect children of collapsed nodes)
+    const getNodesToHide = () => {
+      const nodesToHide = new Set<number>();
+
+      // Function to recursively add all children of a collapsed node
+      const addChildrenRecursively = (parentIdx: number) => {
+        const children = parentChildMap[String(parentIdx)];
+        if (children && Array.isArray(children)) {
+          children.forEach((childIdx) => {
+            nodesToHide.add(childIdx);
+            // If this child is also a parent, add its children too
+            if (parentChildMap[String(childIdx)]) {
+              addChildrenRecursively(childIdx);
+            }
+          });
+        }
+      };
+
+      // Process all collapsed nodes
+      collapsedNodes.forEach((collapsedIdx) => {
+        addChildrenRecursively(collapsedIdx);
+      });
+
+      return nodesToHide;
+    };
+
+    const nodesToHide = getNodesToHide();
+
+    // Build unique node names - with simple styling, excluding hidden nodes
     const nodes: {
       name: string;
       itemStyle?: {
@@ -69,15 +97,17 @@ function buildSankeyData(
         borderWidth?: number;
       };
       sumCost?: number;
-    }[] = nodesData.nodes.map((n) => {
-      // Create basic node
-      const node = {
-        name: `${n.name} [${n.index}]`,
-      };
+    }[] = nodesData.nodes
+      .filter((n) => !nodesToHide.has(n.index)) // Filter out hidden nodes
+      .map((n) => {
+        // Create basic node
+        const node = {
+          name: `${n.name} [${n.index}]`,
+        };
 
-      // We'll set colors later
-      return node;
-    });
+        // We'll set colors later
+        return node;
+      });
 
     const links: EChartLink[] = [];
 
@@ -89,14 +119,20 @@ function buildSankeyData(
       const parentName = getNodeNameByIndex(nodesData, parentIndex);
       if (!parentName) continue;
 
+      // Skip if this parent is hidden (child of a collapsed node)
+      if (nodesToHide.has(parentIndex)) continue;
+
       for (const childIdx of children as number[]) {
         const childNode = nodesData.nodes.find((n) => n.index === childIdx);
         if (!childNode) continue;
 
+        // Skip if this child is hidden
+        if (nodesToHide.has(childIdx)) continue;
+
         const childName = getNodeNameByIndex(nodesData, childIdx);
 
         // If the child is a collapsed parent, still connect it to its parent
-        // but skip showing its own children
+        // but don't process its children (they're already skipped)
         if (collapsedNodes.includes(childIdx)) {
           links.push({
             source: parentName,
@@ -107,6 +143,8 @@ function buildSankeyData(
         }
 
         // Skip showing children links if parent is collapsed
+        // (this is redundant now since we filter out children of collapsed nodes,
+        // but keeping for safety)
         if (collapsedNodes.includes(parentIndex)) continue;
 
         links.push({
@@ -187,6 +225,9 @@ function buildSankeyData(
     try {
       const expensesName = getNodeNameByIndex(nodesData, 0);
       topLevelParents.forEach((parentIdx) => {
+        // Skip if this parent is hidden
+        if (nodesToHide.has(parentIdx)) return;
+
         const parentName = getNodeNameByIndex(nodesData, parentIdx);
         if (!parentName) return;
 
