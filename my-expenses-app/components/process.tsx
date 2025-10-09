@@ -10,6 +10,7 @@ import {
   OpenAICompletionResponse,
   OutputNode,
   HierarchicalData,
+  AggregatorTransaction,
 } from "@/app/types/types";
 import path from "path";
 
@@ -297,4 +298,32 @@ export class Document {
 
     return response.data;
   }
+
+  static fromCategorizedTransactions(
+    transactions: AggregatorTransaction[]
+  ): Document {
+    const doc = new Document();
+    doc.items = transactions.map((transaction, index) => {
+      const parentTag = Array.isArray(transaction.category)
+        ? transaction.category[transaction.category.length - 1] || transaction.category[0]
+        : "Uncategorized";
+      return new Item(
+        transaction.name || transaction.merchant_name || `Transaction ${index + 1}`,
+        Math.abs(Number(transaction.amount ?? 0)),
+        transaction.transaction_id || index + 1,
+        parentTag || "Uncategorized",
+        JSON.stringify(transaction),
+        Array.isArray(transaction.category) ? transaction.category : null,
+        Array.isArray(transaction.category) ? transaction.category : null
+      );
+    });
+    return doc;
+  }
 }
+
+export const buildSankeyFromCategorizedTransactions = (
+  transactions: AggregatorTransaction[]
+): HierarchicalData => {
+  const document = Document.fromCategorizedTransactions(transactions);
+  return document.convertData();
+};

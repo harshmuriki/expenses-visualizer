@@ -2,8 +2,9 @@ import fs from "fs";
 import { NextApiRequest, NextApiResponse } from "next";
 import formidable, { Fields, Files } from "formidable";
 import csv from "csv-parser";
-import { uploadTransactionsInBatch } from "@/components/sendDataFirebase";
 import { CSVRow, Map, SankeyNode } from "@/app/types/types";
+import { uploadSankeyToFirestore } from "@/lib/firebaseUpload";
+import { syncTransactionsForItem } from "@/lib/transactionSync";
 
 export const config = {
   api: {
@@ -14,6 +15,26 @@ export const config = {
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  if (req.headers["content-type"]?.includes("application/json")) {
+    const payload = await readJsonBody(req);
+    if (payload?.source === "aggregator") {
+      const { userId, itemId, month } = payload;
+      if (!userId || typeof userId !== "string" || !itemId || typeof itemId !== "string") {
+        return res.status(400).json({ error: "userId and itemId are required" });
+      }
+
+      try {
+        const result = await syncTransactionsForItem({ userId, itemId, month });
+        return res.status(result.success ? 200 : 400).json(result);
+      } catch (error) {
+        console.error("Aggregator sync failed", error);
+        return res.status(500).json({ error: "Failed to sync aggregator transactions" });
+      }
+    }
+
+    return res.status(400).json({ error: "Unsupported JSON payload" });
   }
 
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -96,13 +117,12 @@ const handlePdfFile = async (
     }
 
     // await uploadDataToFirebase(output, parent_child_map, useremail, month);
-    await processAndUploadData(
-      { nodes: output, parentChildMap: parentChildMap },
-      parentChildMap,
+    await uploadSankeyToFirestore({
+      nodes: output,
+      parentChildMap: parentChildMap,
       useremail,
       month,
-      res
-    );
+    });
     res.status(200).json({ message: "PDF data processed successfully" });
   } catch (error) {
     console.error("Error handling PDF file:", error);
@@ -152,116 +172,31 @@ const handleCsvFile = async (
   }
 };
 
-// const processCsvData = (): { nodes: SankeyNode[]; parentChildMap: Map } => {
-//   // Implement CSV processing logic here
-//   return { nodes: [], parentChildMap: {} };
-// };
+const readJsonBody = async (req: NextApiRequest): Promise<Record<string, unknown>> => {
+  const chunks: Buffer[] = [];
 
-// const uploadDataToFirebase = async (
-//   nodes: SankeyNode[],
-//   parentChildMap: Map,
-//   useremail: string,
-//   month: string
-// ) => {
-//   try {
-//     console.log("Uploading data to Firebase:", nodes, parentChildMap);
-//     const batchData = [];
+  await new Promise<void>((resolve, reject) => {
+    req.on("data", (chunk) => {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    });
+    req.on("end", () => resolve());
+    req.on("error", (err) => reject(err));
+  });
 
-//     // Prepare batch upload data for Firebase
-//     nodes.forEach((node) => {
-//       const isLeaf =
-//         !parentChildMap.hasOwnProperty(node.index) && node.index !== 0;
-//       batchData.push({
-//         useremail,
-//         month,
-//         transaction: node.name,
-//         index: node.index,
-//         cost: node.cost || 0,
-//         isleaf: isLeaf,
-//         isMap: false,
-//         key: null,
-//         values: null,
-//         visible: true,
-//       });
-//     });
+  if (chunks.length === 0) {
+    return {};
+  }
 
-//     for (const [key, values] of Object.entries(parentChildMap)) {
-//       console.log("Sending data to firebase key:", key, "Values:", values);
-//       batchData.push({
-//         useremail,
-//         month,
-//         transaction: null,
-//         index: null,
-//         cost: null,
-//         isleaf: null,
-//         isMap: true,
-//         key,
-//         values,
-//         visible: true,
-//       });
-//     }
+  const raw = Buffer.concat(chunks).toString("utf8");
+  if (!raw) {
+    return {};
+  }
 
-//     await uploadTransactionsInBatch(batchData);
-//   } catch (error) {
-//     console.error("Error uploading data to Firebase:", error);
-//     throw new Error("Failed to upload data");
-//   }
-// };
-
-const processAndUploadData = async (
-  processedData: { nodes: SankeyNode[]; parentChildMap: Map },
-  parentChildMap: Map,
-  useremail: string,
-  month: string,
-  res: NextApiResponse
-) => {
   try {
-    // Prepare batch data for nodes and parent-child maps
-    const batchData = [];
-
-    // Prepare nodes for batch upload
-    for (const node of processedData.nodes) {
-      const isLeaf =
-        node.index === 0 ? false : !parentChildMap.hasOwnProperty(node.index);
-      batchData.push({
-        useremail: useremail,
-        month: month,
-        transaction: node.name,
-        index: node.index,
-        cost: node.cost || 0,
-        isleaf: isLeaf,
-        isMap: false,
-        key: null,
-        values: null,
-        visible: true,
-      });
-    }
-
-    // Prepare parent-child map for batch upload
-    for (const [key, values] of Object.entries(parentChildMap)) {
-      batchData.push({
-        useremail: useremail,
-        month: month,
-        transaction: null,
-        index: null,
-        cost: null,
-        isleaf: null,
-        isMap: true,
-        key: key,
-        values: values,
-        visible: true,
-      });
-    }
-
-    // Upload all data in a single batch
-    await uploadTransactionsInBatch(batchData);
-
-    res
-      .status(200)
-      .json({ message: "Data processed successfully", success: true });
+    return JSON.parse(raw) as Record<string, unknown>;
   } catch (error) {
-    console.error("Error processing and uploading data:", error);
-    res.status(500).json({ error: "Error processing and uploading data" });
+    console.error("Failed to parse JSON body", error);
+    return {};
   }
 };
 
