@@ -60,6 +60,18 @@ export interface UploadComponentProps {
   useremail: string;
 }
 
+export interface AggregatorTransaction {
+  transaction_id?: string;
+  account_id?: string;
+  name?: string;
+  amount?: number;
+  iso_currency_code?: string;
+  date?: string;
+  pending?: boolean;
+  category?: string[];
+  merchant_name?: string | null;
+}
+
 /**
  * Interface that represents the environment variables you rely on.
  * For safety, check if the variable is present before usage.
