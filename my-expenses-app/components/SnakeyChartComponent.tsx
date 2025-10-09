@@ -1,19 +1,7 @@
 "use client";
 
-import React, {
-  useState,
-  useEffect,
-  useMemo,
-  useRef,
-  useCallback,
-} from "react";
-import { Sankey, Tooltip, ResponsiveContainer } from "recharts";
-import type { TooltipProps } from "recharts";
-import type {
-  ValueType,
-  NameType,
-} from "recharts/types/component/DefaultTooltipContent";
-import { MyCustomNode } from "./MyCustomNode";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import TreeMapChart from "./TreeMapChart";
 import { calculateLinks } from "@/components/processLinks";
 import InputModal from "./editNodes";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
@@ -22,20 +10,33 @@ import {
   SankeyNode,
   SankeyData,
   SnakeyChartComponentProps,
-  Map,
   SankeyLink,
 } from "@/app/types/types";
+
+type Map = Record<number, number[]>;
 import { uploadTransactionsInBatch } from "@/components/sendDataFirebase";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-// ts-expect-error: If you don't have @types/d3 installed, this will suppress the error.
-import * as d3 from "d3";
-
-type SankeyTooltipPayload = {
-  source: { index: number };
-  target: { index: number };
-  value: number;
-};
+import AIAssistant from "./AIAssistant";
+import InsightsPanel from "./InsightsPanel";
+import UploadedFilesPanel from "./UploadedFilesPanel";
+import EnhancedCharts from "./EnhancedCharts";
+import {
+  generateSpendingInsights,
+  analyzeCategorySpending,
+  predictSpending,
+  generateDataSummary,
+  detectAnomalies,
+} from "@/lib/aiAnalytics";
+import {
+  FiEye,
+  FiEyeOff,
+  FiBarChart2,
+  FiPieChart,
+  FiX,
+  FiEdit2,
+  FiAlertCircle,
+} from "react-icons/fi";
 
 const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
   const [dataValue, setDataValue] = useState<SankeyData>({
@@ -57,10 +58,38 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
   const [error, setError] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const chartWrapperRef = useRef<HTMLDivElement | null>(null);
-  const [availableWidth, setAvailableWidth] = useState<number>(1200);
-  const parentColors = d3.schemeSet2;
-  const [sankeyKey, setSankeyKey] = useState(0); // Add a key for forcing re-render
+  const parentColors = useMemo(
+    () => [
+      "#80A1BA",
+      "#91C4C3",
+      "#B4DEBD",
+      "#FFE5B4",
+      "#6B8BA4",
+      "#7AAFAD",
+      "#9AC9A4",
+      "#F5ECC8",
+    ],
+    []
+  );
+  const [showInsights, setShowInsights] = useState(true);
+  const [viewMode, setViewMode] = useState<"treemap" | "charts">("treemap");
+  const [aiSuggestions, setAiSuggestions] = useState<Record<number, string>>(
+    {}
+  ); // AI suggestions for transactions
+  const [showAnomaliesPanel, setShowAnomaliesPanel] = useState(false);
+
+  // Close anomalies panel on ESC key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && showAnomaliesPanel) {
+        setShowAnomaliesPanel(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [showAnomaliesPanel]);
+
   const enhanceLinks = useCallback((links: SankeyLink[]) => {
     if (links.length === 0) {
       return links;
@@ -118,6 +147,12 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
       setError(null);
       setInfoMessage(null);
 
+      if (!user?.email || !month) {
+        console.log("User email or month is not available");
+        setIsLoading(false);
+        return;
+      }
+
       try {
         const userDocRef = doc(db, "users", user.email);
         const nodesCollectionRef = collection(userDocRef, month);
@@ -131,6 +166,9 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
             isleaf: snapshotDoc.data().isleaf,
             value: snapshotDoc.data().cost || 0,
             visible: snapshotDoc.data().visible,
+            date: snapshotDoc.data().date,
+            location: snapshotDoc.data().location,
+            file_source: snapshotDoc.data().file_source,
           }))
           .sort((a, b) => a.index - b.index);
 
@@ -158,7 +196,6 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
 
         if (!isCancelled) {
           setDataValue({ nodes: calculatedNodes, links: enhancedLinks });
-          setSankeyKey((k) => k + 1);
           setLastUpdated(new Date());
 
           if (enhancedLinks.length === 0) {
@@ -187,37 +224,6 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
       isCancelled = true;
     };
   }, [month, user?.email, enhanceLinks]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const updateWidth = () => {
-      const width =
-        chartWrapperRef.current?.clientWidth ?? window.innerWidth ?? 1200;
-      setAvailableWidth(Math.max(width, 320));
-    };
-
-    updateWidth();
-
-    let resizeObserver: ResizeObserver | null = null;
-
-    if ("ResizeObserver" in window && chartWrapperRef.current) {
-      resizeObserver = new ResizeObserver(() => updateWidth());
-      resizeObserver.observe(chartWrapperRef.current);
-    } else {
-      window.addEventListener("resize", updateWidth);
-    }
-
-    return () => {
-      if (resizeObserver) {
-        resizeObserver.disconnect();
-      } else {
-        window.removeEventListener("resize", updateWidth);
-      }
-    };
-  }, []);
 
   const currencyFormatter = useMemo(
     () =>
@@ -259,17 +265,6 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
     return newMap;
   };
 
-  /**
-   * Recalculates links after nodes or parent-child relationships change,
-   * applying strokeWidth scaling based on relative link values.
-   */
-  const recalculateLinks = () => {
-    const updatedParentChildMap = updateParentChildMap();
-    const newData = calculateLinks(dataValue.nodes, updatedParentChildMap);
-    const coloredLinks = enhanceLinks(newData.links);
-    setDataValue({ ...newData, links: coloredLinks });
-  };
-
   // To update the data in Firebase
   const sendDataToFirebase = async () => {
     console.log("uploading data to firebase");
@@ -294,6 +289,9 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
           key: null,
           values: null,
           visible: true,
+          date: node.date,
+          location: node.location,
+          file_source: node.file_source,
         });
       });
 
@@ -321,34 +319,55 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
   };
 
   /**
-   * When a node is clicked, open the modal if it is a leaf node.
-   * (Right now, only leaf nodes are handled for editing.)
+   * Handle editing a transaction from TreeMap
    */
-  const handleNodeClick = (nodeId: string) => {
-    setDataValue((prevData) => {
-      const clickedIndex = prevData.nodes.findIndex((n) => n.name === nodeId);
-      if (clickedIndex === -1) return prevData;
+  const handleEditTransaction = (nodeIndex: number) => {
+    const clickedNode = dataValue.nodes.find((n) => n.index === nodeIndex);
+    if (!clickedNode) return;
 
-      const clickedNode = prevData.nodes[clickedIndex];
-      setNodeIndex(clickedIndex);
-      setNode(clickedNode);
+    setNodeIndex(nodeIndex);
+    setNode(clickedNode);
 
-      if (clickedNode.isleaf) {
-        const parentLink = prevData.links.find(
-          (link) => link.target === clickedIndex
-        );
-        if (parentLink) {
-          setParentIndex(parentLink.source);
-          setIsModalOpen(true);
+    const parentLink = dataValue.links.find(
+      (link) => link.target === nodeIndex
+    );
+    if (parentLink) {
+      setParentIndex(parentLink.source);
+      setIsModalOpen(true);
+    }
+  };
+
+  /**
+   * Fetch AI suggestion for a specific transaction
+   */
+  const fetchAISuggestion = async (node: SankeyNode, nodeIndex: number) => {
+    if (!node.cost || !user?.email) return;
+
+    try {
+      const response = await fetch("/api/ai/validate-transaction", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transaction: node.name,
+          amount: node.cost,
+          allTransactions: dataValue.nodes
+            .filter((n) => n.isleaf)
+            .map((n) => ({ name: n.name, cost: n.cost })),
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.suggestion) {
+          setAiSuggestions((prev) => ({
+            ...prev,
+            [nodeIndex]: data.suggestion,
+          }));
         }
       }
-      return prevData;
-    });
-
-    // Give time for setState to finish, then recalculate
-    setTimeout(() => {
-      recalculateLinks();
-    }, 500);
+    } catch (error) {
+      console.error("Error fetching AI suggestion:", error);
+    }
   };
 
   /**
@@ -445,8 +464,6 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
 
         // Recalculate links with the updated map
         const recalculatedData = calculateLinks(updatedNodes, updatedMap);
-        // Force Sankey re-render by incrementing sankeyKey
-        setSankeyKey((k) => k + 1);
         return { nodes: [...updatedNodes], links: [...recalculatedData.links] };
       }
 
@@ -454,24 +471,10 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
       const updatedMap = updateParentChildMap();
       console.log("Updated parentChildMap:", updatedMap);
       const recalculatedData = calculateLinks(updatedNodes, updatedMap);
-      // Force Sankey re-render by incrementing sankeyKey
-      setSankeyKey((k) => k + 1);
       return { nodes: [...updatedNodes], links: [...recalculatedData.links] };
     });
   };
 
-  // Chart dimensions
-  const numberOfNodes = dataValue.nodes.length;
-  const chartMinWidth = Math.max(numberOfNodes * 140, 960);
-  const chartWidth = Math.max(chartMinWidth, availableWidth);
-  const adjustedHeight = Math.max(360, numberOfNodes * 52 + 260);
-  const margin = {
-    left: Math.min(200, numberOfNodes * 20),
-    right: Math.min(200, numberOfNodes * 20),
-    top: 100,
-    bottom: 100,
-  };
-  const chartHeight = adjustedHeight;
   const chartReady = dataValue.nodes.length > 0 && dataValue.links.length > 0;
   const syncDisabled = isLoading || !chartReady;
 
@@ -513,48 +516,6 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
     [dataValue.links, dataValue.nodes, parentColors]
   );
 
-  const renderTooltip = useCallback(
-    ({ active, payload }: TooltipProps<ValueType, NameType>) => {
-      if (!active || !payload || payload.length === 0) {
-        return null;
-      }
-
-      const tooltipData = payload[0]?.payload as
-        | SankeyTooltipPayload
-        | undefined;
-      if (!tooltipData) {
-        return null;
-      }
-
-      const sourceNode = dataValue.nodes.find(
-        (node) => node.index === tooltipData.source
-      );
-      const targetNode = dataValue.nodes.find(
-        (node) => node.index === tooltipData.target
-      );
-      const share = totalSpend
-        ? Math.round((tooltipData.value / totalSpend) * 100)
-        : 0;
-
-      return (
-        <div className="rounded-md border border-slate-700 bg-slate-900/90 p-3 text-sm text-slate-100 shadow-lg">
-          <p className="font-semibold">
-            {sourceNode?.name ?? "Total"} → {targetNode?.name ?? "Item"}
-          </p>
-          <p className="mt-1 text-slate-300">
-            {formatCurrency(tooltipData.value)}
-          </p>
-          {share > 0 && (
-            <p className="mt-1 text-xs uppercase tracking-wide text-slate-400">
-              {share}% of tracked spend
-            </p>
-          )}
-        </div>
-      );
-    },
-    [dataValue.nodes, formatCurrency, totalSpend]
-  );
-
   // Unique set of parent node names (for the dropdown in the modal)
   const parentOptions = Array.from(
     new Set(
@@ -587,21 +548,37 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
     });
   }, [lastUpdated]);
 
-  // Helper to find the top-level parent for a given node index
-    function findTopLevelParent(nodeIndex: number, links: SankeyLink[]): number {
-      let current = nodeIndex;
-      let parent = links.find((link) => link.target === current)?.source;
-      while (parent !== undefined && parent !== 0) {
-        current = parent;
-        parent = links.find((link) => link.target === current)?.source;
-      }
-      return parent === 0 ? current : nodeIndex;
-    }
+  // AI-powered insights and analytics
+  const spendingInsights = useMemo(
+    () => generateSpendingInsights(dataValue.nodes, dataValue.links),
+    [dataValue.nodes, dataValue.links]
+  );
+
+  const categoryAnalysis = useMemo(
+    () =>
+      analyzeCategorySpending(dataValue.nodes, dataValue.links, parentColors),
+    [dataValue.nodes, dataValue.links, parentColors]
+  );
+
+  const spendingPredictions = useMemo(
+    () => predictSpending(dataValue.nodes, dataValue.links),
+    [dataValue.nodes, dataValue.links]
+  );
+
+  const dataSummary = useMemo(
+    () => generateDataSummary(dataValue.nodes, dataValue.links),
+    [dataValue.nodes, dataValue.links]
+  );
+
+  const anomalies = useMemo(
+    () => detectAnomalies(dataValue.nodes),
+    [dataValue.nodes]
+  );
 
   return (
     <div className="relative min-h-screen overflow-x-auto bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-slate-100">
       <header className="sticky top-0 z-50 border-b border-slate-800/60 bg-slate-950/70 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
           <button
             type="button"
             onClick={() => router.push("/")}
@@ -617,26 +594,47 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
               {month.toUpperCase()}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={sendDataToFirebase}
-            disabled={syncDisabled}
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-400 px-4 py-2 text-sm font-semibold text-slate-900 shadow transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-emerald-600/40 disabled:text-emerald-200/70"
-          >
-            {syncDisabled && isLoading ? (
-              <>
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-900/40 border-t-transparent" />
-                Loading…
-              </>
-            ) : (
-              "Sync to Cloud"
-            )}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                setViewMode(viewMode === "treemap" ? "charts" : "treemap")
+              }
+              className="inline-flex items-center gap-2 rounded-full border border-slate-700/70 bg-slate-900 px-4 py-2 text-sm font-medium text-slate-100 transition hover:border-[#80A1BA] hover:bg-slate-800"
+            >
+              {viewMode === "treemap" ? (
+                <>
+                  <FiPieChart size={16} />
+                  Charts
+                </>
+              ) : (
+                <>
+                  <FiBarChart2 size={16} />
+                  TreeMap
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={sendDataToFirebase}
+              disabled={syncDisabled}
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-400 px-4 py-2 text-sm font-semibold text-slate-900 shadow transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-emerald-600/40 disabled:text-emerald-200/70"
+            >
+              {syncDisabled && isLoading ? (
+                <>
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-900/40 border-t-transparent" />
+                  Loading…
+                </>
+              ) : (
+                "Sync to Cloud"
+              )}
+            </button>
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pb-16 pt-24 sm:px-6 lg:px-8">
-        <section className="grid gap-4 md:grid-cols-3">
+      <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pb-16 pt-24 sm:px-6 lg:px-8">
+        <section className="grid gap-4 md:grid-cols-4">
           <div className="rounded-2xl border border-slate-800/60 bg-slate-900/70 p-5 shadow-lg shadow-slate-950/40">
             <p className="text-xs uppercase tracking-wide text-slate-400">
               Total tracked spend
@@ -686,6 +684,35 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
               )}
             </div>
           </div>
+          <div
+            className="rounded-2xl border border-slate-800/60 bg-slate-900/70 p-5 shadow-lg shadow-slate-950/40 cursor-pointer transition-all hover:border-[#80A1BA] hover:shadow-[#80A1BA]/20 hover:scale-105"
+            onClick={() => {
+              if (anomalies.length > 0) {
+                setShowAnomaliesPanel(true);
+                // Fetch AI suggestions for all anomalies
+                anomalies.forEach((anomaly) => {
+                  fetchAISuggestion(anomaly, anomaly.index);
+                });
+              }
+            }}
+          >
+            <p className="text-xs uppercase tracking-wide text-slate-400">
+              AI Insights {anomalies.length > 0 && "🔍"}
+            </p>
+            <p className="mt-3 text-3xl font-semibold text-white">
+              {spendingInsights.length}
+            </p>
+            <p className="mt-3 text-xs text-slate-400">
+              {anomalies.length > 0
+                ? `${anomalies.length} anomalies detected`
+                : "No anomalies"}
+            </p>
+            {anomalies.length > 0 && (
+              <p className="mt-2 text-xs text-[#91C4C3] font-medium">
+                Click to review →
+              </p>
+            )}
+          </div>
         </section>
 
         {error && (
@@ -700,93 +727,291 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
           </div>
         )}
 
-        <div className="rounded-3xl border border-slate-800/60 bg-slate-900/40 p-4 shadow-2xl shadow-slate-950/40">
-          {isLoading ? (
-            <div className="flex h-[420px] items-center justify-center">
-              <div className="flex flex-col items-center gap-3 text-slate-300">
-                <div className="h-12 w-12 animate-spin rounded-full border-4 border-emerald-400/40 border-t-transparent" />
-                <span className="text-sm">Loading your Sankey view…</span>
+        {/* Main Content Area - TreeMap or Enhanced Charts */}
+        {viewMode === "charts" ? (
+          <EnhancedCharts
+            categoryData={categoryAnalysis}
+            totalSpend={totalSpend}
+          />
+        ) : chartReady ? (
+          <>
+            <TreeMapChart
+              key={`treemap-${dataValue.nodes.length}-${dataValue.links.length}`}
+              nodes={dataValue.nodes}
+              links={dataValue.links}
+              onEditTransaction={handleEditTransaction}
+              aiSuggestions={aiSuggestions}
+              onFetchAISuggestion={fetchAISuggestion}
+            />
+
+            {/* Helper Text */}
+            <div className="rounded-xl border border-blue-500/40 bg-blue-500/10 p-4">
+              <p className="text-sm text-blue-200 leading-relaxed">
+                💡 <strong>Tip:</strong> Click on any category box to see all
+                its transactions in a beautiful panel. Each transaction can be
+                edited with AI validation to catch errors automatically.
+              </p>
+            </div>
+          </>
+        ) : isLoading ? (
+          <div className="flex h-[500px] items-center justify-center rounded-3xl border border-slate-800/60 bg-slate-900/40">
+            <div className="flex flex-col items-center gap-6 text-center">
+              {/* Enhanced Loading Spinner */}
+              <div className="relative">
+                <div className="w-20 h-20 border-4 border-slate-600 border-t-[#80A1BA] rounded-full animate-spin"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-12 h-12 border-2 border-slate-400 border-t-[#91C4C3] rounded-full animate-spin"></div>
+                </div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-6 h-6 border border-slate-300 border-t-[#B4DEBD] rounded-full animate-spin"></div>
+                </div>
+              </div>
+
+              {/* Loading Text */}
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold text-white">
+                  Processing Your Data
+                </h3>
+                <p className="text-slate-400 text-sm">
+                  AI is analyzing and categorizing your transactions...
+                </p>
+              </div>
+
+              {/* Animated Dots */}
+              <div className="flex space-x-2">
+                <div className="w-3 h-3 bg-[#80A1BA] rounded-full animate-bounce"></div>
+                <div
+                  className="w-3 h-3 bg-[#91C4C3] rounded-full animate-bounce"
+                  style={{ animationDelay: "0.1s" }}
+                ></div>
+                <div
+                  className="w-3 h-3 bg-[#B4DEBD] rounded-full animate-bounce"
+                  style={{ animationDelay: "0.2s" }}
+                ></div>
+              </div>
+
+              {/* Progress Steps */}
+              <div className="text-xs text-slate-500 space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-[#80A1BA] rounded-full"></div>
+                  <span>Fetching transaction data</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-[#91C4C3] rounded-full animate-pulse"></div>
+                  <span>AI categorization in progress</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-slate-600 rounded-full"></div>
+                  <span>Building visualization</span>
+                </div>
               </div>
             </div>
-          ) : chartReady ? (
-            <div
-              ref={chartWrapperRef}
-              className="w-full"
-              style={{ minWidth: chartMinWidth }}
-            >
-              <ResponsiveContainer width="100%" height={chartHeight}>
-                <Sankey
-                  key={sankeyKey}
-                  width={chartWidth}
-                  height={chartHeight}
-                  data={{ nodes: dataValue.nodes, links: dataValue.links }}
-                  node={(nodeProps) => (
-                    <MyCustomNode
-                      {...nodeProps}
-                      onNodeClick={(nodeId) => handleNodeClick(nodeId)}
-                      allNodes={dataValue.nodes}
-                      links={dataValue.links}
-                    />
-                  )}
-                  nodePadding={60}
-                  nodeWidth={30}
-                  margin={margin}
-                  link={(linkProps) => {
-                    const {
-                      sourceX,
-                      sourceY,
-                      targetX,
-                      targetY,
-                      sourceControlX,
-                      targetControlX,
-                      payload,
-                    } = linkProps;
-                    const sourceIndex = payload.source.index;
-                    const targetIndex = payload.target.index;
-                    const matchingLink = dataValue.links.find(
-                      (l) => l.source === sourceIndex && l.target === targetIndex
-                    );
-                    const linkStrokeWidth = matchingLink?.strokeWidth ?? 8;
-                    const topParent = findTopLevelParent(
-                      sourceIndex,
-                      dataValue.links
-                    );
-                    const colorIdx = topParent % parentColors.length;
-                    const linkColor = parentColors[colorIdx];
-                    const path = `M${sourceX},${sourceY}C${sourceControlX},${sourceY},${targetControlX},${targetY},${targetX},${targetY}`;
-                    return (
-                      <g key={`link-group-${sourceIndex}-${targetIndex}`}>
-                        <path
-                          d={path}
-                          stroke={linkColor}
-                          strokeWidth={linkStrokeWidth}
-                          strokeOpacity={0.95}
-                          fill="none"
-                          strokeLinejoin="round"
-                          strokeLinecap="round"
-                          style={{
-                            transition:
-                              "stroke-width 0.4s, stroke 0.4s, stroke-opacity 0.4s",
-                          }}
-                        />
-                      </g>
-                    );
-                  }}
-                >
-                  <Tooltip
-                    content={renderTooltip}
-                    cursor={{ fill: "rgba(148, 163, 184, 0.08)" }}
-                  />
-                </Sankey>
-              </ResponsiveContainer>
+          </div>
+        ) : (
+          <div className="flex h-[500px] items-center justify-center rounded-3xl border border-slate-800/60 bg-slate-900/40 text-center text-slate-300">
+            {infoMessage ?? "No data available yet."}
+          </div>
+        )}
+
+        {/* AI Insights Panel */}
+        {chartReady && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-white">
+                AI-Powered Insights
+              </h2>
+              <button
+                onClick={() => setShowInsights(!showInsights)}
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300 transition hover:border-[#80A1BA] hover:text-[#80A1BA]"
+              >
+                {showInsights ? (
+                  <>
+                    <FiEyeOff size={16} />
+                    Hide Insights
+                  </>
+                ) : (
+                  <>
+                    <FiEye size={16} />
+                    Show Insights
+                  </>
+                )}
+              </button>
             </div>
-          ) : (
-            <div className="flex h-[420px] items-center justify-center text-center text-slate-300">
-              {infoMessage ?? "No data available yet."}
-            </div>
-          )}
-        </div>
+            {showInsights && (
+              <InsightsPanel
+                insights={spendingInsights}
+                predictions={spendingPredictions}
+              />
+            )}
+
+            {/* Uploaded Files Panel */}
+            {session?.user?.email && month && (
+              <UploadedFilesPanel
+                userEmail={session.user.email}
+                month={month}
+              />
+            )}
+          </div>
+        )}
       </main>
+
+      {/* AI Assistant */}
+      {chartReady && user?.email && (
+        <AIAssistant
+          userId={user.email}
+          month={month}
+          dataSummary={dataSummary}
+        />
+      )}
+
+      {/* Anomalies Panel */}
+      {showAnomaliesPanel && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={() => setShowAnomaliesPanel(false)}
+        >
+          <div
+            className="w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-700 bg-gradient-to-r from-red-600 to-orange-600 p-6">
+              <div>
+                <h2 className="text-2xl font-bold text-white">
+                  ⚠️ Anomalous Transactions
+                </h2>
+                <p className="mt-1 text-sm text-red-100">
+                  {anomalies.length} transaction
+                  {anomalies.length !== 1 ? "s" : ""} flagged as unusual
+                </p>
+              </div>
+              <button
+                onClick={() => setShowAnomaliesPanel(false)}
+                className="rounded-lg p-2 text-white transition hover:bg-white/20"
+              >
+                <FiX size={24} />
+              </button>
+            </div>
+
+            {/* Anomalies List */}
+            <div
+              className="overflow-y-auto p-6"
+              style={{ maxHeight: "calc(90vh - 120px)" }}
+            >
+              <div className="grid gap-3">
+                {anomalies.map((anomaly, idx) => {
+                  const hasSuggestion = aiSuggestions[anomaly.index];
+                  const parentLink = dataValue.links.find(
+                    (link) => link.target === anomaly.index
+                  );
+                  const categoryNode = parentLink
+                    ? dataValue.nodes.find((n) => n.index === parentLink.source)
+                    : null;
+
+                  return (
+                    <div
+                      key={anomaly.index}
+                      className="group relative rounded-xl border border-red-500/40 bg-red-500/5 p-4 transition-all hover:scale-[1.02] hover:border-red-500/60"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-xs font-bold text-white">
+                              {idx + 1}
+                            </span>
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-white">
+                                {anomaly.name}
+                              </h3>
+                              <div className="mt-1 flex flex-wrap gap-3 text-xs text-slate-400">
+                                {anomaly.date && (
+                                  <span className="flex items-center gap-1">
+                                    <span className="text-slate-500">📅</span>
+                                    {anomaly.date}
+                                  </span>
+                                )}
+                                {anomaly.location && (
+                                  <span className="flex items-center gap-1">
+                                    <span className="text-slate-500">📍</span>
+                                    {anomaly.location}
+                                  </span>
+                                )}
+                                {anomaly.file_source && (
+                                  <span className="flex items-center gap-1">
+                                    <span className="text-slate-500">🏦</span>
+                                    {anomaly.file_source}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <p className="mt-2 text-xs text-slate-400">
+                            Category: {categoryNode?.name || "Unknown"}
+                          </p>
+
+                          <div className="mt-2 flex items-start gap-2 rounded-lg bg-amber-500/10 p-3 border border-amber-500/30">
+                            <FiAlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-400" />
+                            <div className="flex-1">
+                              <p className="text-xs font-semibold text-amber-300">
+                                Why it&apos;s flagged:
+                              </p>
+                              <p className="mt-1 text-xs text-amber-200">
+                                This amount (${anomaly.cost?.toFixed(2)}) is
+                                significantly higher than your average
+                                transaction.
+                                {hasSuggestion &&
+                                  ` ${aiSuggestions[anomaly.index]}`}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col items-end gap-2">
+                          <div className="text-right">
+                            <p className="text-2xl font-bold text-red-400">
+                              ${anomaly.cost?.toFixed(2) || 0}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setShowAnomaliesPanel(false);
+                              setTimeout(
+                                () => handleEditTransaction(anomaly.index),
+                                100
+                              );
+                            }}
+                            className="flex items-center gap-2 rounded-lg bg-[#80A1BA] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#6B8BA4]"
+                          >
+                            <FiEdit2 size={14} />
+                            Edit
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-slate-700 bg-slate-800/50 p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-slate-400">
+                  These transactions are statistically unusual based on your
+                  spending patterns
+                </p>
+                <button
+                  onClick={() => setShowAnomaliesPanel(false)}
+                  className="text-sm text-[#91C4C3] hover:text-[#7AAFAD]"
+                >
+                  Close (ESC)
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isModalOpen &&
         parentIndex !== null &&
@@ -795,12 +1020,14 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
           <InputModal
             clickedNode={clickedNode}
             initialParentName={dataValue.nodes[parentIndex]?.name}
-            initialPrice={
-              dataValue.nodes[nodeIndex]?.value?.toString() || "0"
-            }
+            initialPrice={dataValue.nodes[nodeIndex]?.value?.toString() || "0"}
             onSubmit={handleModalSubmit}
-            onClose={() => setIsModalOpen(false)}
+            onClose={() => {
+              setIsModalOpen(false);
+              setAiSuggestions({});
+            }}
             parentOptions={parentOptions}
+            aiSuggestion={aiSuggestions[nodeIndex]}
           />
         )}
     </div>

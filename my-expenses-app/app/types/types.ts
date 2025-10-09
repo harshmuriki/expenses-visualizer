@@ -5,6 +5,7 @@ export interface InputModalProps {
   onSubmit: (newParentName: string, newPrice: number) => void;
   onClose: () => void;
   parentOptions: string[]; // Add this prop to pass parent options
+  aiSuggestion?: string; // AI suggestion for this transaction
 }
 
 export interface Payload {
@@ -20,6 +21,9 @@ export interface SankeyNode {
   index: number;
   visible: boolean;
   value?: number;
+  date?: string;
+  location?: string;
+  file_source?: string;
 }
 
 export interface SankeyLink {
@@ -40,10 +44,7 @@ export interface MyCustomNodeProps {
   index: number;
   payload: Payload;
   containerWidth?: number;
-  onNodeClick: (
-    nodeId: string,
-    event?: React.MouseEvent<SVGElement>
-  ) => void; // New click handler
+  onNodeClick: (nodeId: string, event?: React.MouseEvent<SVGElement>) => void; // New click handler
   allNodes: SankeyNode[];
   fixViz?: boolean;
   links?: SankeyLink[]; // Add this prop to allow access to links for edge width
@@ -121,6 +122,9 @@ export interface OutputNode {
   name: string;
   index: number;
   cost?: number;
+  date?: string;
+  location?: string;
+  file_source?: string;
 }
 
 /**

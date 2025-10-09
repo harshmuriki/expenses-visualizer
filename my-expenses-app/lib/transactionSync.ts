@@ -23,24 +23,30 @@ export interface SyncJobResult {
   message?: string;
 }
 
-const mapPlaidTransaction = (transaction: PlaidTransaction): AggregatorTransaction => {
+const mapPlaidTransaction = (
+  transaction: PlaidTransaction
+): AggregatorTransaction => {
   return {
-    transaction_id: transaction.transaction_id ?? `${transaction.account_id}-${transaction.date}`,
+    transaction_id:
+      transaction.transaction_id ??
+      `${transaction.account_id}-${transaction.date}`,
     account_id: transaction.account_id ?? "unknown",
-    name:
-      transaction.name ??
-      transaction.merchant_name ??
-      "Transaction",
+    name: transaction.name ?? transaction.merchant_name ?? "Transaction",
     amount: transaction.amount,
-    iso_currency_code: transaction.iso_currency_code ?? transaction.unofficial_currency_code,
+    iso_currency_code:
+      transaction.iso_currency_code ?? transaction.unofficial_currency_code,
     date: transaction.date ?? new Date().toISOString().slice(0, 10),
     pending: Boolean(transaction.pending),
-    category: Array.isArray(transaction.category) ? transaction.category : undefined,
+    category: Array.isArray(transaction.category)
+      ? transaction.category
+      : undefined,
     merchant_name: transaction.merchant_name ?? null,
   };
 };
 
-const deriveMonthFromTransactions = (transactions: AggregatorTransaction[]): string => {
+const deriveMonthFromTransactions = (
+  transactions: AggregatorTransaction[]
+): string => {
   const first = transactions[0];
   if (!first?.date) {
     return new Date().toISOString().slice(0, 7);
@@ -93,7 +99,9 @@ export const syncTransactionsForItem = async ({
 
   await updateItemCursor(userId, itemId, cursor);
 
-  const filteredTransactions = transactions.filter((txn) => Number.isFinite(txn.amount));
+  const filteredTransactions = transactions.filter((txn) =>
+    Number.isFinite(txn.amount)
+  );
 
   if (filteredTransactions.length === 0) {
     return {
@@ -119,9 +127,13 @@ export const syncTransactionsForItem = async ({
     index: node.index,
     cost: node.cost,
     visible: true,
+    date: node.date,
+    location: node.location,
+    file_source: node.file_source,
   }));
 
-  const targetMonth = month ?? deriveMonthFromTransactions(filteredTransactions);
+  const targetMonth =
+    month ?? deriveMonthFromTransactions(filteredTransactions);
 
   await uploadSankeyToFirestore({
     nodes: sankeyNodes,
@@ -146,7 +158,10 @@ export const triggerSyncForItemId = async (
     return undefined;
   }
 
-  return syncTransactionsForItem({ userId: binding.userId, itemId: binding.item.itemId });
+  return syncTransactionsForItem({
+    userId: binding.userId,
+    itemId: binding.item.itemId,
+  });
 };
 
 export const storeAccessToken = async (

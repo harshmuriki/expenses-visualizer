@@ -27,6 +27,9 @@ class Item {
   raw_str: string | null;
   alltags: string[] | null;
   allparenttags: string[] | null;
+  date: string | null;
+  location: string | null;
+  file_source: string | null;
 
   constructor(
     name: string | null = null,
@@ -35,7 +38,10 @@ class Item {
     parenttag: string | null = null,
     raw_str: string | null = null,
     alltags: string[] | null = null,
-    allparenttags: string[] | null = null
+    allparenttags: string[] | null = null,
+    date: string | null = null,
+    location: string | null = null,
+    file_source: string | null = null
   ) {
     this.name = name;
     this.cost = price;
@@ -44,6 +50,9 @@ class Item {
     this.raw_str = raw_str;
     this.alltags = alltags;
     this.allparenttags = allparenttags;
+    this.date = date;
+    this.location = location;
+    this.file_source = file_source;
   }
 
   isValid(): boolean {
@@ -69,10 +78,13 @@ class Item {
             The name should be a concise version of what the transaction should be
             Choose the parent tags from this list: ${this.allparenttags}
             Choose the best parent tag for this particular transaction
+            Extract the location/merchant address if available
             name: <item name>
             cost: <item price>
             index: <index of the transaction or the parent tag>
             parenttag: <broader category from the parent tag list given>
+            date: <transaction date>
+            location: <merchant location/address>
         `;
 
     const completion: OpenAICompletionResponse = await this.runOpenAI(
@@ -94,15 +106,19 @@ class Item {
         this.index = line.split(":", 2)[1].trim();
       } else if (trimmedLine.startsWith("parenttag:")) {
         this.parenttag = line.split(":", 2)[1].trim();
+      } else if (trimmedLine.startsWith("date:")) {
+        this.date = line.split(":", 2)[1].trim();
+      } else if (trimmedLine.startsWith("location:")) {
+        this.location = line.split(":", 2)[1].trim();
       }
     }
   }
 
   async runOpenAI(prompt: string): Promise<OpenAICompletionResponse> {
     const envConfig: EnvConfig = process.env as unknown as EnvConfig;
-    const apiKey = envConfig.OPENAI_KEY;
+    const apiKey = envConfig.OPENAI_API_KEY || envConfig.OPENAI_KEY;
     if (!apiKey) {
-      throw new Error("Missing OPENAI_KEY environment variable");
+      throw new Error("Missing OPENAI_API_KEY environment variable");
     }
 
     const response: AxiosResponse<OpenAICompletionResponse> = await axios.post(
@@ -131,6 +147,7 @@ export class Document {
   allparenttags: string[] | null;
   rawData: string | null;
   pdf: boolean = false;
+  fileSource: string | null = null;
 
   constructor(
     document: CSVRow[] | [] = [],
@@ -138,7 +155,8 @@ export class Document {
     alltags: string[] | null = null,
     allparenttags: string[] | null = null,
     rawData: string | null = null,
-    pdf: boolean = false
+    pdf: boolean = false,
+    fileSource: string | null = null
   ) {
     this.document = document;
     this.items = items;
@@ -146,6 +164,7 @@ export class Document {
     this.allparenttags = allparenttags;
     this.rawData = rawData;
     this.pdf = pdf;
+    this.fileSource = fileSource;
   }
 
   async convertPdfToCSVRow(): Promise<CSVRow[]> {
@@ -213,7 +232,10 @@ export class Document {
         null,
         rawStr,
         this.alltags,
-        this.allparenttags
+        this.allparenttags,
+        null,
+        null,
+        this.fileSource
       );
       await tempItem.setDetails();
       if (tempItem.isValid()) {
@@ -246,6 +268,9 @@ export class Document {
         name: item.name ?? "Untitled",
         cost: item.cost ?? 1,
         index: transactionIndex,
+        date: item.date,
+        location: item.location,
+        file_source: item.file_source,
       });
 
       const parentIndex = parentTagsMap[item.parenttag!];
@@ -277,9 +302,9 @@ export class Document {
 
   async runOpenAI(prompt: string): Promise<OpenAICompletionResponse> {
     const envConfig: EnvConfig = process.env as unknown as EnvConfig;
-    const apiKey = envConfig.OPENAI_KEY;
+    const apiKey = envConfig.OPENAI_API_KEY || envConfig.OPENAI_KEY;
     if (!apiKey) {
-      throw new Error("Missing OPENAI_KEY environment variable");
+      throw new Error("Missing OPENAI_API_KEY environment variable");
     }
 
     const response: AxiosResponse<OpenAICompletionResponse> = await axios.post(
@@ -305,16 +330,22 @@ export class Document {
     const doc = new Document();
     doc.items = transactions.map((transaction, index) => {
       const parentTag = Array.isArray(transaction.category)
-        ? transaction.category[transaction.category.length - 1] || transaction.category[0]
+        ? transaction.category[transaction.category.length - 1] ||
+          transaction.category[0]
         : "Uncategorized";
       return new Item(
-        transaction.name || transaction.merchant_name || `Transaction ${index + 1}`,
+        transaction.name ||
+          transaction.merchant_name ||
+          `Transaction ${index + 1}`,
         Math.abs(Number(transaction.amount ?? 0)),
         transaction.transaction_id || index + 1,
         parentTag || "Uncategorized",
         JSON.stringify(transaction),
         Array.isArray(transaction.category) ? transaction.category : null,
-        Array.isArray(transaction.category) ? transaction.category : null
+        Array.isArray(transaction.category) ? transaction.category : null,
+        transaction.date,
+        transaction.merchant_name || transaction.name,
+        "plaid" // File source for Plaid transactions
       );
     });
     return doc;

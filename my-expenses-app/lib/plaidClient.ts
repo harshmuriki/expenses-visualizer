@@ -43,7 +43,9 @@ const getCredentials = () => {
   const env = process.env.PLAID_ENV || "sandbox";
 
   if (!clientId || !secret) {
-    throw new Error("Plaid credentials are not configured. Set PLAID_CLIENT_ID and PLAID_SECRET.");
+    throw new Error(
+      "Plaid credentials are not configured. Set PLAID_CLIENT_ID and PLAID_SECRET."
+    );
   }
 
   const baseUrl = PLAID_ENVIRONMENTS[env] ?? PLAID_ENVIRONMENTS.sandbox;
@@ -51,7 +53,10 @@ const getCredentials = () => {
   return { clientId, secret, baseUrl };
 };
 
-const plaidRequest = async <T>(path: string, body: Record<string, unknown>): Promise<T> => {
+const plaidRequest = async <T>(
+  path: string,
+  body: Record<string, unknown>
+): Promise<T> => {
   const { clientId, secret, baseUrl } = getCredentials();
   const response = await fetch(`${baseUrl}${path}`, {
     method: "POST",
@@ -73,10 +78,27 @@ const plaidRequest = async <T>(path: string, body: Record<string, unknown>): Pro
   return (await response.json()) as T;
 };
 
-export const createLinkToken = async (userId: string): Promise<PlaidLinkTokenResponse> => {
+// Hash email to create a safe user ID (Plaid doesn't allow emails)
+const hashUserId = (email: string): string => {
+  // Simple hash function to convert email to a safe ID
+  let hash = 0;
+  for (let i = 0; i < email.length; i++) {
+    const char = email.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return `user_${Math.abs(hash).toString(36)}`;
+};
+
+export const createLinkToken = async (
+  userId: string
+): Promise<PlaidLinkTokenResponse> => {
+  // Convert email to a safe user ID (Plaid rejects emails)
+  const safeUserId = userId.includes("@") ? hashUserId(userId) : userId;
+
   return plaidRequest<PlaidLinkTokenResponse>("/link/token/create", {
     user: {
-      client_user_id: userId,
+      client_user_id: safeUserId,
     },
     client_name: "Expenses Visualizer",
     language: "en",

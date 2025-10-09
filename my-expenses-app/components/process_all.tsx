@@ -99,9 +99,9 @@ class Item {
 
   async runOpenAI(prompt: string): Promise<OpenAICompletionResponse> {
     const envConfig: EnvConfig = process.env as unknown as EnvConfig;
-    const apiKey = envConfig.OPENAI_KEY;
+    const apiKey = envConfig.OPENAI_API_KEY || envConfig.OPENAI_KEY;
     if (!apiKey) {
-      throw new Error("Missing OPENAI_KEY environment variable");
+      throw new Error("Missing OPENAI_API_KEY environment variable");
     }
 
     const response: AxiosResponse<OpenAICompletionResponse> = await axios.post(
@@ -302,9 +302,9 @@ export class Document {
 
   async runOpenAI(prompt: string): Promise<OpenAICompletionResponse> {
     const envConfig: EnvConfig = process.env as unknown as EnvConfig;
-    const apiKey = envConfig.OPENAI_KEY;
+    const apiKey = envConfig.OPENAI_API_KEY || envConfig.OPENAI_KEY;
     if (!apiKey) {
-      throw new Error("Missing OPENAI_KEY environment variable");
+      throw new Error("Missing OPENAI_API_KEY environment variable");
     }
 
     const response: AxiosResponse<OpenAICompletionResponse> = await axios.post(

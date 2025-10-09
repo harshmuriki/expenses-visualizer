@@ -2,7 +2,7 @@ import { db } from './firebaseConfig.js';
 import { doc, collection, setDoc, getDoc, updateDoc, arrayUnion, writeBatch } from 'firebase/firestore';
 
 // Function to create a new collection
-export const uploadTransaction = async ({ useremail, month, transaction, index, cost, isleaf, visible, isMap, key, values }) => {
+export const uploadTransaction = async ({ useremail, month, transaction, index, cost, isleaf, visible, isMap, key, values, date, location, file_source }) => {
   // console.log('Input parameters:', { transaction, index, cost, isleaf, visible, isMap, key, values });
 
   const userDocRef = doc(db, "users", useremail);
@@ -24,7 +24,7 @@ export const uploadTransaction = async ({ useremail, month, transaction, index, 
     console.log(isMap ? 'Saving map on firebase' : 'Saving transaction on firebase');
     const collectionRef = collection(userDocRef, month);
     const documentRef = isMap ? doc(collectionRef, 'parentChildMap') : doc(collectionRef, transaction + String(index));
-    const data = isMap ? { [key]: values } : { transaction, cost, index, isleaf, visible };
+    const data = isMap ? { [key]: values } : { transaction, cost, index, isleaf, visible, date, location, file_source };
     await setDoc(documentRef, data, { merge: true });
     // console.log('Saved successfully!');
   } catch (error) {
@@ -73,6 +73,9 @@ export const uploadTransactionsInBatch = async (batchData) => {
             index: data.index,
             isleaf: data.isleaf,
             visible: data.visible,
+            date: data.date,
+            location: data.location,
+            file_source: data.file_source,
           };
 
         // Add set operation to the batch

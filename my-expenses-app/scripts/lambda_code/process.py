@@ -88,7 +88,6 @@ class Item:
 class Document:
     def __init__(self, df: pd.DataFrame, alltags=None, allparenttags=None):
         self.document = df
-        # document doesn't have to be a pd.DataFrame, it can be any iterable/dict
         self.items = []
         self.alltags = alltags
         self.allparenttags = allparenttags

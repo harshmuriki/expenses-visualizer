@@ -1,0 +1,258 @@
+"use client";
+
+import React, { useState, useRef, useEffect } from "react";
+import { FiSend, FiMessageCircle, FiX, FiMinimize2 } from "react-icons/fi";
+
+interface Message {
+  role: "user" | "assistant";
+  content: string;
+  timestamp: Date;
+}
+
+interface AIAssistantProps {
+  userId: string;
+  month: string;
+  dataSummary: string;
+}
+
+const AIAssistant: React.FC<AIAssistantProps> = ({
+  userId,
+  month,
+  dataSummary,
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      role: "assistant",
+      content: `Hi! I'm your AI financial assistant. I can help you understand your spending for ${month}. Ask me about your expenses, trends, or get personalized recommendations!`,
+      timestamp: new Date(),
+    },
+  ]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const handleSendMessage = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: Message = {
+      role: "user",
+      content: input,
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("/api/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [...messages, userMessage],
+          dataSummary,
+          userId,
+          month,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to get AI response");
+      }
+
+      const data = await response.json();
+
+      const assistantMessage: Message = {
+        role: "assistant",
+        content: data.message || "I'm sorry, I couldn't process that request.",
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error("Error sending message:", error);
+      const errorMessage: Message = {
+        role: "assistant",
+        content: "Sorry, I encountered an error. Please try again.",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const suggestedQuestions = [
+    "What's my biggest expense category?",
+    "How can I reduce my spending?",
+    "Show me unusual transactions",
+    "What's my average transaction amount?",
+  ];
+
+  if (!isOpen) {
+    return (
+      <button
+        onClick={() => setIsOpen(true)}
+        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-[#80A1BA] to-[#91C4C3] text-white shadow-lg transition-all hover:scale-110 hover:shadow-xl"
+        aria-label="Open AI Assistant"
+      >
+        <FiMessageCircle size={24} />
+      </button>
+    );
+  }
+
+  return (
+    <div
+      className={`fixed bottom-6 right-6 z-50 flex flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl transition-all ${
+        isMinimized ? "h-16 w-80" : "h-[600px] w-96"
+      }`}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-slate-700 bg-gradient-to-r from-[#80A1BA] to-[#91C4C3] p-4">
+        <div className="flex items-center gap-2">
+          <FiMessageCircle size={20} className="text-white" />
+          <h3 className="font-semibold text-white">AI Assistant</h3>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsMinimized(!isMinimized)}
+            className="rounded p-1 text-white transition hover:bg-white/20"
+            aria-label="Minimize"
+          >
+            <FiMinimize2 size={18} />
+          </button>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="rounded p-1 text-white transition hover:bg-white/20"
+            aria-label="Close"
+          >
+            <FiX size={18} />
+          </button>
+        </div>
+      </div>
+
+      {!isMinimized && (
+        <>
+          {/* Messages */}
+          <div className="flex-1 space-y-4 overflow-y-auto p-4">
+            {messages.map((message, index) => (
+              <div
+                key={index}
+                className={`flex ${
+                  message.role === "user" ? "justify-end" : "justify-start"
+                }`}
+              >
+                <div
+                  className={`max-w-[80%] rounded-2xl px-4 py-2 ${
+                    message.role === "user"
+                      ? "bg-gradient-to-r from-[#80A1BA] to-[#91C4C3] text-white"
+                      : "bg-slate-800 text-slate-100"
+                  }`}
+                >
+                  <p className="text-sm leading-relaxed">{message.content}</p>
+                  <p className="mt-1 text-xs opacity-60">
+                    {message.timestamp.toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+              </div>
+            ))}
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="rounded-2xl bg-slate-800 px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1">
+                      <div className="h-2 w-2 animate-bounce rounded-full bg-[#80A1BA]" />
+                      <div
+                        className="h-2 w-2 animate-bounce rounded-full bg-[#91C4C3]"
+                        style={{ animationDelay: "0.1s" }}
+                      />
+                      <div
+                        className="h-2 w-2 animate-bounce rounded-full bg-[#B4DEBD]"
+                        style={{ animationDelay: "0.2s" }}
+                      />
+                    </div>
+                    <span className="text-xs text-slate-400">
+                      AI is thinking...
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Suggested Questions */}
+          {messages.length === 1 && (
+            <div className="border-t border-slate-700 bg-slate-800/50 p-3">
+              <p className="mb-2 text-xs font-medium text-slate-400">
+                Try asking:
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {suggestedQuestions.map((question, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setInput(question)}
+                    className="rounded-full border border-slate-600 bg-slate-800 px-3 py-1 text-xs text-slate-300 transition hover:border-[#80A1BA] hover:bg-slate-700"
+                  >
+                    {question}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Input */}
+          <div className="border-t border-slate-700 bg-slate-800 p-4">
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Ask about your expenses..."
+                className="flex-1 rounded-lg border border-slate-600 bg-slate-900 px-4 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-[#80A1BA] focus:outline-none focus:ring-2 focus:ring-[#80A1BA]/50"
+                disabled={isLoading}
+              />
+              <button
+                onClick={handleSendMessage}
+                disabled={!input.trim() || isLoading}
+                className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-r from-[#80A1BA] to-[#91C4C3] text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Send message"
+              >
+                {isLoading ? (
+                  <div className="relative">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                ) : (
+                  <FiSend size={18} />
+                )}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+export default AIAssistant;

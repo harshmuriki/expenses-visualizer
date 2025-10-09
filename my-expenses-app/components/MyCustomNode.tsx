@@ -4,7 +4,6 @@ import { MyCustomNodeProps } from "@/app/types/types";
 export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
   x,
   y,
-  width,
   height,
   index,
   payload,
@@ -20,7 +19,7 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
     onNodeClick(payload.name, event); // Pass the event object
   };
 
-  const nodeWidth = isLeafNode ? 40 : Math.abs(30);
+  const nodeWidth = isLeafNode ? 45 : 40;
   const formatValue = (value?: number) =>
     value !== undefined
       ? new Intl.NumberFormat("en-US", {
@@ -76,12 +75,16 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
       incomingEdgeWidth = incomingLink.strokeWidth;
     }
   }
-  const nodeHeight = isLeafNode ? incomingEdgeWidth : Math.abs(height);
+  // Better height calculation
+  const minHeight = isLeafNode ? 35 : 40;
+  const calculatedHeight = isLeafNode ? incomingEdgeWidth : Math.abs(height);
+  const nodeHeight = Math.max(minHeight, calculatedHeight);
+
   const fillColor = isLeafNode
-    ? withAlpha(baseColor, 0.9)
-    : withAlpha(baseColor, 0.55);
-  const borderColor = isLeafNode ? baseColor : withAlpha(baseColor, 0.8);
-  const fontSize = Math.max(15, width / 8);
+    ? withAlpha(baseColor, 0.95)
+    : withAlpha(baseColor, 0.65);
+  const borderColor = isLeafNode ? baseColor : withAlpha(baseColor, 0.85);
+  const fontSize = isLeafNode ? 13 : 14;
   const truncatedName =
     payload.name.length > 15
       ? `${payload.name.substring(0, 15)}...`
@@ -113,18 +116,16 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
       {/* Text for node name */}
       <text
         x={(topLeft + topRight) / 2}
-        y={(bottomLeft + bottomRight) / 2 - (isLeafNode ? 2 : 8)}
+        y={(bottomLeft + bottomRight) / 2 - 9}
         textAnchor="middle"
         fill="#fff"
-        fontSize={isLeafNode ? fontSize * 0.95 : fontSize * 1.15}
-        fontWeight="bold"
+        fontSize={fontSize}
+        fontWeight="600"
         fontFamily="'Inter', 'Segoe UI', 'Arial', sans-serif"
-        dy={4}
         style={{
           transition: "fill 0.3s, font-size 0.3s",
           pointerEvents: "none",
-          textShadow: "0 1px 6px #181f2a, 0 0px 2px #0008",
-          dominantBaseline: "middle",
+          textShadow: "0 2px 8px #000, 0 1px 3px #000",
         }}
       >
         {truncatedName}
@@ -133,19 +134,17 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
       {/* Text for node value */}
       <text
         x={(topLeft + topRight) / 2}
-        y={(bottomLeft + bottomRight) / 2 + (isLeafNode ? 12 : 14)}
+        y={(bottomLeft + bottomRight) / 2 + 11}
         textAnchor="middle"
-        fill={isLeafNode ? "#00ffd0" : "#fff"}
-        opacity={isLeafNode ? 1 : 0.7}
-        fontSize={isLeafNode ? fontSize * 0.85 : fontSize * 0.95}
-        fontWeight={isLeafNode ? "bold" : 500}
+        fill={isLeafNode ? "#00ffd0" : "#a7f3d0"}
+        opacity={0.95}
+        fontSize={isLeafNode ? 12 : 13}
+        fontWeight="600"
         fontFamily="'Inter', 'Segoe UI', 'Arial', sans-serif"
-        dy={4}
         style={{
           transition: "fill 0.3s, font-size 0.3s",
           pointerEvents: "none",
-          textShadow: "0 1px 6px #181f2a, 0 0px 2px #0008",
-          dominantBaseline: "middle",
+          textShadow: "0 2px 8px #000, 0 1px 3px #000",
         }}
       >
         {formatValue(payload.cost)}

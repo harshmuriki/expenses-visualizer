@@ -25,11 +25,16 @@ export const uploadSankeyToFirestore = async ({
     key: string | null;
     values: number[] | null;
     visible: boolean;
+    date?: string | null;
+    location?: string | null;
+    file_source?: string | null;
   }>;
 
   for (const node of nodes) {
     const isLeaf =
-      node.index === 0 ? false : !Object.prototype.hasOwnProperty.call(parentChildMap, node.index);
+      node.index === 0
+        ? false
+        : !Object.prototype.hasOwnProperty.call(parentChildMap, node.index);
 
     batchData.push({
       useremail,
@@ -42,6 +47,9 @@ export const uploadSankeyToFirestore = async ({
       key: null,
       values: null,
       visible: node.visible ?? true,
+      date: node.date,
+      location: node.location,
+      file_source: node.file_source,
     });
   }
 

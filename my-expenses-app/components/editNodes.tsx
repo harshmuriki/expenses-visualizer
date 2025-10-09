@@ -8,6 +8,7 @@ const InputModal: React.FC<InputModalProps> = ({
   onSubmit,
   onClose,
   parentOptions,
+  aiSuggestion,
 }) => {
   const [newParentName, setNewParentName] = useState(initialParentName);
   const [isCreatingNewParent, setIsCreatingNewParent] = useState(false);
@@ -56,85 +57,146 @@ const InputModal: React.FC<InputModalProps> = ({
         top: "50%",
         left: "50%",
         transform: "translate(-50%, -50%)",
-        backgroundColor: "#f9f9f9", // Light background for modern feel
-        padding: "40px", // Ample padding for better spacing
-        borderRadius: "15px", // Softer rounded corners
-        boxShadow: "0 8px 20px rgba(0, 0, 0, 0.3)", // Slightly darker shadow for depth
-        border: "1px solid #ccc", // Subtle border for structure
-        color: "#222", // Darker text for better contrast
-        maxWidth: "450px", // Adjusted for a slightly wider modal
-        width: "100%", // Ensure it stays responsive
-        boxSizing: "border-box", // Include padding and border in element's total width and height
-        fontFamily: "Arial, sans-serif", // Clean, readable font
+        backgroundColor: "#1e293b", // slate-800
+        padding: "40px",
+        borderRadius: "20px",
+        boxShadow: "0 20px 60px rgba(0, 0, 0, 0.5)",
+        border: "1px solid #475569", // slate-600
+        color: "#f1f5f9", // slate-100
+        maxWidth: "500px",
+        width: "100%",
+        boxSizing: "border-box",
+        fontFamily: "Arial, sans-serif",
+        zIndex: 9999,
       }}
     >
       <h3
         style={{
-          margin: "0 0 20px", // Add space below heading
-          fontSize: "1.5rem", // Slightly larger heading
-          textAlign: "center", // Center the heading
-          color: "#333", // Subtle text color for the heading
+          margin: "0 0 20px",
+          fontSize: "1.8rem",
+          textAlign: "center",
+          background: "linear-gradient(to right, #91C4C3, #B4DEBD)",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+          backgroundClip: "text",
+          fontWeight: "bold",
         }}
       >
-        Update Node Information
+        Update Transaction
       </h3>
       <h2
         style={{
-          margin: "10px 0 20px", // Additional spacing for balance
-          fontSize: "1.2rem", // Slightly smaller to match context
-          textAlign: "center", // Keep consistent alignment
-          color: "#555", // Softer color for less prominence
+          margin: "10px 0 20px",
+          fontSize: "1.1rem",
+          textAlign: "center",
+          color: "#cbd5e1", // slate-300
         }}
       >
         Transaction:{" "}
-        <span style={{ fontWeight: "normal", color: "#222" }}>
+        <span style={{ fontWeight: "600", color: "#80A1BA" }}>
           {clickedNode.name}
         </span>
-      </h2>{" "}
-      <div style={{ marginBottom: "15px" }}>
-        <label
-          style={{ display: "block", marginBottom: "5px", fontWeight: "bold" }}
+      </h2>
+
+      {/* AI Suggestion Alert */}
+      {aiSuggestion && (
+        <div
+          style={{
+            marginBottom: "20px",
+            padding: "15px",
+            backgroundColor: "rgba(145, 196, 195, 0.1)",
+            border: "1px solid #91C4C3",
+            borderRadius: "12px",
+            color: "#C8E5E4",
+          }}
         >
-          New Parent Name:
+          <div style={{ display: "flex", alignItems: "start", gap: "12px" }}>
+            <span style={{ fontSize: "1.3rem" }}>💡</span>
+            <div style={{ flex: 1 }}>
+              <strong
+                style={{
+                  display: "block",
+                  marginBottom: "8px",
+                  color: "#91C4C3",
+                }}
+              >
+                AI Suggestion:
+              </strong>
+              <p style={{ margin: 0, fontSize: "0.95rem", lineHeight: "1.5" }}>
+                {aiSuggestion}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div style={{ marginBottom: "20px" }}>
+        <label
+          style={{
+            display: "block",
+            marginBottom: "8px",
+            fontWeight: "600",
+            color: "#cbd5e1",
+          }}
+        >
+          New Category:
         </label>
         <select
           value={isCreatingNewParent ? "createNew" : newParentName}
           onChange={handleParentChange}
           style={{
             width: "100%",
-            padding: "10px",
-            borderRadius: "5px",
-            border: "1px solid #ddd",
+            padding: "12px",
+            borderRadius: "10px",
+            border: "1px solid #475569",
+            backgroundColor: "#0f172a",
+            color: "#f1f5f9",
             boxSizing: "border-box",
+            fontSize: "1rem",
+            cursor: "pointer",
           }}
         >
           {parentOptions.map((parent) => (
-            <option key={parent} value={parent}>
+            <option
+              key={parent}
+              value={parent}
+              style={{ backgroundColor: "#1e293b" }}
+            >
               {parent}
             </option>
           ))}
-          <option value="createNew">Create New Parent</option>
+          <option value="createNew" style={{ backgroundColor: "#1e293b" }}>
+            Create New Category
+          </option>
         </select>
         {isCreatingNewParent && (
           <input
             type="text"
             value={newParentName}
             onChange={(e) => setNewParentName(e.target.value)}
-            placeholder="Enter new parent name"
+            placeholder="Enter new category name"
             style={{
               width: "100%",
-              padding: "10px",
-              marginTop: "10px",
-              borderRadius: "5px",
-              border: "1px solid #ddd",
+              padding: "12px",
+              marginTop: "12px",
+              borderRadius: "10px",
+              border: "1px solid #91C4C3",
+              backgroundColor: "#0f172a",
+              color: "#f1f5f9",
               boxSizing: "border-box",
+              fontSize: "1rem",
             }}
           />
         )}
       </div>
-      <div style={{ marginBottom: "20px" }}>
+      <div style={{ marginBottom: "25px" }}>
         <label
-          style={{ display: "block", marginBottom: "5px", fontWeight: "bold" }}
+          style={{
+            display: "block",
+            marginBottom: "8px",
+            fontWeight: "600",
+            color: "#cbd5e1",
+          }}
         >
           New Price:
         </label>
@@ -144,37 +206,65 @@ const InputModal: React.FC<InputModalProps> = ({
           onChange={(e) => setNewPrice(e.target.value)}
           style={{
             width: "100%",
-            padding: "10px",
-            borderRadius: "5px",
-            border: "1px solid #ddd",
+            padding: "12px",
+            borderRadius: "10px",
+            border: "1px solid #475569",
+            backgroundColor: "#0f172a",
+            color: "#B4DEBD",
             boxSizing: "border-box",
+            fontSize: "1.1rem",
+            fontWeight: "600",
           }}
         />
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: "12px",
+          justifyContent: "space-between",
+        }}
+      >
         <button
           onClick={handleSubmit}
           style={{
-            backgroundColor: "#4CAF50",
+            flex: 1,
+            background: "linear-gradient(to right, #80A1BA, #91C4C3)",
             color: "white",
             border: "none",
-            padding: "10px 20px",
-            borderRadius: "5px",
+            padding: "14px 24px",
+            borderRadius: "10px",
             cursor: "pointer",
+            fontSize: "1rem",
+            fontWeight: "600",
+            boxShadow: "0 4px 12px rgba(128, 161, 186, 0.3)",
+            transition: "all 0.3s",
           }}
+          onMouseEnter={(e) =>
+            (e.currentTarget.style.transform = "scale(1.05)")
+          }
+          onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
         >
-          Submit
+          Save Changes
         </button>
         <button
           onClick={onClose}
           style={{
-            backgroundColor: "#f44336",
+            flex: 1,
+            background: "linear-gradient(to right, #ef4444, #dc2626)",
             color: "white",
             border: "none",
-            padding: "10px 20px",
-            borderRadius: "5px",
+            padding: "14px 24px",
+            borderRadius: "10px",
             cursor: "pointer",
+            fontSize: "1rem",
+            fontWeight: "600",
+            boxShadow: "0 4px 12px rgba(239, 68, 68, 0.3)",
+            transition: "all 0.3s",
           }}
+          onMouseEnter={(e) =>
+            (e.currentTarget.style.transform = "scale(1.05)")
+          }
+          onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
         >
           Cancel
         </button>

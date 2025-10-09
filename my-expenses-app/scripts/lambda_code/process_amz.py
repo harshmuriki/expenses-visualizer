@@ -1,5 +1,4 @@
 import json
-import pandas as pd
 from openai import OpenAI
 import os
 
@@ -9,7 +8,7 @@ OpenAI.api_key = OpenAI_Key
 
 
 class Item:
-    def __init__(self, name=None, price=None, date=None, index=None, parenttag=None, raw_str=None, alltags=None, allparenttags=None):
+    def __init__(self, name=None, price=None, date=None, index=None, parenttag=None, raw_str=None, alltags=None, allparenttags=None, location=None, file_source=None):
         self.name = name
         self.cost = abs(price)
         self.date = date
@@ -18,9 +17,11 @@ class Item:
         self.raw_str = raw_str
         self.alltags = alltags
         self.allparenttags = allparenttags
+        self.location = location
+        self.file_source = file_source
 
     def __repr__(self):
-        return f"Item(name='{self.name}', index={self.index}, cost={self.cost}, parenttag='{self.parenttag}'')"
+        return f"Item(name='{self.name}', index={self.index}, cost={self.cost}, parenttag='{self.parenttag}', date='{self.date}', location='{self.location}', file_source='{self.file_source}')"
 
     def is_valid(self):
         # Define what makes an item valid
@@ -48,10 +49,12 @@ class Document:
             f"The name should be a concise version of what the transaction should be\n"
             f"Choose the parent tags from this list: {self.allparenttags}\n"
             f"Choose the best parent tag for this particular transaction\n"
+            f"Extract the location/merchant address if available\n"
+            f"Determine the file source (e.g., 'amex', 'capitalone', 'chase', 'bankofamerica', 'wells', 'discover', 'citi', 'usbank', 'pnc', 'truist', 'regions', 'huntington', 'keybank', 'citizens', 'td', 'bmo', 'hsbc', 'barclays', 'synchrony', 'comenity', 'storecard', 'paypal', 'venmo', 'zelle', 'cashapp', 'applepay', 'googlepay', 'amazon', 'paypal', 'stripe', 'square', 'other') based on the document content\n"
         )
 
         content = self.run_openai(prompt=tag_prompt)
-
+        print("Output from OpenAI \n", content)
         try:
             content_json = json.loads(content)
             # print("output", content_json, type(content_json))
@@ -69,7 +72,9 @@ class Document:
                 raw_str=transaction.get("raw_str"),
                 parenttag=transaction.get("parenttag"),
                 alltags=self.alltags,
-                allparenttags=self.allparenttags
+                allparenttags=self.allparenttags,
+                location=transaction.get("location"),
+                file_source=transaction.get("file_source")
             )
 
             if item.is_valid():
@@ -124,6 +129,14 @@ class Document:
                                             "raw_str": {
                                                 "type": "string",
                                                 "description": "The raw string of the transaction."
+                                            },
+                                            "location": {
+                                                "type": "string",
+                                                "description": "The location or merchant address of the transaction."
+                                            },
+                                            "file_source": {
+                                                "type": "string",
+                                                "description": "The source of the file (e.g., 'amex', 'capitalone', 'chase', etc.)."
                                             }
                                         },
                                         "required": [
@@ -132,7 +145,9 @@ class Document:
                                             "date",
                                             "parenttag",
                                             "index",
-                                            "raw_str"
+                                            "raw_str",
+                                            "location",
+                                            "file_source"
                                         ],
                                         "additionalProperties": False
                                     }
@@ -146,7 +161,7 @@ class Document:
                     }
                 },
                 temperature=1,
-                max_completion_tokens=2048,
+                max_completion_tokens=4096,
                 top_p=1,
                 frequency_penalty=0,
                 presence_penalty=0
@@ -196,6 +211,9 @@ class Document:
                 "name": item.name,
                 "cost": item.cost,
                 "index": transaction_index,
+                "date": item.date,
+                "location": item.location,
+                "file_source": item.file_source,
             })
             parent_child_map[parent_tags[item.parenttag]].append(
                 transaction_index)
@@ -223,22 +241,24 @@ class Document:
 
 def main():
 
+    pass
+
     # Example usage (adjust the path to your CSV):
-    df = pd.read_csv(
-        r"C:\Users\harsh\OneDrive - Georgia Institute of Technology\Documents\Georgia Tech\Payments All\activity.csv")
+    # df = pd.read_csv(
+    #     r"C:\Users\harsh\OneDrive - Georgia Institute of Technology\Documents\Georgia Tech\Payments All\activity.csv")
 
-    with open(r"C:\Users\harsh\OneDrive - Georgia Institute of Technology\Documents\Projects\expenses-visualizer\my-expenses-app\scripts\tags.txt", "r") as file:
-        alltags = [line.strip() for line in file.readlines()]
+    # with open(r"C:\Users\harsh\OneDrive - Georgia Institute of Technology\Documents\Projects\expenses-visualizer\my-expenses-app\scripts\tags.txt", "r") as file:
+    #     alltags = [line.strip() for line in file.readlines()]
 
-    with open(r"C:\Users\harsh\OneDrive - Georgia Institute of Technology\Documents\Projects\expenses-visualizer\my-expenses-app\scripts\parenttags.txt", "r") as file:
-        allparenttags = [line.strip() for line in file.readlines()]
+    # with open(r"C:\Users\harsh\OneDrive - Georgia Institute of Technology\Documents\Projects\expenses-visualizer\my-expenses-app\scripts\parenttags.txt", "r") as file:
+    #     allparenttags = [line.strip() for line in file.readlines()]
 
-    # print(alltags, allparenttags)
+    # # print(alltags, allparenttags)
 
-    doc = Document(df, alltags=alltags, allparenttags=allparenttags)
-    doc.convert_text_to_items()
-    (output, parent_child_map) = doc.convert_data_to_viz()
-    print(output, parent_child_map)
+    # doc = Document(df, alltags=alltags, allparenttags=allparenttags)
+    # doc.convert_text_to_items()
+    # (output, parent_child_map) = doc.convert_data_to_viz()
+    # print(output, parent_child_map)
 
 
 if __name__ == "__main__":
