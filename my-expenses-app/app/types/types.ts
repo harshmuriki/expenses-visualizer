@@ -39,10 +39,13 @@ export interface MyCustomNodeProps {
   height: number;
   index: number;
   payload: Payload;
-  containerWidth: number;
-  onNodeClick: (nodeId: string, event: React.MouseEvent<SVGElement>) => void; // New click handler
+  containerWidth?: number;
+  onNodeClick: (
+    nodeId: string,
+    event?: React.MouseEvent<SVGElement>
+  ) => void; // New click handler
   allNodes: SankeyNode[];
-  fixViz: boolean;
+  fixViz?: boolean;
   links?: SankeyLink[]; // Add this prop to allow access to links for edge width
 }
 

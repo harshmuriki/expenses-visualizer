@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { MyCustomNodeProps } from "@/app/types/types";
 
 export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
@@ -21,6 +21,53 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
   };
 
   const nodeWidth = isLeafNode ? 40 : Math.abs(30);
+  const formatValue = (value?: number) =>
+    value !== undefined
+      ? new Intl.NumberFormat("en-US", {
+          maximumFractionDigits: value < 100 ? 1 : 0,
+        }).format(value)
+      : "N/A";
+
+  const withAlpha = (hexColor: string, alpha: number) => {
+    const sanitized = hexColor.replace("#", "");
+    if (sanitized.length !== 6) {
+      return hexColor;
+    }
+    const r = parseInt(sanitized.slice(0, 2), 16);
+    const g = parseInt(sanitized.slice(2, 4), 16);
+    const b = parseInt(sanitized.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
+
+  const baseColor = useMemo(() => {
+    if (!links || index === 0) {
+      return "#4fd1c5";
+    }
+
+    const findTopLevelParent = (nodeIdx: number): number | null => {
+      let current = nodeIdx;
+      let parent = links.find((link) => link.target === current)?.source;
+
+      while (parent !== undefined && parent !== 0) {
+        current = parent;
+        parent = links.find((link) => link.target === current)?.source;
+      }
+
+      return parent === 0 ? current : null;
+    };
+
+    const topParentIndex = findTopLevelParent(index);
+    if (topParentIndex === null) {
+      return "#4fd1c5";
+    }
+
+    const parentLink = links.find(
+      (link) => link.source === 0 && link.target === topParentIndex
+    );
+
+    return parentLink?.color ?? "#4fd1c5";
+  }, [index, links]);
+
   // Find the incoming link for this node (where this node is the target)
   let incomingEdgeWidth = 25;
   if (links) {
@@ -30,8 +77,10 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
     }
   }
   const nodeHeight = isLeafNode ? incomingEdgeWidth : Math.abs(height);
-  const fillColor = isLeafNode ? "#4fd1c5" : "#232946";
-  const borderColor = isLeafNode ? "#4fd1c5" : "#2a334a";
+  const fillColor = isLeafNode
+    ? withAlpha(baseColor, 0.9)
+    : withAlpha(baseColor, 0.55);
+  const borderColor = isLeafNode ? baseColor : withAlpha(baseColor, 0.8);
   const fontSize = Math.max(15, width / 8);
   const truncatedName =
     payload.name.length > 15
@@ -99,7 +148,7 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
           dominantBaseline: "middle",
         }}
       >
-        {payload.cost !== undefined ? payload.cost.toFixed(1) : "N/A"}
+        {formatValue(payload.cost)}
       </text>
     </g>
   );

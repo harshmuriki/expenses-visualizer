@@ -1,7 +1,18 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useCallback,
+} from "react";
 import { Sankey, Tooltip, ResponsiveContainer } from "recharts";
+import type { TooltipProps } from "recharts";
+import type {
+  ValueType,
+  NameType,
+} from "recharts/types/component/DefaultTooltipContent";
 import { MyCustomNode } from "./MyCustomNode";
 import { calculateLinks } from "@/components/processLinks";
 import InputModal from "./editNodes";
@@ -12,12 +23,19 @@ import {
   SankeyData,
   SnakeyChartComponentProps,
   Map,
+  SankeyLink,
 } from "@/app/types/types";
 import { uploadTransactionsInBatch } from "@/components/sendDataFirebase";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 // ts-expect-error: If you don't have @types/d3 installed, this will suppress the error.
 import * as d3 from "d3";
+
+type SankeyTooltipPayload = {
+  source: { index: number };
+  target: { index: number };
+  value: number;
+};
 
 const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
   const [dataValue, setDataValue] = useState<SankeyData>({
@@ -28,7 +46,6 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
   const [parentIndex, setParentIndex] = useState<number | null>(null);
   const [nodeIndex, setNodeIndex] = useState<number | null>(null);
   const [clickedNode, setNode] = useState<SankeyNode | null>(null);
-  const [userAdjustedWidth, setUserAdjustedWidth] = useState(1000);
   const router = useRouter();
   const { data: session } = useSession();
   const [user, setUser] = useState<{
@@ -36,10 +53,40 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
     email?: string | null;
     image?: string | null;
   } | null>(null);
-  const MAX_RETRIES = 5; // Maximum number of retries
-  const RETRY_DELAY = 3000; // Delay between retries in milliseconds (5 seconds)
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const chartWrapperRef = useRef<HTMLDivElement | null>(null);
+  const [availableWidth, setAvailableWidth] = useState<number>(1200);
   const parentColors = d3.schemeSet2;
   const [sankeyKey, setSankeyKey] = useState(0); // Add a key for forcing re-render
+  const enhanceLinks = useCallback((links: SankeyLink[]) => {
+    if (links.length === 0) {
+      return links;
+    }
+
+    const maxLinkValue = links.reduce(
+      (max, link) => (link.value > max ? link.value : max),
+      0
+    );
+    const baseWidth = 6;
+    const maxWidth = 72;
+
+    return links.map((link) => {
+      const normalizedWidth = maxLinkValue
+        ? Math.max(
+            baseWidth,
+            Math.min(maxWidth, (link.value / maxLinkValue) * maxWidth)
+          )
+        : baseWidth;
+
+      return {
+        ...link,
+        strokeWidth: normalizedWidth,
+      };
+    });
+  }, []);
 
   useEffect(() => {
     if (session) {
@@ -60,45 +107,36 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
    * then calculates and sets the Sankey links.
    */
   useEffect(() => {
-    const fetchData = async (retries = 0) => {
-      if (session?.user?.email === null) {
-        console.warn(
-          `Attempt ${retries + 1}: User email is not set. Retrying...`
-        );
-        if (retries < MAX_RETRIES) {
-          setTimeout(() => fetchData(retries + 1), RETRY_DELAY); // Retry after delay
-        } else {
-          console.error("Max retries reached. User email is still not set.");
-        }
-        return;
-      }
+    if (!user?.email) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
+      setInfoMessage(null);
+
       try {
-        // Fetch nodes
-        if (!user?.email) {
-          console.error("User email is not set.");
-          return;
-        }
         const userDocRef = doc(db, "users", user.email);
         const nodesCollectionRef = collection(userDocRef, month);
         const nodesSnapshot = await getDocs(nodesCollectionRef);
         const nodes: SankeyNode[] = nodesSnapshot.docs
-          .filter((doc) => doc.id !== "parentChildMap") // Exclude 'parentChildMap'
-          .map((doc) => ({
-            name: doc.data().transaction,
-            cost: doc.data().cost || 100,
-            index: doc.data().index,
-            isleaf: doc.data().isleaf,
-            value: doc.data().cost || 100,
-            visible: doc.data().visible,
+          .filter((snapshotDoc) => snapshotDoc.id !== "parentChildMap")
+          .map((snapshotDoc) => ({
+            name: snapshotDoc.data().transaction,
+            cost: snapshotDoc.data().cost || 0,
+            index: snapshotDoc.data().index,
+            isleaf: snapshotDoc.data().isleaf,
+            value: snapshotDoc.data().cost || 0,
+            visible: snapshotDoc.data().visible,
           }))
           .sort((a, b) => a.index - b.index);
 
-        // Fetch parentChildMap
-        // const nodesCollectionRef = collection(userDocRef, month);
         const mapDocRef = doc(nodesCollectionRef, "parentChildMap");
         const mapSnapshot = await getDoc(mapDocRef);
 
-        // 1) Get array of keys as numbers
         const keys: number[] = mapSnapshot.exists()
           ? Object.keys(mapSnapshot.data()).map((key) => parseInt(key))
           : [];
@@ -113,36 +151,97 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
           acc[key] = parentChildMapArr[index];
           return acc;
         }, {});
-        // Calculate links from the nodes + parentChildMap
+
         const { nodes: calculatedNodes, links: calculatedLinks } =
           calculateLinks(nodes, parentChildMap);
+        const enhancedLinks = enhanceLinks(calculatedLinks);
 
-        setDataValue({ nodes: calculatedNodes, links: calculatedLinks });
-      } catch (error) {
-        console.error("Error fetching data:", error);
+        if (!isCancelled) {
+          setDataValue({ nodes: calculatedNodes, links: enhancedLinks });
+          setSankeyKey((k) => k + 1);
+          setLastUpdated(new Date());
+
+          if (enhancedLinks.length === 0) {
+            setInfoMessage(
+              "No data available for this month yet. Upload transactions to get started."
+            );
+          }
+        }
+      } catch (fetchError) {
+        if (!isCancelled) {
+          console.error("Error fetching data:", fetchError);
+          setError(
+            "We couldn't load your expenses right now. Please try again shortly."
+          );
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchData();
-  }, [month, user?.email, session]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [month, user?.email, enhanceLinks]);
 
   useEffect(() => {
-    const handleResize = () => {
-      const newWidth = Math.min(window.innerWidth, 2500);
-      setUserAdjustedWidth(newWidth);
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const updateWidth = () => {
+      const width =
+        chartWrapperRef.current?.clientWidth ?? window.innerWidth ?? 1200;
+      setAvailableWidth(Math.max(width, 320));
     };
 
-    // Set initial width based on window size
-    handleResize();
+    updateWidth();
 
-    // Add event listener for window resize
-    window.addEventListener("resize", handleResize);
+    let resizeObserver: ResizeObserver | null = null;
 
-    // Clean up event listener on component unmount
+    if ("ResizeObserver" in window && chartWrapperRef.current) {
+      resizeObserver = new ResizeObserver(() => updateWidth());
+      resizeObserver.observe(chartWrapperRef.current);
+    } else {
+      window.addEventListener("resize", updateWidth);
+    }
+
     return () => {
-      window.removeEventListener("resize", handleResize);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      } else {
+        window.removeEventListener("resize", updateWidth);
+      }
     };
   }, []);
+
+  const currencyFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: 0,
+      }),
+    []
+  );
+
+  const compactFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat("en-US", {
+        notation: "compact",
+        maximumFractionDigits: 1,
+      }),
+    []
+  );
+
+  const formatCurrency = useCallback(
+    (value?: number) => currencyFormatter.format(Math.max(0, value ?? 0)),
+    [currencyFormatter]
+  );
 
   /**
    * Dynamically builds a parent->children map based on existing links.
@@ -167,23 +266,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
   const recalculateLinks = () => {
     const updatedParentChildMap = updateParentChildMap();
     const newData = calculateLinks(dataValue.nodes, updatedParentChildMap);
-    // Tweak these for visual scaling:
-    const baseWidth = 2; // Minimum link width
-    const maxWidth = 100; // Maximum link width
-    const maxLinkValue = Math.max(...newData.links.map((link) => link.value));
-    const coloredLinks = newData.links.map((link) => {
-      // Scale strokeWidth based on link's value
-      const strokeWidth = maxLinkValue
-        ? Math.max(baseWidth, (link.value / maxLinkValue) * maxWidth)
-        : baseWidth;
-      return { ...link, strokeWidth };
-    });
-    console.log(
-      "Recalculating links. Nodes:",
-      newData.nodes,
-      "Links:",
-      coloredLinks
-    );
+    const coloredLinks = enhanceLinks(newData.links);
     setDataValue({ ...newData, links: coloredLinks });
   };
 
@@ -379,15 +462,98 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
 
   // Chart dimensions
   const numberOfNodes = dataValue.nodes.length;
-  const baseWidth = numberOfNodes * 100;
-  const adjustedWidth = baseWidth + numberOfNodes;
-  const adjustedHeight = numberOfNodes * 50 + 200; // A little padding
+  const chartMinWidth = Math.max(numberOfNodes * 140, 960);
+  const chartWidth = Math.max(chartMinWidth, availableWidth);
+  const adjustedHeight = Math.max(360, numberOfNodes * 52 + 260);
   const margin = {
     left: Math.min(200, numberOfNodes * 20),
     right: Math.min(200, numberOfNodes * 20),
     top: 100,
     bottom: 100,
   };
+  const chartHeight = adjustedHeight;
+  const chartReady = dataValue.nodes.length > 0 && dataValue.links.length > 0;
+  const syncDisabled = isLoading || !chartReady;
+
+  const totalSpend = useMemo(() => {
+    if (dataValue.links.length === 0) {
+      const rootNode = dataValue.nodes.find((node) => node.index === 0);
+      return rootNode?.cost ?? 0;
+    }
+
+    return dataValue.links
+      .filter((link) => link.source === 0)
+      .reduce((sum, link) => sum + link.value, 0);
+  }, [dataValue.links, dataValue.nodes]);
+
+  const transactionCount = useMemo(
+    () => dataValue.nodes.filter((node) => node.isleaf).length,
+    [dataValue.nodes]
+  );
+
+  const categorySummary = useMemo(
+    () =>
+      dataValue.links
+        .filter((link) => link.source === 0)
+        .map((link) => {
+          const categoryNode = dataValue.nodes.find(
+            (node) => node.index === link.target
+          );
+          const color =
+            link.color ??
+            parentColors[link.target % parentColors.length] ??
+            "#4fd1c5";
+          return {
+            name: categoryNode?.name ?? `Category ${link.target}`,
+            value: link.value,
+            color,
+          };
+        })
+        .sort((a, b) => b.value - a.value),
+    [dataValue.links, dataValue.nodes, parentColors]
+  );
+
+  const renderTooltip = useCallback(
+    ({ active, payload }: TooltipProps<ValueType, NameType>) => {
+      if (!active || !payload || payload.length === 0) {
+        return null;
+      }
+
+      const tooltipData = payload[0]?.payload as
+        | SankeyTooltipPayload
+        | undefined;
+      if (!tooltipData) {
+        return null;
+      }
+
+      const sourceNode = dataValue.nodes.find(
+        (node) => node.index === tooltipData.source
+      );
+      const targetNode = dataValue.nodes.find(
+        (node) => node.index === tooltipData.target
+      );
+      const share = totalSpend
+        ? Math.round((tooltipData.value / totalSpend) * 100)
+        : 0;
+
+      return (
+        <div className="rounded-md border border-slate-700 bg-slate-900/90 p-3 text-sm text-slate-100 shadow-lg">
+          <p className="font-semibold">
+            {sourceNode?.name ?? "Total"} → {targetNode?.name ?? "Item"}
+          </p>
+          <p className="mt-1 text-slate-300">
+            {formatCurrency(tooltipData.value)}
+          </p>
+          {share > 0 && (
+            <p className="mt-1 text-xs uppercase tracking-wide text-slate-400">
+              {share}% of tracked spend
+            </p>
+          )}
+        </div>
+      );
+    },
+    [dataValue.nodes, formatCurrency, totalSpend]
+  );
 
   // Unique set of parent node names (for the dropdown in the modal)
   const parentOptions = Array.from(
@@ -399,185 +565,244 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
     )
   );
 
-  // Helper to find the top-level parent for a given node index
-  function findTopLevelParent(nodeIndex: number, links: any[]): number {
-    let current = nodeIndex;
-    let parent = links.find((l: any) => l.target === current)?.source;
-    while (parent !== undefined && parent !== 0) {
-      current = parent;
-      parent = links.find((l: any) => l.target === current)?.source;
+  const formattedTotalSpend = useMemo(
+    () => formatCurrency(totalSpend),
+    [formatCurrency, totalSpend]
+  );
+  const formattedTransactionCount = useMemo(
+    () => compactFormatter.format(Math.max(0, transactionCount)),
+    [compactFormatter, transactionCount]
+  );
+  const topCategories = useMemo(
+    () => categorySummary.slice(0, 4),
+    [categorySummary]
+  );
+  const lastUpdatedText = useMemo(() => {
+    if (!lastUpdated) {
+      return null;
     }
-    return parent === 0 ? current : nodeIndex;
-  }
+    return lastUpdated.toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  }, [lastUpdated]);
+
+  // Helper to find the top-level parent for a given node index
+    function findTopLevelParent(nodeIndex: number, links: SankeyLink[]): number {
+      let current = nodeIndex;
+      let parent = links.find((link) => link.target === current)?.source;
+      while (parent !== undefined && parent !== 0) {
+        current = parent;
+        parent = links.find((link) => link.target === current)?.source;
+      }
+      return parent === 0 ? current : nodeIndex;
+    }
 
   return (
-    <div
-      style={{
-        width: "100%",
-        minHeight: "100vh",
-        background: "#181f2a",
-        overflowX: "scroll",
-        position: "relative",
-      }}
-    >
-      <div
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: "100%",
-          zIndex: 2000,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          background: "linear-gradient(to right, #232946, #181f2a)",
-          padding: "10px 20px",
-          boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
-        }}
-      >
-        {/* Left Section: Back to Home Button */}
-        <button
-          onClick={() => router.push("/")}
-          style={{
-            padding: "10px 20px",
-            backgroundColor: "#4fd1c5",
-            color: "#181f2a",
-            border: "none",
-            borderRadius: "5px",
-            cursor: "pointer",
-            fontWeight: "bold",
-          }}
-        >
-          Back to Home
-        </button>
-        {/* Center: Month Label */}
-        <span
-          style={{
-            color: "#fff",
-            fontWeight: "bold",
-            fontSize: "1.1rem",
-          }}
-        >
-          Editing Month: {month}
-        </span>
-        {/* Right Section: Sync to Cloud Button */}
-        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+    <div className="relative min-h-screen overflow-x-auto bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-slate-100">
+      <header className="sticky top-0 z-50 border-b border-slate-800/60 bg-slate-950/70 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
           <button
-            onClick={sendDataToFirebase}
-            style={{
-              padding: "10px 20px",
-              backgroundColor: "#00ffd0",
-              color: "#181f2a",
-              border: "none",
-              borderRadius: "5px",
-              cursor: "pointer",
-              fontWeight: "bold",
-              boxShadow: "0 2px 5px rgba(0,0,0,0.15)",
-              marginLeft: "10px",
-            }}
+            type="button"
+            onClick={() => router.push("/")}
+            className="inline-flex items-center gap-2 rounded-full border border-slate-700/70 bg-slate-900 px-4 py-2 text-sm font-medium text-slate-100 transition hover:border-slate-500 hover:bg-slate-800"
           >
-            Sync to Cloud
+            ← Back to Home
+          </button>
+          <div className="text-center">
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
+              Editing Month
+            </p>
+            <p className="text-lg font-semibold text-white">
+              {month.toUpperCase()}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={sendDataToFirebase}
+            disabled={syncDisabled}
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-400 px-4 py-2 text-sm font-semibold text-slate-900 shadow transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-emerald-600/40 disabled:text-emerald-200/70"
+          >
+            {syncDisabled && isLoading ? (
+              <>
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-900/40 border-t-transparent" />
+                Loading…
+              </>
+            ) : (
+              "Sync to Cloud"
+            )}
           </button>
         </div>
-      </div>
+      </header>
 
-      {dataValue.nodes.length > 0 && dataValue.links.length > 0 ? (
-        <>
-          <ResponsiveContainer
-            width={userAdjustedWidth}
-            height={adjustedHeight}
-          >
-            <Sankey
-              key={sankeyKey}
-              width={adjustedWidth}
-              height={adjustedHeight}
-              data={{ nodes: dataValue.nodes, links: dataValue.links }}
-              node={(nodeProps) => (
-                <MyCustomNode
-                  {...nodeProps}
-                  onNodeClick={(nodeId) => handleNodeClick(nodeId)}
-                  allNodes={dataValue.nodes}
-                  colorThreshold={10}
-                  links={dataValue.links}
-                />
-              )}
-              nodePadding={60}
-              nodeWidth={30}
-              margin={margin}
-              link={(linkProps) => {
-                const {
-                  sourceX,
-                  sourceY,
-                  targetX,
-                  targetY,
-                  sourceControlX,
-                  targetControlX,
-                  payload,
-                } = linkProps;
-                const sourceIndex = payload.source.index;
-                const targetIndex = payload.target.index;
-                let linkStrokeWidth = 8;
-                const matchingLink = dataValue.links.find(
-                  (l) => l.source === sourceIndex && l.target === targetIndex
-                );
-                if (matchingLink) {
-                  linkStrokeWidth = matchingLink.strokeWidth;
-                }
-                // Assign color by top-level parent
-                const topParent = findTopLevelParent(
-                  sourceIndex,
-                  dataValue.links
-                );
-                const colorIdx = topParent % parentColors.length;
-                const linkColor = parentColors[colorIdx];
-                const path = `M${sourceX},${sourceY}C${sourceControlX},${sourceY},${targetControlX},${targetY},${targetX},${targetY}`;
-                return (
-                  <g key={`link-group-${sourceIndex}-${targetIndex}`}>
-                    {/* Main path only, remove debug line */}
-                    <path
-                      d={path}
-                      stroke={linkColor}
-                      strokeWidth={linkStrokeWidth}
-                      strokeOpacity={1}
-                      fill="none"
-                      strokeLinejoin="round"
-                      strokeLinecap="round"
-                      style={{
-                        transition:
-                          "stroke-width 0.4s, stroke 0.4s, stroke-opacity 0.4s",
-                      }}
-                    />
-                  </g>
-                );
-              }}
-            >
-              <Tooltip />
-            </Sankey>
-          </ResponsiveContainer>
-
-          {isModalOpen &&
-            parentIndex !== null &&
-            nodeIndex !== null &&
-            clickedNode !== null && (
-              <InputModal
-                clickedNode={clickedNode}
-                initialParentName={dataValue.nodes[parentIndex]?.name}
-                initialPrice={
-                  dataValue.nodes[nodeIndex]?.value?.toString() || "0"
-                }
-                onSubmit={handleModalSubmit}
-                onClose={() => setIsModalOpen(false)}
-                parentOptions={parentOptions}
-              />
+      <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pb-16 pt-24 sm:px-6 lg:px-8">
+        <section className="grid gap-4 md:grid-cols-3">
+          <div className="rounded-2xl border border-slate-800/60 bg-slate-900/70 p-5 shadow-lg shadow-slate-950/40">
+            <p className="text-xs uppercase tracking-wide text-slate-400">
+              Total tracked spend
+            </p>
+            <p className="mt-3 text-3xl font-semibold text-white">
+              {formattedTotalSpend}
+            </p>
+            {lastUpdatedText && (
+              <p className="mt-3 text-xs text-slate-400">
+                Updated {lastUpdatedText}
+              </p>
             )}
-        </>
-      ) : (
-        <div className="flex items-center justify-center h-full">
-          <div className="p-4 rounded-md bg-red-100 text-red-700 text-center">
-            Data loading... 😀
           </div>
+          <div className="rounded-2xl border border-slate-800/60 bg-slate-900/70 p-5 shadow-lg shadow-slate-950/40">
+            <p className="text-xs uppercase tracking-wide text-slate-400">
+              Active categories
+            </p>
+            <p className="mt-3 text-3xl font-semibold text-white">
+              {categorySummary.length}
+            </p>
+            <p className="mt-3 text-xs text-slate-400">
+              {formattedTransactionCount} leaf transactions
+            </p>
+          </div>
+          <div className="rounded-2xl border border-slate-800/60 bg-slate-900/70 p-5 shadow-lg shadow-slate-950/40">
+            <p className="text-xs uppercase tracking-wide text-slate-400">
+              Top categories
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {topCategories.length > 0 ? (
+                topCategories.map((category) => (
+                  <span
+                    key={category.name}
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-700/70 bg-slate-800/60 px-3 py-1 text-xs font-medium text-slate-100"
+                  >
+                    <span
+                      className="h-2 w-2 rounded-full"
+                      style={{ backgroundColor: category.color }}
+                    />
+                    {category.name}
+                  </span>
+                ))
+              ) : (
+                <span className="text-xs text-slate-400">
+                  Upload data to reveal category insights.
+                </span>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {error && (
+          <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-200">
+            {error}
+          </div>
+        )}
+
+        {infoMessage && !error && !isLoading && (
+          <div className="rounded-xl border border-slate-700/60 bg-slate-900/70 p-4 text-sm text-slate-200">
+            {infoMessage}
+          </div>
+        )}
+
+        <div className="rounded-3xl border border-slate-800/60 bg-slate-900/40 p-4 shadow-2xl shadow-slate-950/40">
+          {isLoading ? (
+            <div className="flex h-[420px] items-center justify-center">
+              <div className="flex flex-col items-center gap-3 text-slate-300">
+                <div className="h-12 w-12 animate-spin rounded-full border-4 border-emerald-400/40 border-t-transparent" />
+                <span className="text-sm">Loading your Sankey view…</span>
+              </div>
+            </div>
+          ) : chartReady ? (
+            <div
+              ref={chartWrapperRef}
+              className="w-full"
+              style={{ minWidth: chartMinWidth }}
+            >
+              <ResponsiveContainer width="100%" height={chartHeight}>
+                <Sankey
+                  key={sankeyKey}
+                  width={chartWidth}
+                  height={chartHeight}
+                  data={{ nodes: dataValue.nodes, links: dataValue.links }}
+                  node={(nodeProps) => (
+                    <MyCustomNode
+                      {...nodeProps}
+                      onNodeClick={(nodeId) => handleNodeClick(nodeId)}
+                      allNodes={dataValue.nodes}
+                      links={dataValue.links}
+                    />
+                  )}
+                  nodePadding={60}
+                  nodeWidth={30}
+                  margin={margin}
+                  link={(linkProps) => {
+                    const {
+                      sourceX,
+                      sourceY,
+                      targetX,
+                      targetY,
+                      sourceControlX,
+                      targetControlX,
+                      payload,
+                    } = linkProps;
+                    const sourceIndex = payload.source.index;
+                    const targetIndex = payload.target.index;
+                    const matchingLink = dataValue.links.find(
+                      (l) => l.source === sourceIndex && l.target === targetIndex
+                    );
+                    const linkStrokeWidth = matchingLink?.strokeWidth ?? 8;
+                    const topParent = findTopLevelParent(
+                      sourceIndex,
+                      dataValue.links
+                    );
+                    const colorIdx = topParent % parentColors.length;
+                    const linkColor = parentColors[colorIdx];
+                    const path = `M${sourceX},${sourceY}C${sourceControlX},${sourceY},${targetControlX},${targetY},${targetX},${targetY}`;
+                    return (
+                      <g key={`link-group-${sourceIndex}-${targetIndex}`}>
+                        <path
+                          d={path}
+                          stroke={linkColor}
+                          strokeWidth={linkStrokeWidth}
+                          strokeOpacity={0.95}
+                          fill="none"
+                          strokeLinejoin="round"
+                          strokeLinecap="round"
+                          style={{
+                            transition:
+                              "stroke-width 0.4s, stroke 0.4s, stroke-opacity 0.4s",
+                          }}
+                        />
+                      </g>
+                    );
+                  }}
+                >
+                  <Tooltip
+                    content={renderTooltip}
+                    cursor={{ fill: "rgba(148, 163, 184, 0.08)" }}
+                  />
+                </Sankey>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="flex h-[420px] items-center justify-center text-center text-slate-300">
+              {infoMessage ?? "No data available yet."}
+            </div>
+          )}
         </div>
-      )}
+      </main>
+
+      {isModalOpen &&
+        parentIndex !== null &&
+        nodeIndex !== null &&
+        clickedNode !== null && (
+          <InputModal
+            clickedNode={clickedNode}
+            initialParentName={dataValue.nodes[parentIndex]?.name}
+            initialPrice={
+              dataValue.nodes[nodeIndex]?.value?.toString() || "0"
+            }
+            onSubmit={handleModalSubmit}
+            onClose={() => setIsModalOpen(false)}
+            parentOptions={parentOptions}
+          />
+        )}
     </div>
   );
 };
