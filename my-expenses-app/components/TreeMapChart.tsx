@@ -407,3 +407,4 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
 };
 
 export default TreeMapChart;
+

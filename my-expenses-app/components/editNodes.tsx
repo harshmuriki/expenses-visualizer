@@ -24,14 +24,6 @@ const InputModal: React.FC<InputModalProps> = ({
     }
   };
 
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key === "Enter") {
-      handleSubmit();
-    } else if (e.key === "Escape") {
-      onClose();
-    }
-  };
-
   const handleParentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     if (value === "createNew") {
@@ -44,6 +36,14 @@ const InputModal: React.FC<InputModalProps> = ({
   };
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Enter") {
+        handleSubmit();
+      } else if (e.key === "Escape") {
+        onClose();
+      }
+    };
+
     window.addEventListener("keydown", handleKeyDown);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);

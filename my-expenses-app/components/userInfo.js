@@ -1,4 +1,4 @@
-import { React, useState, useEffect } from "react";
+import { React, useState, useEffect, useCallback } from "react";
 import { db } from './firebaseConfig.js';
 import { doc, getDoc } from 'firebase/firestore';
 import Modal from 'react-modal';
@@ -13,7 +13,7 @@ const UserInfo = ({ email }) => {
         discordUsername: ''
     });
 
-    const getUserInfo = async () => {
+    const getUserInfo = useCallback(async () => {
         try {
             // console.log('Getting user Info');
             const documentRef = doc(db, "users", email);
@@ -32,11 +32,11 @@ const UserInfo = ({ email }) => {
         } catch (error) {
             console.error('Error getting user information:', error);
         }
-    };
+    }, [email]);
 
     useEffect(() => {
         getUserInfo();
-    }, [email]);
+    }, [email, getUserInfo]);
 
     const Popup = ({ }) => {
         const [modalIsOpen, setModalIsOpen] = useState(false);

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { UploadComponentProps } from "@/app/types/types";
 import { useRouter } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
