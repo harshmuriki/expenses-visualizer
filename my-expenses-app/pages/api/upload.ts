@@ -6,8 +6,9 @@ import csv from "csv-parser";
 import { CSVRow, Map, SankeyNode } from "@/app/types/types";
 import { uploadSankeyToFirestore } from "@/lib/firebaseUpload";
 import { syncTransactionsForItem } from "@/lib/transactionSync";
-import { storeUploadedFile } from "@/lib/fileStorage";
+// import { storeUploadedFile } from "@/lib/fileStorage";
 import { Document } from "@/components/process";
+import { OpenAI } from "openai";
 
 export const config = {
   api: {
@@ -15,53 +16,41 @@ export const config = {
   },
 };
 
-// Helper function to extract file source from filename
-const extractFileSource = (filename: string): string => {
-  if (!filename) return "other";
+// Initialize OpenAI client
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_KEY,
+});
 
-  const lowerFilename = filename.toLowerCase();
+// Helper function to get bank name using OpenAI
+const getBankNameFromFilename = async (filename: string): Promise<string> => {
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "user",
+          content: `From this filename, extract the bank or financial institution name. Return ONLY the bank name, nothing else.
+          
+Filename: ${filename}
 
-  // Common bank/card issuer patterns
-  const patterns = [
-    { pattern: /amex|american.?express/, source: "amex" },
-    { pattern: /capital.?one|capitalone/, source: "capitalone" },
-    { pattern: /chase/, source: "chase" },
-    { pattern: /bank.?of.?america|bofa/, source: "bankofamerica" },
-    { pattern: /wells.?fargo|wells/, source: "wells" },
-    { pattern: /discover/, source: "discover" },
-    { pattern: /citi|citibank/, source: "citi" },
-    { pattern: /us.?bank|usbank/, source: "usbank" },
-    { pattern: /pnc/, source: "pnc" },
-    { pattern: /truist/, source: "truist" },
-    { pattern: /regions/, source: "regions" },
-    { pattern: /huntington/, source: "huntington" },
-    { pattern: /keybank|key.?bank/, source: "keybank" },
-    { pattern: /citizens/, source: "citizens" },
-    { pattern: /td.?bank|td/, source: "td" },
-    { pattern: /bmo/, source: "bmo" },
-    { pattern: /hsbc/, source: "hsbc" },
-    { pattern: /barclays/, source: "barclays" },
-    { pattern: /synchrony/, source: "synchrony" },
-    { pattern: /comenity/, source: "comenity" },
-    { pattern: /storecard/, source: "storecard" },
-    { pattern: /paypal/, source: "paypal" },
-    { pattern: /venmo/, source: "venmo" },
-    { pattern: /zelle/, source: "zelle" },
-    { pattern: /cashapp|cash.?app/, source: "cashapp" },
-    { pattern: /apple.?pay|applepay/, source: "applepay" },
-    { pattern: /google.?pay|googlepay/, source: "googlepay" },
-    { pattern: /amazon/, source: "amazon" },
-    { pattern: /stripe/, source: "stripe" },
-    { pattern: /square/, source: "square" },
-  ];
+Common banks include: Chase, Bank of America, Wells Fargo, Capital One, Citi, American Express, Discover, etc.
+If you cannot determine a specific bank, return "Unknown Bank".`,
+        },
+      ],
+      temperature: 0.3,
+      max_tokens: 50,
+    });
 
-  for (const { pattern, source } of patterns) {
-    if (pattern.test(lowerFilename)) {
-      return source;
-    }
+    const bankName =
+      completion.choices[0]?.message?.content?.trim() || "Unknown Bank";
+    console.log(
+      `🏦 AI detected bank: "${bankName}" from filename: ${filename}`
+    );
+    return bankName;
+  } catch (error) {
+    console.error("Error getting bank name from OpenAI:", error);
+    return "Unknown Bank";
   }
-
-  return "other";
 };
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -85,7 +74,11 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       }
 
       try {
-        const result = await syncTransactionsForItem({ userId, itemId, month });
+        const result = await syncTransactionsForItem({
+          userId,
+          itemId,
+          month: typeof month === "string" ? month : undefined,
+        });
         return res.status(result.success ? 200 : 400).json(result);
       } catch (error) {
         console.error("Aggregator sync failed", error);
@@ -126,43 +119,38 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
         ? fields.storeFile[0] === "true"
         : fields.storeFile === "true";
 
-      // Process multiple files
-      const results = [];
-      for (const file of uploadedFiles) {
-        if (!file) continue;
+      // Only process CSV files
+      const csvFiles = uploadedFiles.filter(
+        (f): f is formidable.File =>
+          f !== undefined && f.mimetype === "text/csv"
+      );
 
-        if (file.mimetype === "application/pdf") {
-          const result = await handlePdfFile(
-            file,
-            useremail,
-            month,
-            storeFile,
-            res
-          );
-          results.push(result);
-        } else if (file.mimetype === "text/csv") {
-          const result = await handleCsvFile(
-            file,
-            useremail,
-            month,
-            storeFile,
-            res
-          );
-          results.push(result);
-        } else {
-          console.warn(
-            `Unsupported file type: ${file.mimetype} for file: ${file.originalFilename}`
-          );
-        }
+      if (csvFiles.length === 0) {
+        return res.status(400).json({
+          error: "No CSV files uploaded. Please upload CSV files only.",
+        });
       }
 
-      if (results.length === 0) {
-        return res.status(400).json({ error: "No valid files processed" });
+      // Warn about non-CSV files
+      const nonCsvFiles = uploadedFiles.filter(
+        (f) => f && f.mimetype !== "text/csv"
+      );
+      if (nonCsvFiles.length > 0) {
+        console.warn(`⚠️ Ignoring ${nonCsvFiles.length} non-CSV file(s)`);
       }
+
+      // Combine all CSV files
+      console.log(`📊 Combining ${csvFiles.length} CSV file(s)...`);
+      const result = await handleCombinedCsvFiles(
+        csvFiles,
+        useremail,
+        month,
+        storeFile
+      );
 
       return res.status(200).json({
-        message: `Successfully processed ${results.length} file(s)`,
-        results,
+        message: `Successfully processed ${csvFiles.length} CSV file(s)`,
+        ...result,
       });
     } catch (error) {
       console.error("Error processing file:", error);
@@ -171,212 +159,209 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   });
 };
 
-const handlePdfFile = async (
-  file: formidable.File,
+// New function to handle combined CSV files
+const handleCombinedCsvFiles = async (
+  files: formidable.File[],
   useremail: string,
   month: string,
-  storeFile: boolean,
-  res: NextApiResponse
+  // _storeFile: boolean
 ) => {
   try {
-    const pdfBytes = fs.readFileSync(file.filepath);
-    const base64Pdf = pdfBytes.toString("base64");
+    // Step 1: Read all CSV files and get bank names
+    const allRows: Array<CSVRow & { Bank: string }> = [];
 
-    const lambdaEndpoint = process.env.AWS_LAMBDA_ENDPOINT;
-    if (!lambdaEndpoint) {
-      throw new Error("AWS_LAMBDA_ENDPOINT is not defined");
+    for (const file of files) {
+      // Get bank name from filename using AI
+      const bankName = await getBankNameFromFilename(
+        file.originalFilename || ""
+      );
+
+      // Read CSV file
+      const fileRows: CSVRow[] = await new Promise((resolve, reject) => {
+        const rows: CSVRow[] = [];
+        fs.createReadStream(file.filepath)
+          .pipe(csv())
+          .on("data", (data) => rows.push(data))
+          .on("end", () => resolve(rows))
+          .on("error", (error) => reject(error));
+      });
+
+      // Add Bank column to each row
+      const rowsWithBank = fileRows.map((row) => ({
+        ...row,
+        Bank: bankName,
+      }));
+
+      allRows.push(...rowsWithBank);
+      console.log(
+        `✅ Loaded ${fileRows.length} rows from ${file.originalFilename} (Bank: ${bankName})`
+      );
+
+      // // Store original file if requested
+      // if (storeFile && file.originalFilename) {
+      //   try {
+      //     const csvBytes = fs.readFileSync(file.filepath);
+      //     const fileBlob = new Blob([new Uint8Array(csvBytes)], {
+      //       type: "text/csv",
+      //     });
+      //     const fileObject = new File([fileBlob], file.originalFilename, {
+      //       type: "text/csv",
+      //     });
+      //     await storeUploadedFile(fileObject, useremail, month);
+      //     console.log(`✅ Stored ${file.originalFilename}`);
+      //   } catch (error) {
+      //     console.error(`⚠️ Failed to store ${file.originalFilename}:`, error);
+      //   }
+      // }
     }
 
-    const lambdaResponse = await fetch(lambdaEndpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        isBase64Encoded: true,
-        body: base64Pdf,
-      }),
+    console.log(
+      `📊 Combined total: ${allRows.length} rows from ${files.length} file(s)`
+    );
+
+    // Step 2: Process combined data with AI
+    const parentTagsPath = path.join(
+      process.cwd(),
+      "scripts",
+      "parenttags.txt"
+    );
+    const parentTags = fs.readFileSync(parentTagsPath, "utf-8");
+    const parentTagsArray = parentTags
+      .split("\n")
+      .filter((tag) => tag.trim() !== "");
+    if (!parentTagsArray.includes("Credit Card Payments")) {
+      parentTagsArray.push("Credit Card Payments");
+    }
+
+    console.log("🤖 Processing combined CSV with AI categorization...");
+
+    const document = new Document(
+      allRows,
+      [],
+      null,
+      parentTagsArray,
+      "combined" // file_source for combined data
+    );
+
+    await document.convertDocToItems();
+    const { output, parentChildMap } = document.convertData();
+
+    // Exclude credit card payments from saved nodes, but keep a meta total
+    const creditCardCategoryNames = new Set([
+      "Credit Card Payments",
+      "Credit Card Payment",
+    ]);
+    const creditCardCategoryIndex = output.nodes.find((n) =>
+      n && typeof n.index === "number" && typeof n.name === "string"
+        ? creditCardCategoryNames.has(n.name)
+        : false
+    )?.index as number | undefined;
+
+    let excludedChildIndexes = new Set<number>();
+    let creditCardPaymentsTotal = 0;
+    if (
+      typeof creditCardCategoryIndex === "number" &&
+      parentChildMap &&
+      (parentChildMap as Record<number, number[]>)[creditCardCategoryIndex]
+    ) {
+      const childIdxs = (parentChildMap as Record<number, number[]>)[
+        creditCardCategoryIndex
+      ] as number[];
+      excludedChildIndexes = new Set(childIdxs);
+      for (const idx of childIdxs) {
+        const node = output.nodes.find((n) => n.index === idx);
+        if (node && typeof node.cost === "number") {
+          creditCardPaymentsTotal += Math.max(0, node.cost);
+        }
+      }
+      delete (parentChildMap as Record<number, number[]>)[
+        creditCardCategoryIndex
+      ];
+    }
+
+    const filteredNodes = output.nodes.filter((n) => {
+      if (!n) return false;
+      if (
+        typeof creditCardCategoryIndex === "number" &&
+        n.index === creditCardCategoryIndex
+      ) {
+        return false;
+      }
+      if (excludedChildIndexes.size > 0 && excludedChildIndexes.has(n.index)) {
+        return false;
+      }
+      return true;
     });
 
-    if (!lambdaResponse.ok) {
-      const errorMessage = await lambdaResponse.text();
-      console.error("Lambda error:", errorMessage);
-      throw new Error("Failed to process file in Lambda");
-    }
+    console.log(
+      `✅ Processed ${output.nodes.length} nodes with AI categorization`
+    );
+    console.log(
+      `📈 Summary: ${allRows.length} input rows → ${document.items.length} valid items → ${output.nodes.length} total nodes (including categories)`
+    );
 
-    const lambdaResponseJson = await lambdaResponse.json();
-    console.log("✅ Lambda processed PDF data");
-    const lambdaResponseBody = JSON.parse(lambdaResponseJson.body);
-
-    const output: SankeyNode[] = parseSankeyNodes(lambdaResponseBody.output);
-    console.log(`✅ Parsed ${output.length} nodes from Lambda response`);
-
-    const parent_child_map: Map = lambdaResponseBody.parent_child_map;
-    const parentChildMap: Map = {};
-    for (const [parent, children] of Object.entries(parent_child_map)) {
-      parentChildMap[Number(parent)] = children;
-    }
-
-    // Store the original file if requested
-    if (storeFile && file.originalFilename) {
-      try {
-        const fileBlob = new Blob([new Uint8Array(pdfBytes)], {
-          type: "application/pdf",
-        });
-        const fileObject = new File([fileBlob], file.originalFilename, {
-          type: "application/pdf",
-        });
-        await storeUploadedFile(fileObject, useremail, month);
-        console.log("✅ PDF file stored successfully");
-      } catch (error) {
-        console.error(
-          "⚠️ Failed to store PDF file, continuing with upload:",
-          error
-        );
-        // Continue processing even if file storage fails
-      }
-    }
+    // Convert to SankeyNode format
+    const sankeyNodes: SankeyNode[] = filteredNodes.map((node) => ({
+      name: node.name,
+      index: node.index,
+      cost: node.cost || 0,
+      visible: true,
+      date: node.date,
+      location: node.location,
+      file_source: node.file_source,
+      bank: node.bank,
+    }));
 
     // Save to Firestore
     console.log("💾 Saving to Firestore...");
     await uploadSankeyToFirestore({
-      nodes: output,
-      parentChildMap: parentChildMap,
+      nodes: sankeyNodes,
+      parentChildMap: parentChildMap as Map,
       useremail,
       month,
     });
-    console.log("✅ PDF data processed and saved successfully!");
-    res
-      .status(200)
-      .json({ message: "PDF data processed and categorized by AI ✅" });
+
+    // Save meta totals for insights
+    try {
+      const { doc, collection, setDoc } = await import("firebase/firestore");
+      const { db } = await import("@/components/firebaseConfig");
+      const userDocRef = doc(db, "users", useremail);
+      const monthCollectionRef = collection(userDocRef, month);
+      const metaDocRef = doc(monthCollectionRef, "meta");
+      await setDoc(
+        metaDocRef,
+        { creditCardPaymentsTotal: creditCardPaymentsTotal || 0 },
+        { merge: true }
+      );
+    } catch (e) {
+      console.error("Failed saving meta totals:", e);
+    }
+
+    console.log("✅ Combined CSV data processed and saved successfully!");
+
+    return {
+      totalRows: allRows.length,
+      totalFiles: files.length,
+      totalNodes: output.nodes.length,
+    };
   } catch (error) {
-    console.error("Error handling PDF file:", error);
-    res.status(500).json({ error: "Error processing PDF file" });
+    console.error("Error handling combined CSV files:", error);
+    throw error;
   }
 };
 
-const parseSankeyNodes = (
-  output: { name: string; index: number; cost?: number }[]
-): SankeyNode[] => {
-  return Array.isArray(output)
-    ? output.map((item: { name: string; index: number; cost?: number }) => ({
-        name: item.name,
-        index: item.index,
-        cost: item.cost || 0,
-        visible: true,
-      }))
-    : [];
-};
-
-const handleCsvFile = async (
-  file: formidable.File,
-  useremail: string,
-  month: string,
-  storeFile: boolean,
-  res: NextApiResponse
-) => {
-  const results: CSVRow[] = [];
-  try {
-    const fileStream = fs.createReadStream(file.filepath);
-
-    fileStream
-      .pipe(csv())
-      .on("data", (data) => results.push(data))
-      .on("end", async () => {
-        try {
-          console.log(`📊 Processing ${results.length} CSV rows...`);
-
-          // Store the original file if requested
-          if (storeFile && file.originalFilename) {
-            try {
-              const csvBytes = fs.readFileSync(file.filepath);
-              const fileBlob = new Blob([new Uint8Array(csvBytes)], {
-                type: "text/csv",
-              });
-              const fileObject = new File([fileBlob], file.originalFilename, {
-                type: "text/csv",
-              });
-              await storeUploadedFile(fileObject, useremail, month);
-              console.log("✅ CSV file stored successfully");
-            } catch (error) {
-              console.error(
-                "⚠️ Failed to store CSV file, continuing with upload:",
-                error
-              );
-              // Continue processing even if file storage fails
-            }
-          }
-
-          // Process CSV locally using Document class (not Lambda)
-          console.log("🤖 Processing CSV with AI categorization...");
-
-          // Extract file source from filename
-          const fileSource = extractFileSource(file.originalFilename || "");
-          console.log(
-            `📁 File source detected: ${fileSource} from filename: ${file.originalFilename}`
-          );
-
-          // Load parent tags from file
-          const parentTagsPath = path.join(
-            process.cwd(),
-            "scripts",
-            "parenttags.txt"
-          );
-          const parentTags = fs.readFileSync(parentTagsPath, "utf-8");
-          const parentTagsArray = parentTags
-            .split("\n")
-            .filter((tag) => tag.trim() !== "");
-
-          const document = new Document(
-            results,
-            [],
-            null,
-            parentTagsArray,
-            fileSource
-          );
-          await document.convertDocToItems();
-          const { output, parentChildMap } = document.convertData();
-
-          console.log(
-            `✅ Processed ${output.nodes.length} nodes with AI categorization`
-          );
-
-          // Convert to SankeyNode format
-          const sankeyNodes: SankeyNode[] = output.nodes.map((node) => ({
-            name: node.name,
-            index: node.index,
-            cost: node.cost || 0,
-            visible: true,
-            date: node.date,
-            location: node.location,
-            file_source: node.file_source,
-          }));
-
-          // Save to Firestore
-          console.log("💾 Saving to Firestore...");
-          await uploadSankeyToFirestore({
-            nodes: sankeyNodes,
-            parentChildMap: parentChildMap as Map,
-            useremail,
-            month,
-          });
-
-          console.log("✅ CSV data processed and saved successfully!");
-          res
-            .status(200)
-            .json({ message: "CSV data processed and categorized by AI ✅" });
-        } catch (error) {
-          console.error("❌ Error processing CSV data:", error);
-          res.status(500).json({ error: "Failed to process CSV file" });
-        }
-      })
-      .on("error", (error) => {
-        console.error("Error reading CSV file:", error);
-        res.status(500).json({ error: "Error processing CSV file" });
-      });
-  } catch (error) {
-    console.error("Error handling CSV file:", error);
-    res.status(500).json({ error: "Error processing CSV file" });
-  }
-};
+// const parseSankeyNodes = (
+//   output: { name: string; index: number; cost?: number }[]
+// ): SankeyNode[] => {
+//   return Array.isArray(output)
+//     ? output.map((item: { name: string; index: number; cost?: number }) => ({
+//         name: item.name,
+//         index: item.index,
+//         cost: item.cost || 0,
+//         visible: true,
+//       }))
+//     : [];
+// };
 
 const readJsonBody = async (
   req: NextApiRequest

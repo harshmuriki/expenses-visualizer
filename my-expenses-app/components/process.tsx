@@ -30,6 +30,7 @@ class Item {
   date: string | null;
   location: string | null;
   file_source: string | null;
+  bank: string | null;
 
   constructor(
     name: string | null = null,
@@ -41,7 +42,8 @@ class Item {
     allparenttags: string[] | null = null,
     date: string | null = null,
     location: string | null = null,
-    file_source: string | null = null
+    file_source: string | null = null,
+    bank: string | null = null
   ) {
     this.name = name;
     this.cost = price;
@@ -53,19 +55,41 @@ class Item {
     this.date = date;
     this.location = location;
     this.file_source = file_source;
+    this.bank = bank;
   }
 
   isValid(): boolean {
-    return (
-      typeof this.name === "string" &&
-      this.name.trim() !== "" &&
-      typeof this.cost === "number" &&
-      this.cost >= 0 &&
-      (typeof this.index === "string" || typeof this.index === "number") &&
-      String(this.index).trim() !== "" &&
-      typeof this.parenttag === "string" &&
-      this.parenttag.trim() !== ""
-    );
+    const checks = {
+      hasName: typeof this.name === "string" && this.name.trim() !== "",
+      hasCost:
+        typeof this.cost === "number" && !isNaN(this.cost) && this.cost >= 0,
+      hasIndex:
+        (typeof this.index === "string" || typeof this.index === "number") &&
+        String(this.index).trim() !== "",
+      hasParentTag:
+        typeof this.parenttag === "string" && this.parenttag.trim() !== "",
+    };
+
+    const isValid =
+      checks.hasName &&
+      checks.hasCost &&
+      checks.hasIndex &&
+      checks.hasParentTag;
+
+    if (!isValid) {
+      console.warn("❌ Validation failed:", {
+        name: checks.hasName ? "✓" : `✗ (${typeof this.name}: "${this.name}")`,
+        cost: checks.hasCost ? "✓" : `✗ (${typeof this.cost}: ${this.cost})`,
+        index: checks.hasIndex
+          ? "✓"
+          : `✗ (${typeof this.index}: "${this.index}")`,
+        parenttag: checks.hasParentTag
+          ? "✓"
+          : `✗ (${typeof this.parenttag}: "${this.parenttag}")`,
+      });
+    }
+
+    return isValid;
   }
 
   async setDetails(): Promise<void> {
@@ -79,12 +103,18 @@ class Item {
             Choose the parent tags from this list: ${this.allparenttags}
             Choose the best parent tag for this particular transaction
             Extract the location/merchant address if available
+            
+            IMPORTANT: You MUST provide all required fields. If a field is not available, use a reasonable default.
+            - If no index is provided, use "0"
+            - Cost should always be a positive number
+            - Always choose a parenttag from the provided list
+            
             name: <item name>
-            cost: <item price>
-            index: <index of the transaction or the parent tag>
+            cost: <item price as a number>
+            index: <index of the transaction or use 0>
             parenttag: <broader category from the parent tag list given>
             date: <transaction date>
-            location: <merchant location/address>
+            location: <merchant location/address or "Unknown">
         `;
 
     const completion: OpenAICompletionResponse = await this.runOpenAI(
@@ -101,9 +131,13 @@ class Item {
         this.name = line.split(":", 2)[1].trim();
       } else if (trimmedLine.startsWith("cost:")) {
         const priceStr = line.split(":", 2)[1].trim();
-        this.cost = parseFloat(priceStr) || null;
+        // Remove currency symbols and parse
+        const cleanPrice = priceStr.replace(/[$,]/g, "");
+        const parsed = parseFloat(cleanPrice);
+        this.cost = !isNaN(parsed) ? Math.abs(parsed) : null;
       } else if (trimmedLine.startsWith("index:")) {
-        this.index = line.split(":", 2)[1].trim();
+        const indexStr = line.split(":", 2)[1].trim();
+        this.index = indexStr || "0";
       } else if (trimmedLine.startsWith("parenttag:")) {
         this.parenttag = line.split(":", 2)[1].trim();
       } else if (trimmedLine.startsWith("date:")) {
@@ -112,13 +146,21 @@ class Item {
         this.location = line.split(":", 2)[1].trim();
       }
     }
+
+    // Set defaults if still missing
+    if (!this.index || String(this.index).trim() === "") {
+      this.index = "0";
+    }
+    if (!this.location || this.location.trim() === "") {
+      this.location = "Unknown";
+    }
   }
 
   async runOpenAI(prompt: string): Promise<OpenAICompletionResponse> {
     const envConfig: EnvConfig = process.env as unknown as EnvConfig;
-    const apiKey = envConfig.OPENAI_API_KEY || envConfig.OPENAI_KEY;
+    const apiKey = envConfig.OPENAI_KEY;
     if (!apiKey) {
-      throw new Error("Missing OPENAI_API_KEY environment variable");
+      throw new Error("Missing OPENAI_KEY environment variable");
     }
 
     const response: AxiosResponse<OpenAICompletionResponse> = await axios.post(
@@ -222,27 +264,171 @@ export class Document {
       throw new Error("Document is null");
     }
 
-    // Instead of sending individually, send all at once to OpenAI?
-    for (const row of this.document) {
-      const rawStr = JSON.stringify(row);
-      const tempItem = new Item(
-        null,
-        null,
-        null,
-        null,
-        rawStr,
-        this.alltags,
-        this.allparenttags,
-        null,
-        null,
-        this.fileSource
+    console.log(`📊 Processing ${this.document.length} CSV rows in batch...`);
+
+    // NEW: Batch process all transactions at once
+    await this.convertDocToItemsBatch();
+  }
+
+  async convertDocToItemsBatch(): Promise<void> {
+    if (!this.document) {
+      throw new Error("Document is null");
+    }
+
+    // Prepare all transactions as a JSON string
+    const transactionsData = this.document.map((row, index) => ({
+      raw_data: row,
+      index: index,
+    }));
+
+    const batchPrompt = `
+You are processing a batch of financial transactions. Extract details for ALL transactions and return them in JSON format.
+
+Transactions to process:
+${JSON.stringify(transactionsData, null, 2)}
+
+For EACH transaction, extract:
+- name: concise merchant/transaction name
+- price: amount as a positive number (remove $, commas, etc.)
+- date: transaction date
+- parenttag: category from this list ONLY: ${JSON.stringify(this.allparenttags)}
+- index: use the index provided in the input
+- location: merchant location or "Unknown"
+- file_source: "${this.fileSource || "Unknown"}"
+- bank: extract the "Bank" field from the raw_data (this is the financial institution name)
+
+Return a JSON object with a "transactions" array containing ALL ${
+      this.document.length
+    } transactions.
+Each transaction MUST have all required fields.`;
+
+    try {
+      console.log("🚀 Sending batch request to OpenAI...");
+      const completion = await this.runOpenAIWithSchema(batchPrompt);
+      const content = completion.choices[0].message.content;
+
+      // Parse the JSON response
+      const result = JSON.parse(content);
+      const transactions = result.transactions || [];
+
+      console.log(
+        `📥 Received ${transactions.length} transactions from OpenAI`
       );
-      await tempItem.setDetails();
-      if (tempItem.isValid()) {
-        this.items.push(tempItem);
-        console.log(tempItem);
+
+      let validCount = 0;
+      let invalidCount = 0;
+
+      // Process each transaction from the batch response
+      for (const txn of transactions) {
+        try {
+          const item = new Item(
+            txn.name,
+            Math.abs(parseFloat(txn.price) || 0),
+            txn.index || "0",
+            txn.parenttag,
+            JSON.stringify(txn),
+            this.alltags,
+            this.allparenttags,
+            txn.date || undefined,
+            txn.location || "Unknown",
+            txn.file_source || this.fileSource || undefined,
+            txn.bank || "Unknown Bank"
+          );
+
+          if (item.isValid()) {
+            this.items.push(item);
+            validCount++;
+          } else {
+            invalidCount++;
+            console.warn(`⚠️ Invalid transaction from batch:`, {
+              name: item.name,
+              cost: item.cost,
+              parenttag: item.parenttag,
+            });
+          }
+        } catch (error) {
+          invalidCount++;
+          console.error(`❌ Error processing batch transaction:`, error);
+        }
+      }
+
+      console.log(
+        `✅ Batch processing complete: ${validCount} valid, ${invalidCount} invalid out of ${transactions.length} received (expected ${this.document.length})`
+      );
+
+      if (transactions.length < this.document.length) {
+        console.warn(
+          `⚠️ WARNING: OpenAI returned fewer transactions (${transactions.length}) than input (${this.document.length})`
+        );
+      }
+    } catch (error) {
+      console.error(
+        "❌ Batch processing failed, falling back to individual processing:",
+        error
+      );
+      // Fallback to individual processing if batch fails
+      await this.convertDocToItemsIndividual();
+    }
+  }
+
+  async convertDocToItemsIndividual(): Promise<void> {
+    if (!this.document) return;
+
+    console.log(
+      `📊 Processing ${this.document.length} CSV rows individually...`
+    );
+    let validCount = 0;
+    let invalidCount = 0;
+
+    for (let i = 0; i < this.document.length; i++) {
+      const row = this.document[i];
+      const rawStr = JSON.stringify(row);
+
+      try {
+        const tempItem = new Item(
+          null,
+          null,
+          null,
+          null,
+          rawStr,
+          this.alltags,
+          this.allparenttags,
+          null,
+          null,
+          this.fileSource
+        );
+        await tempItem.setDetails();
+
+        if (tempItem.isValid()) {
+          this.items.push(tempItem);
+          validCount++;
+          console.log(`✅ [${i + 1}/${this.document.length}] Valid:`, tempItem);
+        } else {
+          invalidCount++;
+          console.warn(
+            `⚠️ [${i + 1}/${this.document.length}] Invalid transaction:`,
+            {
+              name: tempItem.name,
+              cost: tempItem.cost,
+              parenttag: tempItem.parenttag,
+              index: tempItem.index,
+              raw: rawStr.substring(0, 100),
+            }
+          );
+        }
+      } catch (error) {
+        invalidCount++;
+        console.error(
+          `❌ [${i + 1}/${this.document.length}] Error processing row:`,
+          error
+        );
+        console.error(`Raw data:`, rawStr.substring(0, 200));
       }
     }
+
+    console.log(
+      `✅ Conversion complete: ${validCount} valid, ${invalidCount} invalid/failed out of ${this.document.length} total`
+    );
   }
 
   convertData(): HierarchicalData {
@@ -268,9 +454,10 @@ export class Document {
         name: item.name ?? "Untitled",
         cost: item.cost ?? 1,
         index: transactionIndex,
-        date: item.date,
-        location: item.location,
-        file_source: item.file_source,
+        date: item.date || undefined,
+        location: item.location || undefined,
+        file_source: item.file_source || undefined,
+        bank: item.bank || undefined,
       });
 
       const parentIndex = parentTagsMap[item.parenttag!];
@@ -302,9 +489,9 @@ export class Document {
 
   async runOpenAI(prompt: string): Promise<OpenAICompletionResponse> {
     const envConfig: EnvConfig = process.env as unknown as EnvConfig;
-    const apiKey = envConfig.OPENAI_API_KEY || envConfig.OPENAI_KEY;
+    const apiKey = envConfig.OPENAI_KEY;
     if (!apiKey) {
-      throw new Error("Missing OPENAI_API_KEY environment variable");
+      throw new Error("Missing OPENAI_KEY environment variable");
     }
 
     const response: AxiosResponse<OpenAICompletionResponse> = await axios.post(
@@ -312,6 +499,99 @@ export class Document {
       {
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response.data;
+  }
+
+  async runOpenAIWithSchema(prompt: string): Promise<OpenAICompletionResponse> {
+    const envConfig: EnvConfig = process.env as unknown as EnvConfig;
+    const apiKey = envConfig.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error("Missing OPENAI_KEY environment variable");
+    }
+
+    const response: AxiosResponse<OpenAICompletionResponse> = await axios.post(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "transactions_list",
+            strict: true,
+            schema: {
+              type: "object",
+              properties: {
+                transactions: {
+                  type: "array",
+                  description: "A list of transactions.",
+                  items: {
+                    type: "object",
+                    properties: {
+                      name: {
+                        type: "string",
+                        description: "The name of the transaction.",
+                      },
+                      price: {
+                        type: "number",
+                        description: "The cost or price of the transaction.",
+                      },
+                      date: {
+                        type: "string",
+                        description: "The date of the transaction.",
+                      },
+                      parenttag: {
+                        type: "string",
+                        description: "The parent tag from the provided list.",
+                      },
+                      index: {
+                        type: "number",
+                        description: "The index of the transaction.",
+                      },
+                      location: {
+                        type: "string",
+                        description: "The location or merchant address.",
+                      },
+                      file_source: {
+                        type: "string",
+                        description: "The source file or bank name.",
+                      },
+                      bank: {
+                        type: "string",
+                        description:
+                          "The bank or financial institution name from the Bank field.",
+                      },
+                    },
+                    required: [
+                      "name",
+                      "price",
+                      "date",
+                      "parenttag",
+                      "index",
+                      "location",
+                      "file_source",
+                      "bank",
+                    ],
+                    additionalProperties: false,
+                  },
+                },
+              },
+              required: ["transactions"],
+              additionalProperties: false,
+            },
+          },
+        },
+        temperature: 0.3,
+        max_tokens: 4096,
       },
       {
         headers: {

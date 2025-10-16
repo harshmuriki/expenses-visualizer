@@ -319,21 +319,21 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
 
       <label className="flex flex-col items-center w-full">
         <span className="mb-2 font-semibold text-white">
-          Upload Multiple Files (CSV/PDF)
+          Upload Multiple CSV Files
         </span>
         <p className="text-xs text-slate-400 mb-2">
-          Select multiple files - file source will be detected from filename
+          Select CSV files - they will be combined with AI-detected bank names
         </p>
         <input
           type="file"
-          accept=".csv, application/pdf"
+          accept=".csv"
           multiple
           onChange={handleFileChange}
           className="p-3 border border-slate-600 rounded-lg bg-slate-900/50 text-slate-200 w-full cursor-pointer hover:border-[#80A1BA] transition file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-[#80A1BA] file:text-white file:cursor-pointer hover:file:bg-[#6B8BA4]"
         />
         {files && files.length > 0 && (
           <p className="text-xs text-slate-400 mt-2">
-            Selected {files.length} file(s)
+            Selected {files.length} CSV file(s)
           </p>
         )}
       </label>

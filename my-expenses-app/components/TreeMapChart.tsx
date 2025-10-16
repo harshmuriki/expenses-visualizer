@@ -22,6 +22,7 @@ interface TreeMapChartProps {
     description: string;
     icon: string;
   }>;
+  excludedCategories?: string[];
 }
 
 const CHART_COLORS = COLORS.categories;
@@ -31,6 +32,7 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
   links,
   onEditTransaction,
   insights = [],
+  excludedCategories = [],
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
@@ -51,7 +53,13 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
   const treeData = useMemo(() => {
     const rootLinks = links.filter((link) => link.source === 0);
 
-    const children = rootLinks.map((link, idx) => {
+    const filteredRootLinks = rootLinks.filter((link) => {
+      const categoryNode = nodes.find((n) => n.index === link.target);
+      const categoryName = categoryNode?.name ?? "";
+      return !excludedCategories.includes(categoryName);
+    });
+
+    const children = filteredRootLinks.map((link, idx) => {
       const categoryNode = nodes.find((n) => n.index === link.target);
       const categoryLinks = links.filter((l) => l.source === link.target);
 
@@ -69,7 +77,7 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
       name: "Expenses",
       children: children.sort((a, b) => b.size - a.size),
     };
-  }, [nodes, links]);
+  }, [nodes, links, excludedCategories]);
 
   // Get transactions for selected category
   const selectedTransactions = useMemo(() => {
@@ -376,13 +384,9 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
       )}
 
       {/* Insights Panel */}
-      {insights && insights.length > 0 && (
-        <InsightsPanel insights={insights} />
-      )}
+      {insights && insights.length > 0 && <InsightsPanel insights={insights} />}
     </div>
   );
 };
 
 export default TreeMapChart;
-
-

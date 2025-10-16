@@ -23,6 +23,7 @@ export interface SankeyNode {
   date?: string;
   location?: string;
   file_source?: string;
+  bank?: string;
 }
 
 export interface SankeyLink {
@@ -81,6 +82,7 @@ export interface AggregatorTransaction {
  */
 export interface EnvConfig {
   OPENAI_KEY?: string;
+  OPENAI_API_KEY?: string;
 }
 
 /**
@@ -124,6 +126,7 @@ export interface OutputNode {
   date?: string;
   location?: string;
   file_source?: string;
+  bank?: string;
 }
 
 /**

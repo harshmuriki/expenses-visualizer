@@ -2,7 +2,7 @@ import { db } from './firebaseConfig.js';
 import { doc, collection, setDoc, getDoc, updateDoc, arrayUnion, writeBatch } from 'firebase/firestore';
 
 // Function to create a new collection
-export const uploadTransaction = async ({ useremail, month, transaction, index, cost, isleaf, visible, isMap, key, values, date, location, file_source }) => {
+export const uploadTransaction = async ({ useremail, month, transaction, index, cost, isleaf, visible, isMap, key, values, date, location, file_source, bank }) => {
   // console.log('Input parameters:', { transaction, index, cost, isleaf, visible, isMap, key, values });
 
   const userDocRef = doc(db, "users", useremail);
@@ -24,7 +24,14 @@ export const uploadTransaction = async ({ useremail, month, transaction, index, 
     console.log(isMap ? 'Saving map on firebase' : 'Saving transaction on firebase');
     const collectionRef = collection(userDocRef, month);
     const documentRef = isMap ? doc(collectionRef, 'parentChildMap') : doc(collectionRef, transaction + String(index));
-    const data = isMap ? { [key]: values } : { transaction, cost, index, isleaf, visible, date, location, file_source };
+    // Default and sanitize fields to avoid undefined in Firestore
+    const safeDate = date ?? new Date().toISOString();
+    const safeLocation = location ?? "None";
+    const safeFileSource = file_source ?? "Unknown";
+    const safeBank = bank ?? "Unknown Bank";
+    const data = isMap
+      ? { [key]: values }
+      : { transaction, cost, index, isleaf, visible, date: safeDate, location: safeLocation, file_source: safeFileSource, bank: safeBank };
     await setDoc(documentRef, data, { merge: true });
     // console.log('Saved successfully!');
   } catch (error) {
@@ -65,6 +72,11 @@ export const uploadTransactionsInBatch = async (batchData) => {
           ? doc(collectionRef, 'parentChildMap')
           : doc(collectionRef, `${data.transaction}_${data.index}`);
 
+        // Default and sanitize fields to avoid undefined in Firestore
+        const safeDate = data.date ?? new Date().toISOString();
+        const safeLocation = data.location ?? "None";
+        const safeFileSource = data.file_source ?? "Unknown";
+        const safeBank = data.bank ?? "Unknown Bank";
         const docData = data.isMap
           ? { [data.key]: data.values }
           : {
@@ -73,9 +85,10 @@ export const uploadTransactionsInBatch = async (batchData) => {
             index: data.index,
             isleaf: data.isleaf,
             visible: data.visible,
-            date: data.date,
-            location: data.location,
-            file_source: data.file_source,
+            date: safeDate,
+            location: safeLocation,
+            file_source: safeFileSource,
+            bank: safeBank,
           };
 
         // Add set operation to the batch

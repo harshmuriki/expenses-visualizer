@@ -49,8 +49,7 @@ class Document:
             f"The name should be a concise version of what the transaction should be\n"
             f"Choose the parent tags from this list: {self.allparenttags}\n"
             f"Choose the best parent tag for this particular transaction\n"
-            f"Extract the location/merchant address if available\n"
-            f"Determine the file source (e.g., 'amex', 'capitalone', 'chase', 'bankofamerica', 'wells', 'discover', 'citi', 'usbank', 'pnc', 'truist', 'regions', 'huntington', 'keybank', 'citizens', 'td', 'bmo', 'hsbc', 'barclays', 'synchrony', 'comenity', 'storecard', 'paypal', 'venmo', 'zelle', 'cashapp', 'applepay', 'googlepay', 'amazon', 'paypal', 'stripe', 'square', 'other') based on the document content\n"
+            f"Extract the location/merchant address if available, else set it to 'Unknown'\n"
         )
 
         content = self.run_openai(prompt=tag_prompt)
