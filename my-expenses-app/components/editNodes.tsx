@@ -8,7 +8,6 @@ const InputModal: React.FC<InputModalProps> = ({
   onSubmit,
   onClose,
   parentOptions,
-  aiSuggestion,
 }) => {
   const [newParentName, setNewParentName] = useState(initialParentName);
   const [isCreatingNewParent, setIsCreatingNewParent] = useState(false);
@@ -97,38 +96,6 @@ const InputModal: React.FC<InputModalProps> = ({
           {clickedNode.name}
         </span>
       </h2>
-
-      {/* AI Suggestion Alert */}
-      {aiSuggestion && (
-        <div
-          style={{
-            marginBottom: "20px",
-            padding: "15px",
-            backgroundColor: "rgba(145, 196, 195, 0.1)",
-            border: "1px solid #91C4C3",
-            borderRadius: "12px",
-            color: "#C8E5E4",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "start", gap: "12px" }}>
-            <span style={{ fontSize: "1.3rem" }}>💡</span>
-            <div style={{ flex: 1 }}>
-              <strong
-                style={{
-                  display: "block",
-                  marginBottom: "8px",
-                  color: "#91C4C3",
-                }}
-              >
-                AI Suggestion:
-              </strong>
-              <p style={{ margin: 0, fontSize: "0.95rem", lineHeight: "1.5" }}>
-                {aiSuggestion}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div style={{ marginBottom: "20px" }}>
         <label

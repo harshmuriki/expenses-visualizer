@@ -4,8 +4,7 @@ export interface InputModalProps {
   initialPrice: string;
   onSubmit: (newParentName: string, newPrice: number) => void;
   onClose: () => void;
-  parentOptions: string[]; // Add this prop to pass parent options
-  aiSuggestion?: string; // AI suggestion for this transaction
+  parentOptions: string[];
 }
 
 export interface Payload {

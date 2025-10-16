@@ -15,16 +15,20 @@ export const COLORS = {
   success: PALETTE.mintGreen,
   accent: PALETTE.cream,
 
-  // Category colors for charts (repeating pattern)
+  // Category colors for charts (repeating pattern) - Beautiful Pastels
   categories: [
-    PALETTE.blueGrey,
-    PALETTE.teal,
-    PALETTE.mintGreen,
-    "#FFE5B4", // Darker cream/peach
-    "#6B8BA4", // Darker blue-grey
-    "#7AAFAD", // Darker teal
-    "#9AC9A4", // Darker mint
-    "#F5ECC8", // Light cream
+    "#A8DADC", // Pastel Blue
+    "#F1FAEE", // Pastel Mint
+    "#E9C46A", // Pastel Gold
+    "#F4ACB7", // Pastel Pink
+    "#D4A5A5", // Pastel Mauve
+    "#9DD9D2", // Pastel Teal
+    "#FFC6A4", // Pastel Peach
+    "#B8D4E3", // Pastel Sky Blue
+    "#E8D6CB", // Pastel Tan
+    "#C7B8EA", // Pastel Lavender
+    "#B5D99C", // Pastel Green
+    "#FFD6A5", // Pastel Orange
   ],
 
   // Darker versions for hover/active states

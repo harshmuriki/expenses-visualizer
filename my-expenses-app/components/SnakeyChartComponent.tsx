@@ -17,25 +17,12 @@ type Map = Record<number, number[]>;
 import { uploadTransactionsInBatch } from "@/components/sendDataFirebase";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-import AIAssistant from "./AIAssistant";
-import InsightsPanel from "./InsightsPanel";
 import UploadedFilesPanel from "./UploadedFilesPanel";
 import EnhancedCharts from "./EnhancedCharts";
+import SmartSearch from "./SmartSearch";
 import {
-  generateSpendingInsights,
-  analyzeCategorySpending,
-  predictSpending,
-  generateDataSummary,
-  detectAnomalies,
-} from "@/lib/aiAnalytics";
-import {
-  FiEye,
-  FiEyeOff,
   FiBarChart2,
   FiPieChart,
-  FiX,
-  FiEdit2,
-  FiAlertCircle,
 } from "react-icons/fi";
 
 const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
@@ -71,24 +58,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
     ],
     []
   );
-  const [showInsights, setShowInsights] = useState(true);
   const [viewMode, setViewMode] = useState<"treemap" | "charts">("treemap");
-  const [aiSuggestions, setAiSuggestions] = useState<Record<number, string>>(
-    {}
-  ); // AI suggestions for transactions
-  const [showAnomaliesPanel, setShowAnomaliesPanel] = useState(false);
-
-  // Close anomalies panel on ESC key
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && showAnomaliesPanel) {
-        setShowAnomaliesPanel(false);
-      }
-    };
-
-    window.addEventListener("keydown", handleEscape);
-    return () => window.removeEventListener("keydown", handleEscape);
-  }, [showAnomaliesPanel]);
 
   const enhanceLinks = useCallback((links: SankeyLink[]) => {
     if (links.length === 0) {
@@ -338,39 +308,6 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
   };
 
   /**
-   * Fetch AI suggestion for a specific transaction
-   */
-  const fetchAISuggestion = async (node: SankeyNode, nodeIndex: number) => {
-    if (!node.cost || !user?.email) return;
-
-    try {
-      const response = await fetch("/api/ai/validate-transaction", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          transaction: node.name,
-          amount: node.cost,
-          allTransactions: dataValue.nodes
-            .filter((n) => n.isleaf)
-            .map((n) => ({ name: n.name, cost: n.cost })),
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.suggestion) {
-          setAiSuggestions((prev) => ({
-            ...prev,
-            [nodeIndex]: data.suggestion,
-          }));
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching AI suggestion:", error);
-    }
-  };
-
-  /**
    * Handle form submission from the modal:
    * - Possibly create a new parent node or reuse an existing node
    * - Update the cost/value on the leaf node
@@ -420,49 +357,36 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
         value: editedNode.value,
       });
 
-      // Build links from the old data
-      let updatedLinks = [...prevData.links];
-
       // If the user actually changed the parent (not just the price)
       if (newParentIndex !== parentIndex) {
+        // Build links from the old data for updating the parent-child map
+        const updatedLinks = [...prevData.links];
         // Subtract the node's value from the old parent
         // updatedNodes?[parentIndex].value -= prevData.nodes[nodeIndex].cost ?? 0;
         (updatedNodes as { value: number }[])[parentIndex].value -=
           prevData.nodes[nodeIndex].cost ?? 0;
 
-        // Reassign the leaf to the new parent
-        updatedLinks = updatedLinks.map((link) =>
-          link.target === nodeIndex ? { ...link, source: newParentIndex } : link
-        );
-
-        // If we created a brand-new parent node, add a link from root (index 0)
-        if (existingParentIndex === -1) {
-          updatedLinks.push({
-            source: 0,
-            target: newParentIndex,
-            value: updatedNodes[nodeIndex].cost ?? 0,
-          });
-        }
-
-        // Update parent-child relationships
+        // Update parent-child relationships in the map
         const updatedMap = updateParentChildMap(updatedLinks);
+
+        // Add the node to the new parent
         if (!updatedMap[newParentIndex]) {
           updatedMap[newParentIndex] = [];
         }
-        // Add the node to the new parent
         updatedMap[newParentIndex].push(nodeIndex);
 
         // Remove the node from the old parent
-        updatedMap[parentIndex] = updatedMap[parentIndex].filter(
-          (val) => val !== nodeIndex
-        );
-
-        // If the old parent has no children left, remove that parent link from root
-        if (updatedMap[parentIndex]?.length === 0) {
-          delete updatedMap[parentIndex];
+        if (updatedMap[parentIndex]) {
+          updatedMap[parentIndex] = updatedMap[parentIndex].filter(
+            (val) => val !== nodeIndex
+          );
+          // If the old parent has no children left, remove it from the map
+          if (updatedMap[parentIndex].length === 0) {
+            delete updatedMap[parentIndex];
+          }
         }
 
-        // Recalculate links with the updated map
+        // Recalculate ALL links from the updated map - this handles everything including root->parent links
         const recalculatedData = calculateLinks(updatedNodes, updatedMap);
         return { nodes: [...updatedNodes], links: [...recalculatedData.links] };
       }
@@ -493,6 +417,17 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
     () => dataValue.nodes.filter((node) => node.isleaf).length,
     [dataValue.nodes]
   );
+
+  const quickStats = useMemo(() => {
+    const leafNodes = dataValue.nodes.filter((n) => n.isleaf && n.cost);
+    const totalTransactionCost = leafNodes.reduce((sum, n) => sum + (n.cost || 0), 0);
+    const avgTransaction = leafNodes.length > 0 ? totalTransactionCost / leafNodes.length : 0;
+
+    return {
+      avgTransaction,
+      totalTransactions: leafNodes.length,
+    };
+  }, [dataValue.nodes]);
 
   const categorySummary = useMemo(
     () =>
@@ -548,32 +483,98 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
     });
   }, [lastUpdated]);
 
-  // AI-powered insights and analytics
-  const spendingInsights = useMemo(
-    () => generateSpendingInsights(dataValue.nodes, dataValue.links),
-    [dataValue.nodes, dataValue.links]
-  );
+  // Smart insights without AI
+  const insights = useMemo(() => {
+    const leafNodes = dataValue.nodes.filter((n) => n.isleaf && n.cost);
+    if (leafNodes.length === 0) return [];
 
-  const categoryAnalysis = useMemo(
-    () =>
-      analyzeCategorySpending(dataValue.nodes, dataValue.links, parentColors),
-    [dataValue.nodes, dataValue.links, parentColors]
-  );
+    const insights: Array<{
+      type: "info" | "warning" | "success" | "tip";
+      title: string;
+      description: string;
+      icon: string;
+    }> = [];
 
-  const spendingPredictions = useMemo(
-    () => predictSpending(dataValue.nodes, dataValue.links),
-    [dataValue.nodes, dataValue.links]
-  );
+    // Top spending category
+    if (categorySummary.length > 0) {
+      const topCategory = categorySummary[0];
+      const percentage = (topCategory.value / totalSpend) * 100;
 
-  const dataSummary = useMemo(
-    () => generateDataSummary(dataValue.nodes, dataValue.links),
-    [dataValue.nodes, dataValue.links]
-  );
+      if (percentage > 40) {
+        insights.push({
+          type: "warning",
+          title: "High Concentration",
+          description: `${topCategory.name} accounts for ${percentage.toFixed(1)}% ($${topCategory.value.toFixed(2)}) of your total spending. Consider diversifying or reviewing these expenses.`,
+          icon: "⚠️",
+        });
+      } else if (percentage > 30) {
+        insights.push({
+          type: "info",
+          title: "Top Category",
+          description: `${topCategory.name} is your largest expense at ${percentage.toFixed(1)}% ($${topCategory.value.toFixed(2)}) of total spending.`,
+          icon: "📊",
+        });
+      }
+    }
 
-  const anomalies = useMemo(
-    () => detectAnomalies(dataValue.nodes),
-    [dataValue.nodes]
-  );
+    // Average transaction analysis
+    const avgTransaction = totalSpend / leafNodes.length;
+    const highValueTransactions = leafNodes.filter(n => (n.cost || 0) > avgTransaction * 2);
+
+    if (highValueTransactions.length > 0) {
+      const totalHigh = highValueTransactions.reduce((sum, n) => sum + (n.cost || 0), 0);
+      insights.push({
+        type: "info",
+        title: "Large Transactions",
+        description: `${highValueTransactions.length} transaction${highValueTransactions.length > 1 ? 's' : ''} above $${(avgTransaction * 2).toFixed(2)} totaling $${totalHigh.toFixed(2)}. Review these for optimization opportunities.`,
+        icon: "💰",
+      });
+    }
+
+    // Small frequent transactions
+    const smallTransactions = leafNodes.filter(n => (n.cost || 0) < 10);
+    if (smallTransactions.length > 5) {
+      const totalSmall = smallTransactions.reduce((sum, n) => sum + (n.cost || 0), 0);
+      insights.push({
+        type: "tip",
+        title: "Small Purchases Add Up",
+        description: `${smallTransactions.length} transactions under $10 total $${totalSmall.toFixed(2)}. These small expenses accumulate over time.`,
+        icon: "☕",
+      });
+    }
+
+    // Payment sources diversity
+    const uniqueSources = new Set(leafNodes.map(n => n.file_source).filter(Boolean));
+    if (uniqueSources.size > 3) {
+      insights.push({
+        type: "info",
+        title: "Multiple Payment Sources",
+        description: `Using ${uniqueSources.size} different payment sources. Consolidating could simplify tracking and maximize rewards.`,
+        icon: "💳",
+      });
+    }
+
+    // Spending diversity (good sign)
+    if (categorySummary.length >= 5 && categorySummary[0].value / totalSpend < 0.35) {
+      insights.push({
+        type: "success",
+        title: "Well-Balanced Spending",
+        description: `Your expenses are well-distributed across ${categorySummary.length} categories, showing balanced financial habits.`,
+        icon: "✅",
+      });
+    }
+
+    // Average per category
+    const avgPerCategory = totalSpend / categorySummary.length;
+    insights.push({
+      type: "info",
+      title: "Category Average",
+      description: `Average spending per category is $${avgPerCategory.toFixed(2)}. Total tracked across ${categorySummary.length} categories.`,
+      icon: "📈",
+    });
+
+    return insights;
+  }, [dataValue.nodes, totalSpend, categorySummary]);
 
   return (
     <div className="relative min-h-screen overflow-x-auto bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-slate-100">
@@ -684,34 +685,16 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
               )}
             </div>
           </div>
-          <div
-            className="rounded-2xl border border-slate-800/60 bg-slate-900/70 p-5 shadow-lg shadow-slate-950/40 cursor-pointer transition-all hover:border-[#80A1BA] hover:shadow-[#80A1BA]/20 hover:scale-105"
-            onClick={() => {
-              if (anomalies.length > 0) {
-                setShowAnomaliesPanel(true);
-                // Fetch AI suggestions for all anomalies
-                anomalies.forEach((anomaly) => {
-                  fetchAISuggestion(anomaly, anomaly.index);
-                });
-              }
-            }}
-          >
+          <div className="rounded-2xl border border-slate-800/60 bg-slate-900/70 p-5 shadow-lg shadow-slate-950/40">
             <p className="text-xs uppercase tracking-wide text-slate-400">
-              AI Insights {anomalies.length > 0 && "🔍"}
+              Avg transaction
             </p>
             <p className="mt-3 text-3xl font-semibold text-white">
-              {spendingInsights.length}
+              {quickStats ? formatCurrency(quickStats.avgTransaction) : "$0"}
             </p>
             <p className="mt-3 text-xs text-slate-400">
-              {anomalies.length > 0
-                ? `${anomalies.length} anomalies detected`
-                : "No anomalies"}
+              Across {transactionCount} transactions
             </p>
-            {anomalies.length > 0 && (
-              <p className="mt-2 text-xs text-[#91C4C3] font-medium">
-                Click to review →
-              </p>
-            )}
           </div>
         </section>
 
@@ -727,21 +710,30 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
           </div>
         )}
 
-        {/* Main Content Area - TreeMap or Enhanced Charts */}
-        {viewMode === "charts" ? (
-          <EnhancedCharts
-            categoryData={categoryAnalysis}
-            totalSpend={totalSpend}
-          />
-        ) : chartReady ? (
+        {/* Smart Search */}
+        {chartReady && (
+          <div className="rounded-2xl border border-slate-800/60 bg-slate-900/70 p-6">
+            <div className="mb-4 flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-white">
+                Search Transactions
+              </h3>
+            </div>
+            <SmartSearch
+              nodes={dataValue.nodes}
+              onSelectTransaction={handleEditTransaction}
+            />
+          </div>
+        )}
+
+        {/* Main Content Area - TreeMap */}
+        {chartReady ? (
           <>
             <TreeMapChart
               key={`treemap-${dataValue.nodes.length}-${dataValue.links.length}`}
               nodes={dataValue.nodes}
               links={dataValue.links}
               onEditTransaction={handleEditTransaction}
-              aiSuggestions={aiSuggestions}
-              onFetchAISuggestion={fetchAISuggestion}
+              insights={insights}
             />
 
             {/* Helper Text */}
@@ -813,205 +805,14 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
           </div>
         )}
 
-        {/* AI Insights Panel */}
-        {chartReady && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-white">
-                AI-Powered Insights
-              </h2>
-              <button
-                onClick={() => setShowInsights(!showInsights)}
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300 transition hover:border-[#80A1BA] hover:text-[#80A1BA]"
-              >
-                {showInsights ? (
-                  <>
-                    <FiEyeOff size={16} />
-                    Hide Insights
-                  </>
-                ) : (
-                  <>
-                    <FiEye size={16} />
-                    Show Insights
-                  </>
-                )}
-              </button>
-            </div>
-            {showInsights && (
-              <InsightsPanel
-                insights={spendingInsights}
-                predictions={spendingPredictions}
-              />
-            )}
-
-            {/* Uploaded Files Panel */}
-            {session?.user?.email && month && (
-              <UploadedFilesPanel
-                userEmail={session.user.email}
-                month={month}
-              />
-            )}
-          </div>
+        {/* Uploaded Files Panel */}
+        {chartReady && session?.user?.email && month && (
+          <UploadedFilesPanel
+            userEmail={session.user.email}
+            month={month}
+          />
         )}
       </main>
-
-      {/* AI Assistant */}
-      {chartReady && user?.email && (
-        <AIAssistant
-          userId={user.email}
-          month={month}
-          dataSummary={dataSummary}
-        />
-      )}
-
-      {/* Anomalies Panel */}
-      {showAnomaliesPanel && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-          onClick={() => setShowAnomaliesPanel(false)}
-        >
-          <div
-            className="w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-700 bg-gradient-to-r from-red-600 to-orange-600 p-6">
-              <div>
-                <h2 className="text-2xl font-bold text-white">
-                  ⚠️ Anomalous Transactions
-                </h2>
-                <p className="mt-1 text-sm text-red-100">
-                  {anomalies.length} transaction
-                  {anomalies.length !== 1 ? "s" : ""} flagged as unusual
-                </p>
-              </div>
-              <button
-                onClick={() => setShowAnomaliesPanel(false)}
-                className="rounded-lg p-2 text-white transition hover:bg-white/20"
-              >
-                <FiX size={24} />
-              </button>
-            </div>
-
-            {/* Anomalies List */}
-            <div
-              className="overflow-y-auto p-6"
-              style={{ maxHeight: "calc(90vh - 120px)" }}
-            >
-              <div className="grid gap-3">
-                {anomalies.map((anomaly, idx) => {
-                  const hasSuggestion = aiSuggestions[anomaly.index];
-                  const parentLink = dataValue.links.find(
-                    (link) => link.target === anomaly.index
-                  );
-                  const categoryNode = parentLink
-                    ? dataValue.nodes.find((n) => n.index === parentLink.source)
-                    : null;
-
-                  return (
-                    <div
-                      key={anomaly.index}
-                      className="group relative rounded-xl border border-red-500/40 bg-red-500/5 p-4 transition-all hover:scale-[1.02] hover:border-red-500/60"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-xs font-bold text-white">
-                              {idx + 1}
-                            </span>
-                            <div className="flex-1">
-                              <h3 className="font-semibold text-white">
-                                {anomaly.name}
-                              </h3>
-                              <div className="mt-1 flex flex-wrap gap-3 text-xs text-slate-400">
-                                {anomaly.date && (
-                                  <span className="flex items-center gap-1">
-                                    <span className="text-slate-500">📅</span>
-                                    {anomaly.date}
-                                  </span>
-                                )}
-                                {anomaly.location && (
-                                  <span className="flex items-center gap-1">
-                                    <span className="text-slate-500">📍</span>
-                                    {anomaly.location}
-                                  </span>
-                                )}
-                                {anomaly.file_source && (
-                                  <span className="flex items-center gap-1">
-                                    <span className="text-slate-500">🏦</span>
-                                    {anomaly.file_source}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          <p className="mt-2 text-xs text-slate-400">
-                            Category: {categoryNode?.name || "Unknown"}
-                          </p>
-
-                          <div className="mt-2 flex items-start gap-2 rounded-lg bg-amber-500/10 p-3 border border-amber-500/30">
-                            <FiAlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-400" />
-                            <div className="flex-1">
-                              <p className="text-xs font-semibold text-amber-300">
-                                Why it&apos;s flagged:
-                              </p>
-                              <p className="mt-1 text-xs text-amber-200">
-                                This amount (${anomaly.cost?.toFixed(2)}) is
-                                significantly higher than your average
-                                transaction.
-                                {hasSuggestion &&
-                                  ` ${aiSuggestions[anomaly.index]}`}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col items-end gap-2">
-                          <div className="text-right">
-                            <p className="text-2xl font-bold text-red-400">
-                              ${anomaly.cost?.toFixed(2) || 0}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => {
-                              setShowAnomaliesPanel(false);
-                              setTimeout(
-                                () => handleEditTransaction(anomaly.index),
-                                100
-                              );
-                            }}
-                            className="flex items-center gap-2 rounded-lg bg-[#80A1BA] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#6B8BA4]"
-                          >
-                            <FiEdit2 size={14} />
-                            Edit
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="border-t border-slate-700 bg-slate-800/50 p-4">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-slate-400">
-                  These transactions are statistically unusual based on your
-                  spending patterns
-                </p>
-                <button
-                  onClick={() => setShowAnomaliesPanel(false)}
-                  className="text-sm text-[#91C4C3] hover:text-[#7AAFAD]"
-                >
-                  Close (ESC)
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {isModalOpen &&
         parentIndex !== null &&
@@ -1024,10 +825,8 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
             onSubmit={handleModalSubmit}
             onClose={() => {
               setIsModalOpen(false);
-              setAiSuggestions({});
             }}
             parentOptions={parentOptions}
-            aiSuggestion={aiSuggestions[nodeIndex]}
           />
         )}
     </div>

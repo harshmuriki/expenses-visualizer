@@ -8,15 +8,20 @@ import type {
   NameType,
 } from "recharts/types/component/DefaultTooltipContent";
 import { SankeyNode, SankeyLink } from "@/app/types/types";
-import { FiX, FiEdit2, FiAlertCircle, FiCheckCircle } from "react-icons/fi";
+import { FiX, FiEdit2, FiCheckCircle } from "react-icons/fi";
 import { COLORS } from "@/lib/colors";
+import InsightsPanel from "./InsightsPanel";
 
 interface TreeMapChartProps {
   nodes: SankeyNode[];
   links: SankeyLink[];
   onEditTransaction: (nodeIndex: number) => void;
-  aiSuggestions: Record<number, string>;
-  onFetchAISuggestion: (node: SankeyNode, index: number) => void;
+  insights?: Array<{
+    type: "info" | "warning" | "success" | "tip";
+    title: string;
+    description: string;
+    icon: string;
+  }>;
 }
 
 const CHART_COLORS = COLORS.categories;
@@ -25,8 +30,7 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
   nodes,
   links,
   onEditTransaction,
-  aiSuggestions,
-  onFetchAISuggestion,
+  insights = [],
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
@@ -130,18 +134,6 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
           onClick={() => {
             if (originalIndex !== undefined) {
               setSelectedCategory(originalIndex);
-              // Fetch AI suggestions for all transactions in this category
-              const categoryLinks = links.filter(
-                (link) => link.source === originalIndex
-              );
-              categoryLinks.forEach((link) => {
-                const transactionNode = nodes.find(
-                  (n) => n.index === link.target
-                );
-                if (transactionNode) {
-                  onFetchAISuggestion(transactionNode, link.target);
-                }
-              });
             }
           }}
         />
@@ -238,7 +230,7 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
               dataKey="size"
               stroke="none"
               fill="#8b5cf6"
-              content={<CustomContent />}
+              content={CustomContent as never}
               animationDuration={0}
               isAnimationActive={false}
               style={{ position: "absolute", left: 0, top: 0 }}
@@ -286,16 +278,10 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
               {selectedTransactions.length > 0 ? (
                 <div className="grid gap-3">
                   {selectedTransactions.map((transaction, idx) => {
-                    const hasSuggestion = aiSuggestions[transaction.index];
-
                     return (
                       <div
                         key={transaction.index}
-                        className={`group relative rounded-xl border p-4 transition-all hover:scale-[1.02] ${
-                          hasSuggestion
-                            ? "border-amber-500/60 bg-amber-500/5"
-                            : "border-slate-700/60 bg-slate-800/50"
-                        }`}
+                        className="group relative rounded-xl border border-slate-700/60 bg-slate-800/50 p-4 transition-all hover:scale-[1.02]"
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
@@ -308,41 +294,27 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
                                   {transaction.name}
                                 </h3>
                                 <div className="mt-1 flex flex-wrap gap-3 text-xs text-slate-400">
-                                  {transaction.date && (
+                                  {transaction.node?.date && (
                                     <span className="flex items-center gap-1">
                                       <span className="text-slate-500">📅</span>
-                                      {transaction.date}
+                                      {transaction.node.date}
                                     </span>
                                   )}
-                                  {transaction.location && (
+                                  {transaction.node?.location && (
                                     <span className="flex items-center gap-1">
                                       <span className="text-slate-500">📍</span>
-                                      {transaction.location}
+                                      {transaction.node.location}
                                     </span>
                                   )}
-                                  {transaction.file_source && (
+                                  {transaction.node?.file_source && (
                                     <span className="flex items-center gap-1">
                                       <span className="text-slate-500">🏦</span>
-                                      {transaction.file_source}
+                                      {transaction.node.file_source}
                                     </span>
                                   )}
                                 </div>
                               </div>
                             </div>
-
-                            {hasSuggestion && (
-                              <div className="mt-2 flex items-start gap-2 rounded-lg bg-amber-500/10 p-3">
-                                <FiAlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-400" />
-                                <div className="flex-1">
-                                  <p className="text-xs font-semibold text-amber-300">
-                                    AI Suggestion:
-                                  </p>
-                                  <p className="mt-1 text-xs text-amber-200">
-                                    {aiSuggestions[transaction.index]}
-                                  </p>
-                                </div>
-                              </div>
-                            )}
                           </div>
 
                           <div className="flex flex-col items-end gap-2">
@@ -402,9 +374,15 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
           </div>
         </div>
       )}
+
+      {/* Insights Panel */}
+      {insights && insights.length > 0 && (
+        <InsightsPanel insights={insights} />
+      )}
     </div>
   );
 };
 
 export default TreeMapChart;
+
 

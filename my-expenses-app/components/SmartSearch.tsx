@@ -1,0 +1,244 @@
+"use client";
+
+import React, { useState, useMemo } from "react";
+import { FiSearch, FiX, FiFilter } from "react-icons/fi";
+import { SankeyNode } from "@/app/types/types";
+
+interface SmartSearchProps {
+  nodes: SankeyNode[];
+  onSelectTransaction: (nodeIndex: number) => void;
+}
+
+const SmartSearch: React.FC<SmartSearchProps> = ({
+  nodes,
+  onSelectTransaction,
+}) => {
+  const [query, setQuery] = useState("");
+  const [filters, setFilters] = useState({
+    minAmount: "",
+    maxAmount: "",
+    fileSource: "",
+    dateRange: "",
+  });
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Local search - no AI needed for simple queries
+  const searchResults = useMemo(() => {
+    if (!query && !filters.minAmount && !filters.maxAmount && !filters.fileSource) {
+      return [];
+    }
+
+    const leafNodes = nodes.filter((n) => n.isleaf && n.cost);
+    let results = leafNodes;
+
+    // Text search (supports natural language-ish queries)
+    if (query) {
+      const lowerQuery = query.toLowerCase();
+
+      // Check for amount queries like "$50" or "under $100"
+      const amountMatch = query.match(/\$?(\d+\.?\d*)/);
+      if (amountMatch) {
+        const amount = parseFloat(amountMatch[1]);
+        if (query.includes("under") || query.includes("less than") || query.includes("<")) {
+          results = results.filter((n) => (n.cost || 0) < amount);
+        } else if (query.includes("over") || query.includes("more than") || query.includes(">")) {
+          results = results.filter((n) => (n.cost || 0) > amount);
+        } else if (query.includes("exactly") || query.includes("=")) {
+          results = results.filter((n) => Math.abs((n.cost || 0) - amount) < 0.01);
+        } else {
+          // Default: search by text AND amount tolerance
+          results = results.filter((n) => {
+            const matchesText = n.name.toLowerCase().includes(lowerQuery);
+            const matchesAmount = Math.abs((n.cost || 0) - amount) < amount * 0.1; // 10% tolerance
+            return matchesText || matchesAmount;
+          });
+        }
+      } else {
+        // Text-only search
+        results = results.filter((n) => {
+          const matchesName = n.name.toLowerCase().includes(lowerQuery);
+          const matchesLocation = n.location?.toLowerCase().includes(lowerQuery);
+          const matchesSource = n.file_source?.toLowerCase().includes(lowerQuery);
+          return matchesName || matchesLocation || matchesSource;
+        });
+      }
+    }
+
+    // Apply numeric filters
+    if (filters.minAmount) {
+      const min = parseFloat(filters.minAmount);
+      results = results.filter((n) => (n.cost || 0) >= min);
+    }
+
+    if (filters.maxAmount) {
+      const max = parseFloat(filters.maxAmount);
+      results = results.filter((n) => (n.cost || 0) <= max);
+    }
+
+    // Apply file source filter
+    if (filters.fileSource) {
+      results = results.filter(
+        (n) =>
+          n.file_source?.toLowerCase().includes(filters.fileSource.toLowerCase())
+      );
+    }
+
+    // Sort by relevance (amount descending by default)
+    return results.sort((a, b) => (b.cost || 0) - (a.cost || 0)).slice(0, 50); // Limit to 50 results
+  }, [query, filters, nodes]);
+
+  const clearSearch = () => {
+    setQuery("");
+    setFilters({
+      minAmount: "",
+      maxAmount: "",
+      fileSource: "",
+      dateRange: "",
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Search Bar */}
+      <div className="relative">
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder='Try "Starbucks", "over $100", or "Amazon"'
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 py-3 pl-10 pr-10 text-sm text-slate-100 placeholder-slate-500 focus:border-[#80A1BA] focus:outline-none focus:ring-2 focus:ring-[#80A1BA]/50"
+            />
+            {query && (
+              <button
+                onClick={clearSearch}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+              >
+                <FiX size={18} />
+              </button>
+            )}
+          </div>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`rounded-lg border px-4 py-3 transition ${
+              showFilters
+                ? "border-[#80A1BA] bg-[#80A1BA]/10 text-[#80A1BA]"
+                : "border-slate-700 bg-slate-800 text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <FiFilter size={18} />
+          </button>
+        </div>
+      </div>
+
+      {/* Advanced Filters */}
+      {showFilters && (
+        <div className="grid gap-4 rounded-xl border border-slate-700 bg-slate-800/50 p-4 md:grid-cols-3">
+          <div>
+            <label className="mb-1 block text-xs text-slate-400">Min Amount</label>
+            <input
+              type="number"
+              value={filters.minAmount}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, minAmount: e.target.value }))
+              }
+              placeholder="$0"
+              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-[#80A1BA] focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-slate-400">Max Amount</label>
+            <input
+              type="number"
+              value={filters.maxAmount}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, maxAmount: e.target.value }))
+              }
+              placeholder="$999+"
+              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-[#80A1BA] focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-slate-400">
+              Payment Source
+            </label>
+            <input
+              type="text"
+              value={filters.fileSource}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, fileSource: e.target.value }))
+              }
+              placeholder="e.g., Chase, Amex"
+              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-[#80A1BA] focus:outline-none"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Results */}
+      {searchResults.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-sm text-slate-400">
+            Found {searchResults.length} transaction{searchResults.length !== 1 ? "s" : ""}
+          </p>
+          <div className="max-h-96 space-y-2 overflow-y-auto rounded-xl border border-slate-700 bg-slate-800/50 p-3">
+            {searchResults.map((node) => (
+              <button
+                key={node.index}
+                onClick={() => onSelectTransaction(node.index)}
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 p-3 text-left transition hover:border-[#80A1BA] hover:bg-slate-800"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-white">{node.name}</h4>
+                    <div className="mt-1 flex flex-wrap gap-3 text-xs text-slate-400">
+                      {node.date && (
+                        <span className="flex items-center gap-1">
+                          <span className="text-slate-500">📅</span>
+                          {node.date}
+                        </span>
+                      )}
+                      {node.location && (
+                        <span className="flex items-center gap-1">
+                          <span className="text-slate-500">📍</span>
+                          {node.location}
+                        </span>
+                      )}
+                      {node.file_source && (
+                        <span className="flex items-center gap-1">
+                          <span className="text-slate-500">🏦</span>
+                          {node.file_source}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-emerald-400">
+                      ${node.cost?.toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* No Results */}
+      {query && searchResults.length === 0 && (
+        <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-8 text-center">
+          <p className="text-slate-400">
+            No transactions found matching &quot;{query}&quot;
+          </p>
+          <p className="mt-2 text-xs text-slate-500">
+            Try adjusting your search or filters
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default SmartSearch;

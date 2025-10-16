@@ -2,7 +2,6 @@
 
 import React from "react";
 import { signOut, useSession } from "next-auth/react";
-// import { useRouter } from "next/navigation";
 import UploadComponent from "@/components/uploadComponent";
 import WelcomeComponent from "@/components/welcomeComponent";
 import Image from "next/image";
@@ -44,7 +43,6 @@ const UserProfile: React.FC<UserProfileProps> = ({
 // Main Home Page
 const HomePage: React.FC = () => {
   const { data: session, status } = useSession();
-  // const router = useRouter();
 
   // Loading state
   if (status === "loading") {
