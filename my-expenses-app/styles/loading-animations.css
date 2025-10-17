@@ -1,0 +1,154 @@
+/* Beautiful Loading Animations */
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 5px rgba(128, 161, 186, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(128, 161, 186, 0.6),
+      0 0 30px rgba(145, 196, 195, 0.4);
+  }
+}
+
+@keyframes particle-float {
+  0% {
+    transform: translateY(0px) translateX(0px);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-20px) translateX(10px);
+    opacity: 0;
+  }
+}
+
+@keyframes progress-glow {
+  0% {
+    box-shadow: 0 0 5px rgba(128, 161, 186, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(128, 161, 186, 0.6),
+      0 0 25px rgba(145, 196, 195, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 5px rgba(128, 161, 186, 0.3);
+  }
+}
+
+@keyframes step-complete {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Apply animations */
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(128, 161, 186, 0.4),
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-particle-float {
+  animation: particle-float 3s ease-in-out infinite;
+}
+
+.animate-progress-glow {
+  animation: progress-glow 2s ease-in-out infinite;
+}
+
+.animate-step-complete {
+  animation: step-complete 0.6s ease-in-out;
+}
+
+/* Gradient text animation */
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradient-text {
+  background: linear-gradient(-45deg, #80a1ba, #91c4c3, #b4debd, #80a1ba);
+  background-size: 400% 400%;
+  animation: gradient-shift 3s ease infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Loading dots animation */
+@keyframes loading-dots {
+  0%,
+  20% {
+    color: rgba(128, 161, 186, 0.4);
+    text-shadow: 0.25em 0 0 rgba(128, 161, 186, 0.4),
+      0.5em 0 0 rgba(128, 161, 186, 0.4);
+  }
+  40% {
+    color: #80a1ba;
+    text-shadow: 0.25em 0 0 rgba(128, 161, 186, 0.4),
+      0.5em 0 0 rgba(128, 161, 186, 0.4);
+  }
+  60% {
+    text-shadow: 0.25em 0 0 #80a1ba, 0.5em 0 0 rgba(128, 161, 186, 0.4);
+  }
+  80%,
+  100% {
+    text-shadow: 0.25em 0 0 #80a1ba, 0.5em 0 0 #80a1ba;
+  }
+}
+
+.animate-loading-dots::after {
+  content: "...";
+  animation: loading-dots 1.4s infinite;
+}

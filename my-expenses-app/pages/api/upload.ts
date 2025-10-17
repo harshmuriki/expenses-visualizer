@@ -115,9 +115,9 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       const month = Array.isArray(fields.month)
         ? fields.month[0]
         : fields.month || "default";
-      const storeFile = Array.isArray(fields.storeFile)
-        ? fields.storeFile[0] === "true"
-        : fields.storeFile === "true";
+      // const storeFile = Array.isArray(fields.storeFile)
+      //   ? fields.storeFile[0] === "true"
+      //   : fields.storeFile === "true";
 
       // Only process CSV files
       const csvFiles = uploadedFiles.filter(
@@ -139,18 +139,20 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
         console.warn(`⚠️ Ignoring ${nonCsvFiles.length} non-CSV file(s)`);
       }
 
-      // Combine all CSV files
-      console.log(`📊 Combining ${csvFiles.length} CSV file(s)...`);
-      const result = await handleCombinedCsvFiles(
-        csvFiles,
-        useremail,
-        month,
-        // storeFile
-      );
+      // Generate processing ID for tracking
+      const processingId = `processing_${Date.now()}_${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
 
-      return res.status(200).json({
-        message: `Successfully processed ${csvFiles.length} CSV file(s)`,
-        ...result,
+      // Start async processing
+      processCsvFilesAsync(csvFiles, useremail, month, processingId);
+
+      // Return immediately with processing ID
+      return res.status(202).json({
+        message: `Processing started for ${csvFiles.length} CSV file(s)`,
+        processingId,
+        status: "processing",
+        estimatedTime: "30-60 seconds",
       });
     } catch (error) {
       console.error("Error processing file:", error);
@@ -159,11 +161,91 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   });
 };
 
+// Async processing function that runs in background
+const processCsvFilesAsync = async (
+  files: formidable.File[],
+  useremail: string,
+  month: string,
+  processingId: string
+) => {
+  try {
+    console.log(
+      `🚀 Starting async processing for ${files.length} files (ID: ${processingId})`
+    );
+
+    // Update status to processing
+    await updateProcessingStatus(
+      processingId,
+      "processing",
+      "Processing CSV files..."
+    );
+
+    const result = await handleCombinedCsvFiles(files, useremail, month);
+
+    // Update status to completed
+    await updateProcessingStatus(
+      processingId,
+      "completed",
+      "Processing completed successfully!",
+      result
+    );
+
+    console.log(`✅ Async processing completed for ${processingId}`);
+  } catch (error) {
+    console.error(`❌ Async processing failed for ${processingId}:`, error);
+
+    // Update status to failed
+    await updateProcessingStatus(
+      processingId,
+      "failed",
+      "Processing failed",
+      null,
+      error instanceof Error ? error.message : "Unknown error"
+    );
+  }
+};
+
+// Function to update processing status in Firestore
+const updateProcessingStatus = async (
+  processingId: string,
+  status: "processing" | "completed" | "failed",
+  message: string,
+  result?: Record<string, unknown>,
+  error?: string
+) => {
+  try {
+    const { doc, setDoc } = await import("firebase/firestore");
+    const { db } = await import("@/components/firebaseConfig");
+
+    const statusDocRef = doc(db, "processing_status", processingId);
+
+    // Build the document data, excluding undefined values
+    const docData: Record<string, unknown> = {
+      status,
+      message,
+      timestamp: new Date().toISOString(),
+      updatedAt: Date.now(),
+    };
+
+    // Only add result and error if they are defined
+    if (result !== undefined) {
+      docData.result = result;
+    }
+    if (error !== undefined) {
+      docData.error = error;
+    }
+
+    await setDoc(statusDocRef, docData);
+  } catch (error) {
+    console.error("Failed to update processing status:", error);
+  }
+};
+
 // New function to handle combined CSV files
 const handleCombinedCsvFiles = async (
   files: formidable.File[],
   useremail: string,
-  month: string,
+  month: string
   // _storeFile: boolean
 ) => {
   try {

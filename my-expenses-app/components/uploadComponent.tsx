@@ -5,6 +5,7 @@ import { UploadComponentProps } from "@/app/types/types";
 import { useRouter } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "./firebaseConfig";
+import "../styles/loading-animations.css";
 
 type LinkSuccessMetadata = {
   institution?: {
@@ -82,19 +83,31 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
     formData.append("storeFile", "true"); // Flag to store the original files
 
     setIsUploading(true);
+
     try {
       const response = await fetch("/api/upload", {
         method: "POST",
         body: formData,
       });
+
       if (!response.ok) {
         throw new Error("Failed to upload files");
       }
-      console.log(`Starting upload of ${files.length} file(s)...`);
-      onUploadSuccess();
-      alert("File uploaded and categorized successfully! ✅");
-      console.log("File uploaded successfully!");
-      router.push(`/chart?month=${encodeURIComponent(month)}`);
+
+      const result = await response.json();
+      console.log(`Processing started for ${files.length} file(s)...`);
+
+      if (result.status === "processing" && result.processingId) {
+        // Redirect to chart page immediately - let chart page handle the loading
+        onUploadSuccess();
+        alert("Files uploaded successfully! Redirecting to chart...");
+        router.push(`/chart?month=${encodeURIComponent(month)}`);
+      } else {
+        // Fallback for immediate success (shouldn't happen with new flow)
+        onUploadSuccess();
+        alert("File uploaded and categorized successfully! ✅");
+        router.push(`/chart?month=${encodeURIComponent(month)}`);
+      }
     } catch (error) {
       console.error("Error uploading file:", error);
       alert("Error uploading file. Please try again.");
@@ -370,7 +383,7 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
                 <div className="w-2 h-2 bg-[#91C4C3] rounded-full animate-pulse"></div>
               </div>
             </div>
-            <span>Processing with AI...</span>
+            <span>Uploading...</span>
           </div>
         ) : (
           "Upload Files"

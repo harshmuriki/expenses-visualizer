@@ -1,7 +1,7 @@
 "use client";
 
 import React, { Suspense } from "react";
-import SnakeyChartComponent from "@/components/SnakeyChartComponent";
+import ChartPageWrapper from "@/components/ChartPageWrapper";
 
 const LoadingSpinner = () => (
   <div className="min-h-screen bg-gray-900 text-gray-200 flex items-center justify-center">
@@ -39,7 +39,7 @@ export default function ChartPage() {
   return (
     <div className="min-h-screen bg-gray-900 text-gray-200">
       <Suspense fallback={<LoadingSpinner />}>
-        <SnakeyChartComponent refresh={true} />
+        <ChartPageWrapper />
       </Suspense>
     </div>
   );
