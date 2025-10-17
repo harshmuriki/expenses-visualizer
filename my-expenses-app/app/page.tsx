@@ -43,11 +43,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
         <h4 className="text-xl font-semibold text-text-primary">
           Welcome back!
         </h4>
-        <p className="text-secondary-500 font-medium text-lg">{user}</p>
-        <div className="flex items-center space-x-2 text-sm text-text-tertiary">
-          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-          <span>Account Active</span>
-        </div>
+        <p className="text-secondary-500 font-medium text-xl">{user}</p>
       </div>
 
       <button

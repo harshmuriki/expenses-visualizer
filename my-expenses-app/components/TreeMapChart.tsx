@@ -153,13 +153,15 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
               x={x + width / 2}
               y={y + height / 2 - 6}
               textAnchor="middle"
-              fill={theme.text.inverse}
+              fill={theme.text.primary}
+              opacity={0.99}
               fontSize={fontSize}
-              fontWeight="800"
+              fontWeight="500"
               style={{
                 pointerEvents: "none",
                 letterSpacing: "0.3px",
-                textShadow: `0 1px 3px ${theme.background.primary}`,
+                // Extra subtle shadow for readability without heavy darkening
+                textShadow: `0 1px 1px ${theme.background.primary}40`,
               }}
             >
               {name && name.length > 20
@@ -170,12 +172,13 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
               x={x + width / 2}
               y={y + height / 2 + fontSize + 4}
               textAnchor="middle"
-              fill={theme.text.inverse}
+              fill={theme.text.primary}
+              opacity={0.82}
               fontSize={valueFontSize}
-              fontWeight="800"
+              fontWeight="600"
               style={{
                 pointerEvents: "none",
-                textShadow: `0 1px 3px ${theme.background.primary}`,
+                textShadow: `0 1px 1px ${theme.background.primary}40`,
               }}
             >
               ${(size || 0).toFixed(0)}
@@ -195,17 +198,17 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
     const data = payload[0].payload;
 
     return (
-      <div className="rounded-lg border border-border-secondary bg-background-primary/95 p-3 shadow-xl backdrop-blur">
+      <div className="rounded-lg border border-border-primary bg-background-secondary/98 p-3 shadow-2xl backdrop-blur-lg">
         <p className="font-semibold text-text-primary">{data.name}</p>
-        <p className="mt-1 text-lg font-bold text-emerald-400">
+        <p className="mt-1 text-lg font-bold text-text-primary">
           ${data.size?.toFixed(2) || 0}
         </p>
         {data.transactionCount && (
-          <p className="mt-1 text-xs text-text-tertiary">
+          <p className="mt-1 text-xs text-text-primary/80">
             {data.transactionCount} transactions
           </p>
         )}
-        <p className="mt-2 text-xs text-secondary-500">
+        <p className="mt-2 text-xs text-text-primary/70">
           Click to view transactions
         </p>
       </div>

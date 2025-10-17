@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { InputModalProps } from "@/app/types/types";
 import { useTheme } from "@/lib/theme-context";
 
@@ -15,7 +15,7 @@ const InputModal: React.FC<InputModalProps> = ({
   const [isCreatingNewParent, setIsCreatingNewParent] = useState(false);
   const [newPrice, setNewPrice] = useState(initialPrice);
 
-  const handleSubmit = () => {
+  const handleSubmit = useCallback(() => {
     const parsedPrice = parseFloat(newPrice);
     if (!isNaN(parsedPrice)) {
       onSubmit(newParentName, parsedPrice);
@@ -23,7 +23,7 @@ const InputModal: React.FC<InputModalProps> = ({
     } else {
       alert("Please enter a valid number for the price.");
     }
-  };
+  }, [newPrice, newParentName, onSubmit, onClose]);
 
   const handleParentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;

@@ -27,7 +27,7 @@ const ChartLoadingComponent: React.FC<ChartLoadingComponentProps> = ({
   const searchParams = useSearchParams();
   const month = searchParams?.get("month") || "feb";
 
-  const maxAttempts = 50; // Poll for up to 2.5 minutes (50 * 3 seconds)
+  const maxAttempts = 1000; // Poll for up to 1000 * 3 seconds
 
   const startPolling = React.useCallback(() => {
     const pollInterval = setInterval(async () => {
@@ -48,7 +48,7 @@ const ChartLoadingComponent: React.FC<ChartLoadingComponentProps> = ({
         const transactionDocs = nodesSnapshot.docs.filter(
           (doc) => doc.id !== "parentChildMap" && doc.id !== "meta"
         );
-
+        console.log("cntr", attempts);
         if (transactionDocs.length > 0) {
           // Data found! Process it
           setCurrentStep(4);
@@ -112,7 +112,7 @@ const ChartLoadingComponent: React.FC<ChartLoadingComponentProps> = ({
             metaTotals,
             lastUpdated: new Date(),
           });
-        } else if (attempts >= maxAttempts) {
+        } else if (false) {
           // Timeout reached
           clearInterval(pollInterval);
           setCurrentStep(0);

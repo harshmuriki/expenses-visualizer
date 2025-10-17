@@ -32,11 +32,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ThemeProvider>
-          <SessionProvider
-            refetchInterval={0} // Disable automatic session refetching
-            refetchOnWindowFocus={false} // Disable refetch on window focus
-            refetchWhenOffline={false} // Disable refetch when offline
-          >
+          <SessionProvider>
             {children}
             <Analytics />
           </SessionProvider>

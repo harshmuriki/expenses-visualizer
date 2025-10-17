@@ -57,13 +57,7 @@ const authHandler = NextAuth({
             };
         },
     },
-    events: {
-        async signIn({ user }) {
-            // Optional: Log sign-in events for debugging
-            console.log('User signed in:', user.email);
-        },
-    },
-    debug: process.env.NODE_ENV === 'development',
+    debug: false,
 });
 
 export default authHandler;
