@@ -52,7 +52,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
         ...node,
         category: getCategoryName(node.index),
       }));
-  }, [nodes, links, getCategoryName]);
+  }, [nodes, getCategoryName]);
 
   // Get unique categories for filter
   const categories = useMemo(() => {
@@ -187,18 +187,18 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
       <div className="rounded-2xl border border-slate-800/60 bg-gradient-to-br from-slate-900/80 to-slate-800/60 p-6 shadow-xl">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-2xl font-bold text-white flex items-center gap-3">
-              <FiGrid className="text-[#80A1BA]" size={24} />
+            <h3 className="text-2xl font-bold text-text-primary flex items-center gap-3">
+              <FiGrid className="text-[colors.primary.500]" size={24} />
               Transaction Spreadsheet
             </h3>
-            <p className="text-sm text-slate-300 mt-2 font-medium">
+            <p className="text-sm text-text-secondary mt-2 font-medium">
               📊 {stats.count} transactions • 💰 Total: $
               {stats.total.toFixed(2)}
             </p>
           </div>
           <button
             onClick={exportToCSV}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 px-5 py-3 text-sm font-semibold text-white transition-all hover:from-emerald-500 hover:to-emerald-400 hover:shadow-lg active:scale-95"
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 px-5 py-3 text-sm font-semibold text-text-primary transition-all hover:from-emerald-500 hover:to-emerald-400 hover:shadow-lg active:scale-95"
           >
             <FiDownload size={16} />
             Export to Excel
@@ -209,23 +209,23 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
         <div className="grid gap-4 md:grid-cols-2">
           {/* Search */}
           <div className="relative">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" />
             <input
               type="text"
               placeholder="Search transactions..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-800 py-2 pl-10 pr-4 text-white placeholder-slate-400 focus:border-[#80A1BA] focus:outline-none focus:ring-1 focus:ring-[#80A1BA]"
+              className="w-full rounded-lg border border-border-secondary bg-background-secondary py-2 pl-10 pr-4 text-text-primary placeholder-slate-400 focus:border-[colors.primary.500] focus:outline-none focus:ring-1 focus:ring-[colors.primary.500]"
             />
           </div>
 
           {/* Category Filter */}
           <div className="relative">
-            <FiFilter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <FiFilter className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" />
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-800 py-2 pl-10 pr-4 text-white focus:border-[#80A1BA] focus:outline-none focus:ring-1 focus:ring-[#80A1BA]"
+              className="w-full rounded-lg border border-border-secondary bg-background-secondary py-2 pl-10 pr-4 text-text-primary focus:border-[colors.primary.500] focus:outline-none focus:ring-1 focus:ring-[colors.primary.500]"
             >
               <option value="all">All Categories</option>
               {categories.map((cat) => (
@@ -238,36 +238,36 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
         </div>
 
         {/* Excel-style Summary Stats */}
-        <div className="mt-6 grid grid-cols-2 gap-3 rounded-xl border border-slate-700/60 bg-slate-800/40 p-5 md:grid-cols-4 shadow-inner">
-          <div className="text-center p-3 rounded-lg bg-slate-700/30 border border-slate-600/30">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">
+        <div className="mt-6 grid grid-cols-2 gap-3 rounded-xl border border-border-secondary/60 bg-background-secondary/40 p-5 md:grid-cols-4 shadow-inner">
+          <div className="text-center p-3 rounded-lg bg-background-tertiary/30 border border-border-primary/30">
+            <p className="text-xs font-semibold uppercase tracking-wide text-text-tertiary mb-1">
               Average
             </p>
-            <p className="text-xl font-bold text-white tabular-nums">
+            <p className="text-xl font-bold text-text-primary tabular-nums">
               ${stats.avg.toFixed(2)}
             </p>
           </div>
-          <div className="text-center p-3 rounded-lg bg-slate-700/30 border border-slate-600/30">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">
+          <div className="text-center p-3 rounded-lg bg-background-tertiary/30 border border-border-primary/30">
+            <p className="text-xs font-semibold uppercase tracking-wide text-text-tertiary mb-1">
               Minimum
             </p>
-            <p className="text-xl font-bold text-[#B4DEBD] tabular-nums">
+            <p className="text-xl font-bold text-[colors.accent.500] tabular-nums">
               ${stats.min.toFixed(2)}
             </p>
           </div>
-          <div className="text-center p-3 rounded-lg bg-slate-700/30 border border-slate-600/30">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">
+          <div className="text-center p-3 rounded-lg bg-background-tertiary/30 border border-border-primary/30">
+            <p className="text-xs font-semibold uppercase tracking-wide text-text-tertiary mb-1">
               Maximum
             </p>
             <p className="text-xl font-bold text-[#FFE5B4] tabular-nums">
               ${stats.max.toFixed(2)}
             </p>
           </div>
-          <div className="text-center p-3 rounded-lg bg-slate-700/30 border border-slate-600/30">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">
+          <div className="text-center p-3 rounded-lg bg-background-tertiary/30 border border-border-primary/30">
+            <p className="text-xs font-semibold uppercase tracking-wide text-text-tertiary mb-1">
               Count
             </p>
-            <p className="text-xl font-bold text-[#91C4C3] tabular-nums">
+            <p className="text-xl font-bold text-[colors.secondary.500] tabular-nums">
               {stats.count}
             </p>
           </div>
@@ -278,10 +278,10 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
       <div className="rounded-2xl border border-slate-800/60 bg-white/5 overflow-hidden shadow-2xl">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
-            <thead className="bg-gradient-to-r from-slate-800 to-slate-700 border-b-2 border-slate-600">
+            <thead className="bg-gradient-to-r from-slate-800 to-slate-700 border-b-2 border-border-primary">
               <tr>
                 <th
-                  className="cursor-pointer px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-200 hover:text-white hover:bg-slate-700/50 transition-colors border-r border-slate-600/50 min-w-[200px]"
+                  className="cursor-pointer px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-text-primary hover:text-text-primary hover:bg-background-tertiary/50 transition-colors border-r border-border-primary/50 min-w-[200px]"
                   onClick={() => handleSort("name")}
                 >
                   <div className="flex items-center gap-2">
@@ -289,7 +289,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                   </div>
                 </th>
                 <th
-                  className="cursor-pointer px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-slate-200 hover:text-white hover:bg-slate-700/50 transition-colors border-r border-slate-600/50 min-w-[120px]"
+                  className="cursor-pointer px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-text-primary hover:text-text-primary hover:bg-background-tertiary/50 transition-colors border-r border-border-primary/50 min-w-[120px]"
                   onClick={() => handleSort("cost")}
                 >
                   <div className="flex items-center justify-end gap-2">
@@ -297,7 +297,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                   </div>
                 </th>
                 <th
-                  className="cursor-pointer px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-200 hover:text-white hover:bg-slate-700/50 transition-colors border-r border-slate-600/50 min-w-[140px]"
+                  className="cursor-pointer px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-text-primary hover:text-text-primary hover:bg-background-tertiary/50 transition-colors border-r border-border-primary/50 min-w-[140px]"
                   onClick={() => handleSort("category")}
                 >
                   <div className="flex items-center gap-2">
@@ -305,7 +305,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                   </div>
                 </th>
                 <th
-                  className="cursor-pointer px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-200 hover:text-white hover:bg-slate-700/50 transition-colors border-r border-slate-600/50 min-w-[110px]"
+                  className="cursor-pointer px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-text-primary hover:text-text-primary hover:bg-background-tertiary/50 transition-colors border-r border-border-primary/50 min-w-[110px]"
                   onClick={() => handleSort("date")}
                 >
                   <div className="flex items-center gap-2">
@@ -313,7 +313,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                   </div>
                 </th>
                 <th
-                  className="cursor-pointer px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-200 hover:text-white hover:bg-slate-700/50 transition-colors border-r border-slate-600/50 min-w-[150px]"
+                  className="cursor-pointer px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-text-primary hover:text-text-primary hover:bg-background-tertiary/50 transition-colors border-r border-border-primary/50 min-w-[150px]"
                   onClick={() => handleSort("location")}
                 >
                   <div className="flex items-center gap-2">
@@ -321,28 +321,30 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                   </div>
                 </th>
                 <th
-                  className="cursor-pointer px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-200 hover:text-white hover:bg-slate-700/50 transition-colors border-r border-slate-600/50 min-w-[120px]"
+                  className="cursor-pointer px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-text-primary hover:text-text-primary hover:bg-background-tertiary/50 transition-colors border-r border-border-primary/50 min-w-[120px]"
                   onClick={() => handleSort("source")}
                 >
                   <div className="flex items-center gap-2">
                     Source <SortIcon field="source" />
                   </div>
                 </th>
-                <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-slate-200 min-w-[100px]">
+                <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-text-primary min-w-[100px]">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-slate-900/30">
+            <tbody className="bg-background-primary/30">
               {filteredTransactions.length > 0 ? (
                 filteredTransactions.map((transaction, idx) => (
                   <tr
                     key={transaction.index}
-                    className={`transition-all duration-150 hover:bg-slate-700/30 hover:shadow-md border-b border-slate-700/30 ${
-                      idx % 2 === 0 ? "bg-slate-800/20" : "bg-slate-800/10"
+                    className={`transition-all duration-150 hover:bg-background-tertiary/30 hover:shadow-md border-b border-border-secondary/30 ${
+                      idx % 2 === 0
+                        ? "bg-background-secondary/20"
+                        : "bg-background-secondary/10"
                     }`}
                   >
-                    <td className="px-4 py-3 text-sm text-white border-r border-slate-700/30 font-medium">
+                    <td className="px-4 py-3 text-sm text-text-primary border-r border-border-secondary/30 font-medium">
                       <div
                         className="truncate max-w-[180px]"
                         title={transaction.name || "Unnamed"}
@@ -350,15 +352,15 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                         {transaction.name || "Unnamed"}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-right text-sm font-bold text-emerald-400 border-r border-slate-700/30 tabular-nums">
+                    <td className="px-4 py-3 text-right text-sm font-bold text-emerald-400 border-r border-border-secondary/30 tabular-nums">
                       ${(transaction.cost || 0).toFixed(2)}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-300 border-r border-slate-700/30">
-                      <span className="inline-flex rounded-md border border-slate-600/50 bg-slate-700/40 px-2 py-1 text-xs font-medium">
+                    <td className="px-4 py-3 text-sm text-text-secondary border-r border-border-secondary/30">
+                      <span className="inline-flex rounded-md border border-border-primary/50 bg-background-tertiary/40 px-2 py-1 text-xs font-medium">
                         {transaction.category}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-300 border-r border-slate-700/30 tabular-nums">
+                    <td className="px-4 py-3 text-sm text-text-secondary border-r border-border-secondary/30 tabular-nums">
                       {transaction.date ? (
                         <span className="font-mono text-xs">
                           {new Date(transaction.date).toLocaleDateString(
@@ -374,7 +376,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                         <span className="text-slate-500 italic">-</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-300 border-r border-slate-700/30">
+                    <td className="px-4 py-3 text-sm text-text-secondary border-r border-border-secondary/30">
                       <div
                         className="truncate max-w-[130px]"
                         title={transaction.location || "-"}
@@ -384,13 +386,13 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-400 border-r border-slate-700/30">
+                    <td className="px-4 py-3 text-sm text-text-tertiary border-r border-border-secondary/30">
                       <div
                         className="truncate max-w-[100px]"
                         title={transaction.file_source || "-"}
                       >
                         {transaction.file_source ? (
-                          <span className="text-xs bg-slate-700/50 px-2 py-1 rounded font-mono">
+                          <span className="text-xs bg-background-tertiary/50 px-2 py-1 rounded font-mono">
                             {transaction.file_source}
                           </span>
                         ) : (
@@ -401,7 +403,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                     <td className="px-4 py-3 text-center">
                       <button
                         onClick={() => onEditTransaction(transaction.index)}
-                        className="inline-flex items-center gap-1 rounded-md bg-[#80A1BA] px-3 py-1.5 text-xs font-medium text-white transition-all hover:bg-[#6B8BA4] hover:shadow-md active:scale-95"
+                        className="inline-flex items-center gap-1 rounded-md bg-[colors.primary.500] px-3 py-1.5 text-xs font-medium text-text-primary transition-all hover:bg-[colors.primary.600] hover:shadow-md active:scale-95"
                       >
                         <FiEdit2 size={12} />
                         Edit
@@ -413,11 +415,11 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                 <tr>
                   <td
                     colSpan={7}
-                    className="px-6 py-16 text-center bg-slate-800/10"
+                    className="px-6 py-16 text-center bg-background-secondary/10"
                   >
                     <div className="flex flex-col items-center gap-3">
                       <FiSearch className="h-16 w-16 text-slate-600" />
-                      <p className="text-slate-400 text-lg font-medium">
+                      <p className="text-text-tertiary text-lg font-medium">
                         No transactions found matching your filters
                       </p>
                       <p className="text-slate-500 text-sm">

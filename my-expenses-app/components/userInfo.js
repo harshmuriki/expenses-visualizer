@@ -55,7 +55,7 @@ const UserInfo = ({ email }) => {
         };
 
         return (
-            <div className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full">
+            <div className="bg-blue-500 hover:bg-blue-700 text-text-primary font-bold py-2 px-4 rounded w-full">
                 <button onClick={openModal}>Update Personal Details</button>
                 <Modal
                     className="ModalContent"

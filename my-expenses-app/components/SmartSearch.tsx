@@ -103,18 +103,18 @@ const SmartSearch: React.FC<SmartSearchProps> = ({
       <div className="relative">
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" size={18} />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder='Try "Starbucks", "over $100", or "Amazon"'
-              className="w-full rounded-lg border border-slate-700 bg-slate-800 py-3 pl-10 pr-10 text-sm text-slate-100 placeholder-slate-500 focus:border-[#80A1BA] focus:outline-none focus:ring-2 focus:ring-[#80A1BA]/50"
+              className="w-full rounded-lg border border-border-secondary bg-background-secondary py-3 pl-10 pr-10 text-sm text-slate-100 placeholder-slate-500 focus:border-[colors.primary.500] focus:outline-none focus:ring-2 focus:ring-[colors.primary.500]/50"
             />
             {query && (
               <button
                 onClick={clearSearch}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-primary"
               >
                 <FiX size={18} />
               </button>
@@ -124,8 +124,8 @@ const SmartSearch: React.FC<SmartSearchProps> = ({
             onClick={() => setShowFilters(!showFilters)}
             className={`rounded-lg border px-4 py-3 transition ${
               showFilters
-                ? "border-[#80A1BA] bg-[#80A1BA]/10 text-[#80A1BA]"
-                : "border-slate-700 bg-slate-800 text-slate-400 hover:text-slate-200"
+                ? "border-[colors.primary.500] bg-[colors.primary.500]/10 text-[colors.primary.500]"
+                : "border-border-secondary bg-background-secondary text-text-tertiary hover:text-text-primary"
             }`}
           >
             <FiFilter size={18} />
@@ -135,9 +135,9 @@ const SmartSearch: React.FC<SmartSearchProps> = ({
 
       {/* Advanced Filters */}
       {showFilters && (
-        <div className="grid gap-4 rounded-xl border border-slate-700 bg-slate-800/50 p-4 md:grid-cols-3">
+        <div className="grid gap-4 rounded-xl border border-border-secondary bg-background-secondary/50 p-4 md:grid-cols-3">
           <div>
-            <label className="mb-1 block text-xs text-slate-400">Min Amount</label>
+            <label className="mb-1 block text-xs text-text-tertiary">Min Amount</label>
             <input
               type="number"
               value={filters.minAmount}
@@ -145,11 +145,11 @@ const SmartSearch: React.FC<SmartSearchProps> = ({
                 setFilters((prev) => ({ ...prev, minAmount: e.target.value }))
               }
               placeholder="$0"
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-[#80A1BA] focus:outline-none"
+              className="w-full rounded-lg border border-border-secondary bg-background-primary px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-[colors.primary.500] focus:outline-none"
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-slate-400">Max Amount</label>
+            <label className="mb-1 block text-xs text-text-tertiary">Max Amount</label>
             <input
               type="number"
               value={filters.maxAmount}
@@ -157,11 +157,11 @@ const SmartSearch: React.FC<SmartSearchProps> = ({
                 setFilters((prev) => ({ ...prev, maxAmount: e.target.value }))
               }
               placeholder="$999+"
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-[#80A1BA] focus:outline-none"
+              className="w-full rounded-lg border border-border-secondary bg-background-primary px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-[colors.primary.500] focus:outline-none"
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-slate-400">
+            <label className="mb-1 block text-xs text-text-tertiary">
               Payment Source
             </label>
             <input
@@ -171,7 +171,7 @@ const SmartSearch: React.FC<SmartSearchProps> = ({
                 setFilters((prev) => ({ ...prev, fileSource: e.target.value }))
               }
               placeholder="e.g., Chase, Amex"
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-[#80A1BA] focus:outline-none"
+              className="w-full rounded-lg border border-border-secondary bg-background-primary px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-[colors.primary.500] focus:outline-none"
             />
           </div>
         </div>
@@ -180,20 +180,20 @@ const SmartSearch: React.FC<SmartSearchProps> = ({
       {/* Results */}
       {searchResults.length > 0 && (
         <div className="space-y-2">
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-text-tertiary">
             Found {searchResults.length} transaction{searchResults.length !== 1 ? "s" : ""}
           </p>
-          <div className="max-h-96 space-y-2 overflow-y-auto rounded-xl border border-slate-700 bg-slate-800/50 p-3">
+          <div className="max-h-96 space-y-2 overflow-y-auto rounded-xl border border-border-secondary bg-background-secondary/50 p-3">
             {searchResults.map((node) => (
               <button
                 key={node.index}
                 onClick={() => onSelectTransaction(node.index)}
-                className="w-full rounded-lg border border-slate-700 bg-slate-900 p-3 text-left transition hover:border-[#80A1BA] hover:bg-slate-800"
+                className="w-full rounded-lg border border-border-secondary bg-background-primary p-3 text-left transition hover:border-[colors.primary.500] hover:bg-background-secondary"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1">
-                    <h4 className="font-semibold text-white">{node.name}</h4>
-                    <div className="mt-1 flex flex-wrap gap-3 text-xs text-slate-400">
+                    <h4 className="font-semibold text-text-primary">{node.name}</h4>
+                    <div className="mt-1 flex flex-wrap gap-3 text-xs text-text-tertiary">
                       {node.date && (
                         <span className="flex items-center gap-1">
                           <span className="text-slate-500">📅</span>
@@ -228,8 +228,8 @@ const SmartSearch: React.FC<SmartSearchProps> = ({
 
       {/* No Results */}
       {query && searchResults.length === 0 && (
-        <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-8 text-center">
-          <p className="text-slate-400">
+        <div className="rounded-xl border border-border-secondary bg-background-secondary/50 p-8 text-center">
+          <p className="text-text-tertiary">
             No transactions found matching &quot;{query}&quot;
           </p>
           <p className="mt-2 text-xs text-slate-500">

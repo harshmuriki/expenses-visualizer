@@ -110,7 +110,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-[#80A1BA] to-[#91C4C3] text-white shadow-lg transition-all hover:scale-110 hover:shadow-xl"
+        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-primary-500 to-secondary-500 text-text-primary shadow-lg transition-all hover:scale-110 hover:shadow-xl"
         aria-label="Open AI Assistant"
       >
         <FiMessageCircle size={24} />
@@ -120,27 +120,27 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 
   return (
     <div
-      className={`fixed bottom-6 right-6 z-50 flex flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl transition-all ${
+      className={`fixed bottom-6 right-6 z-50 flex flex-col overflow-hidden rounded-2xl border border-border-secondary bg-background-primary shadow-2xl transition-all ${
         isMinimized ? "h-16 w-80" : "h-[600px] w-96"
       }`}
     >
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-700 bg-gradient-to-r from-[#80A1BA] to-[#91C4C3] p-4">
+      <div className="flex items-center justify-between border-b border-border-secondary bg-gradient-to-r from-primary-500 to-secondary-500 p-4">
         <div className="flex items-center gap-2">
-          <FiMessageCircle size={20} className="text-white" />
-          <h3 className="font-semibold text-white">AI Assistant</h3>
+          <FiMessageCircle size={20} className="text-text-primary" />
+          <h3 className="font-semibold text-text-primary">AI Assistant</h3>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsMinimized(!isMinimized)}
-            className="rounded p-1 text-white transition hover:bg-white/20"
+            className="rounded p-1 text-text-primary transition hover:bg-white/20"
             aria-label="Minimize"
           >
             <FiMinimize2 size={18} />
           </button>
           <button
             onClick={() => setIsOpen(false)}
-            className="rounded p-1 text-white transition hover:bg-white/20"
+            className="rounded p-1 text-text-primary transition hover:bg-white/20"
             aria-label="Close"
           >
             <FiX size={18} />
@@ -162,8 +162,8 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
                 <div
                   className={`max-w-[80%] rounded-2xl px-4 py-2 ${
                     message.role === "user"
-                      ? "bg-gradient-to-r from-[#80A1BA] to-[#91C4C3] text-white"
-                      : "bg-slate-800 text-slate-100"
+                      ? "bg-gradient-to-r from-primary-500 to-secondary-500 text-text-primary"
+                      : "bg-background-secondary text-slate-100"
                   }`}
                 >
                   <p className="text-sm leading-relaxed">{message.content}</p>
@@ -178,20 +178,20 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
             ))}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="rounded-2xl bg-slate-800 px-4 py-3">
+                <div className="rounded-2xl bg-background-secondary px-4 py-3">
                   <div className="flex items-center gap-2">
                     <div className="flex gap-1">
-                      <div className="h-2 w-2 animate-bounce rounded-full bg-[#80A1BA]" />
+                      <div className="h-2 w-2 animate-bounce rounded-full bg-primary-500" />
                       <div
-                        className="h-2 w-2 animate-bounce rounded-full bg-[#91C4C3]"
+                        className="h-2 w-2 animate-bounce rounded-full bg-secondary-500"
                         style={{ animationDelay: "0.1s" }}
                       />
                       <div
-                        className="h-2 w-2 animate-bounce rounded-full bg-[#B4DEBD]"
+                        className="h-2 w-2 animate-bounce rounded-full bg-accent-500"
                         style={{ animationDelay: "0.2s" }}
                       />
                     </div>
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-text-tertiary">
                       AI is thinking...
                     </span>
                   </div>
@@ -203,8 +203,8 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 
           {/* Suggested Questions */}
           {messages.length === 1 && (
-            <div className="border-t border-slate-700 bg-slate-800/50 p-3">
-              <p className="mb-2 text-xs font-medium text-slate-400">
+            <div className="border-t border-border-secondary bg-background-secondary/50 p-3">
+              <p className="mb-2 text-xs font-medium text-text-tertiary">
                 Try asking:
               </p>
               <div className="flex flex-wrap gap-2">
@@ -212,7 +212,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
                   <button
                     key={idx}
                     onClick={() => setInput(question)}
-                    className="rounded-full border border-slate-600 bg-slate-800 px-3 py-1 text-xs text-slate-300 transition hover:border-[#80A1BA] hover:bg-slate-700"
+                    className="rounded-full border border-border-primary bg-background-secondary px-3 py-1 text-xs text-text-secondary transition hover:border-primary-500 hover:bg-background-tertiary"
                   >
                     {question}
                   </button>
@@ -222,7 +222,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
           )}
 
           {/* Input */}
-          <div className="border-t border-slate-700 bg-slate-800 p-4">
+          <div className="border-t border-border-secondary bg-background-secondary p-4">
             <div className="flex items-center gap-2">
               <input
                 type="text"
@@ -230,13 +230,13 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Ask about your expenses..."
-                className="flex-1 rounded-lg border border-slate-600 bg-slate-900 px-4 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-[#80A1BA] focus:outline-none focus:ring-2 focus:ring-[#80A1BA]/50"
+                className="flex-1 rounded-lg border border-border-primary bg-background-primary px-4 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
                 disabled={isLoading}
               />
               <button
                 onClick={handleSendMessage}
                 disabled={!input.trim() || isLoading}
-                className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-r from-[#80A1BA] to-[#91C4C3] text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-r from-primary-500 to-secondary-500 text-text-primary transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 aria-label="Send message"
               >
                 {isLoading ? (

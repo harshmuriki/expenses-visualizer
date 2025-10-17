@@ -11,6 +11,7 @@ import {
   FiCalendar,
 } from "react-icons/fi";
 import Plot from "react-plotly.js";
+import { useTheme } from "@/lib/theme-context";
 
 interface CategorySpending {
   category: string;
@@ -32,9 +33,13 @@ interface TrendData {
 }
 
 const SpendingTrendsComponent: React.FC = () => {
+  const { theme, themeName } = useTheme();
+  const isLightTheme = themeName === "cherryBlossom" || themeName === "nordic";
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
   const [trends, setTrends] = useState<TrendData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [loadingStep, setLoadingStep] = useState("Initializing...");
   const [error, setError] = useState<string | null>(null);
   const { data: session } = useSession();
 
@@ -123,7 +128,7 @@ const SpendingTrendsComponent: React.FC = () => {
                           `📅 Collection "${monthName}" created at: ${createdAt}`
                         );
                       }
-                    } catch (metaError) {
+                    } catch {
                       console.log(
                         `ℹ️ No metadata found for collection "${monthName}"`
                       );
@@ -206,6 +211,7 @@ const SpendingTrendsComponent: React.FC = () => {
 
     setIsLoading(true);
     setError(null);
+    setLoadingStep("Loading transaction data...");
 
     try {
       if (selectedMonths.length === 0) {
@@ -221,6 +227,8 @@ const SpendingTrendsComponent: React.FC = () => {
       for (const monthKey of selectedMonths) {
         const month = availableMonths.find((m) => m.key === monthKey);
         if (!month) continue;
+
+        setLoadingStep(`Processing ${month.name}...`);
         try {
           const monthCollectionRef = collection(userDocRef, month.key);
           const nodesSnapshot = await getDocs(monthCollectionRef);
@@ -299,6 +307,7 @@ const SpendingTrendsComponent: React.FC = () => {
         }
       }
 
+      setLoadingStep("Calculating trends...");
       setMonthlyData(monthlyDataArray);
       calculateTrends(monthlyDataArray);
     } catch (error) {
@@ -313,9 +322,11 @@ const SpendingTrendsComponent: React.FC = () => {
   const loadAvailableMonths = React.useCallback(async () => {
     if (!session?.user?.email) return;
 
+    setLoadingStep("Discovering available months...");
     const months = await discoverAvailableMonths();
     setAvailableMonths(months);
     setShowMonthSelector(true);
+    setIsInitializing(false);
   }, [session, discoverAvailableMonths]);
 
   useEffect(() => {
@@ -400,35 +411,35 @@ const SpendingTrendsComponent: React.FC = () => {
       case "up":
         return <FiTrendingUp className="text-red-500" />;
       case "down":
-        return <FiTrendingDown className="text-green-500" />;
+        return <FiTrendingDown className="text-emerald-500" />;
       default:
-        return <FiDollarSign className="text-gray-500" />;
+        return <FiDollarSign className="text-text-tertiary" />;
     }
   };
 
   const getTrendColor = (trend: string) => {
     if (trend === "up") return "text-red-500";
-    if (trend === "down") return "text-green-500";
-    return "text-gray-500";
+    if (trend === "down") return "text-emerald-500";
+    return "text-text-tertiary";
   };
 
   if (showMonthSelector) {
     return (
       <div className="space-y-6">
-        <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-600/30">
-          <h3 className="text-xl font-semibold text-white mb-4">
+        <div className="bg-background-card rounded-xl p-6 border border-border-secondary">
+          <h3 className="text-xl font-semibold text-text-primary mb-4">
             Select Months to Analyze
           </h3>
-          <p className="text-slate-400 mb-4">
-            Choose which months you'd like to include in your spending trends
-            analysis.
+          <p className="text-text-tertiary mb-4">
+            Choose which months you&apos;d like to include in your spending
+            trends analysis.
           </p>
 
           {availableMonths.length === 0 ? (
             <div className="text-center py-8">
-              <div className="text-slate-400 text-lg mb-2">📊</div>
-              <p className="text-slate-400">No transaction data found</p>
-              <p className="text-slate-500 text-sm">
+              <div className="text-text-tertiary text-lg mb-2">📊</div>
+              <p className="text-text-tertiary">No transaction data found</p>
+              <p className="text-text-tertiary text-sm">
                 Upload some CSV files to get started!
               </p>
             </div>
@@ -452,8 +463,8 @@ const SpendingTrendsComponent: React.FC = () => {
                     key={month.key}
                     className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
                       selectedMonths.includes(month.key)
-                        ? "bg-gradient-to-r from-[#80A1BA] to-[#91C4C3] border-[#80A1BA] text-white"
-                        : "bg-slate-800/50 border-slate-600 hover:border-slate-500 text-slate-300"
+                        ? "bg-gradient-to-r from-primary-500/20 to-secondary-500/20 border-primary-500 text-text-primary"
+                        : "bg-background-secondary border-border-secondary hover:border-primary-500 text-text-secondary"
                     }`}
                   >
                     <input
@@ -468,12 +479,12 @@ const SpendingTrendsComponent: React.FC = () => {
                           );
                         }
                       }}
-                      className="w-4 h-4 text-[#80A1BA] bg-slate-700 border-slate-600 rounded focus:ring-[#80A1BA] focus:ring-2"
+                      className="w-4 h-4 text-primary-500 bg-background-tertiary border-border-primary rounded focus:ring-primary-500 focus:ring-2"
                     />
                     <div className="flex flex-col">
                       <span className="font-medium">{month.name}</span>
                       {month.createdAt && (
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-text-tertiary">
                           Created:{" "}
                           {new Date(month.createdAt).toLocaleDateString()}
                         </span>
@@ -486,7 +497,7 @@ const SpendingTrendsComponent: React.FC = () => {
 
           {selectedMonths.length > 0 && (
             <div className="mt-6 flex justify-between items-center">
-              <p className="text-slate-400">
+              <p className="text-text-tertiary">
                 {selectedMonths.length} month
                 {selectedMonths.length !== 1 ? "s" : ""} selected
               </p>
@@ -495,7 +506,7 @@ const SpendingTrendsComponent: React.FC = () => {
                   setShowMonthSelector(false);
                   fetchSpendingData();
                 }}
-                className="px-6 py-2 bg-gradient-to-r from-[#80A1BA] to-[#91C4C3] hover:from-[#6B8BA4] hover:to-[#7AAFAD] text-white rounded-lg font-semibold shadow-lg transform hover:scale-105 transition duration-300"
+                className="px-6 py-2 bg-gradient-to-r from-primary-500 to-secondary-500 hover:from-primary-600 hover:to-secondary-600 text-text-inverse rounded-lg font-semibold shadow-lg transform hover:scale-105 transition duration-300"
               >
                 Analyze Trends
               </button>
@@ -506,12 +517,40 @@ const SpendingTrendsComponent: React.FC = () => {
     );
   }
 
-  if (isLoading) {
+  if (isLoading || isInitializing) {
     return (
-      <div className="w-full p-6 bg-slate-900/50 rounded-xl border border-slate-600/30">
-        <div className="flex items-center justify-center space-x-2">
-          <div className="w-5 h-5 border-2 border-slate-400 border-t-[#80A1BA] rounded-full animate-spin"></div>
-          <span className="text-slate-300">Loading spending trends...</span>
+      <div className="w-full p-8 bg-background-card rounded-xl border border-border-secondary">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="relative">
+            <div className="w-12 h-12 border-4 border-border-primary border-t-primary-500 rounded-full animate-spin"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div
+                className="w-6 h-6 border-2 border-border-secondary border-t-secondary-500 rounded-full animate-spin"
+                style={{ animationDirection: "reverse" }}
+              ></div>
+            </div>
+          </div>
+          <div className="text-center">
+            <h3 className="text-lg font-semibold text-text-primary mb-2">
+              🔍 {loadingStep}
+            </h3>
+            <p className="text-text-secondary text-sm">
+              {isInitializing
+                ? "Setting up your spending analysis..."
+                : "Processing your financial data..."}
+            </p>
+            <div className="mt-3 flex space-x-1 justify-center">
+              <div className="w-2 h-2 bg-primary-500 rounded-full animate-bounce"></div>
+              <div
+                className="w-2 h-2 bg-secondary-500 rounded-full animate-bounce"
+                style={{ animationDelay: "0.1s" }}
+              ></div>
+              <div
+                className="w-2 h-2 bg-accent-500 rounded-full animate-bounce"
+                style={{ animationDelay: "0.2s" }}
+              ></div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -519,12 +558,12 @@ const SpendingTrendsComponent: React.FC = () => {
 
   if (error) {
     return (
-      <div className="w-full p-6 bg-slate-900/50 rounded-xl border border-slate-600/30">
-        <div className="text-center text-red-400">
+      <div className="w-full p-6 bg-background-card rounded-xl border border-border-secondary">
+        <div className="text-center text-red-500">
           <p>{error}</p>
           <button
             onClick={fetchSpendingData}
-            className="mt-2 px-4 py-2 bg-[#80A1BA] text-white rounded-lg hover:bg-[#6B8BA4] transition"
+            className="mt-2 px-4 py-2 bg-primary-500 text-text-inverse rounded-lg hover:bg-primary-600 transition"
           >
             Try Again
           </button>
@@ -536,20 +575,20 @@ const SpendingTrendsComponent: React.FC = () => {
   return (
     <div className="w-full space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-white flex items-center space-x-2">
-          <FiCalendar className="text-[#80A1BA]" />
+        <h2 className="text-2xl font-bold text-text-primary flex items-center space-x-2">
+          <FiCalendar className="text-primary-500" />
           <span>Spending Trends</span>
         </h2>
         <div className="flex space-x-2">
           <button
             onClick={() => setShowMonthSelector(true)}
-            className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition"
+            className="px-4 py-2 bg-background-tertiary text-text-primary rounded-lg hover:bg-background-secondary transition"
           >
             Change Months
           </button>
           <button
             onClick={fetchSpendingData}
-            className="px-4 py-2 bg-gradient-to-r from-[#80A1BA] to-[#91C4C3] text-white rounded-lg hover:from-[#6B8BA4] hover:to-[#7AAFAD] transition"
+            className="px-4 py-2 bg-gradient-to-r from-primary-500 to-secondary-500 text-text-inverse rounded-lg hover:from-primary-600 hover:to-secondary-600 transition"
           >
             Refresh
           </button>
@@ -583,10 +622,10 @@ const SpendingTrendsComponent: React.FC = () => {
           .map((month) => (
             <div
               key={month.month}
-              className="bg-slate-900/50 rounded-xl p-4 border border-slate-600/30"
+              className="bg-background-card rounded-xl p-4 border border-border-secondary"
             >
               <div className="flex justify-between items-start mb-3">
-                <h3 className="text-lg font-semibold text-white">
+                <h3 className="text-lg font-semibold text-text-primary">
                   {month.month}
                 </h3>
                 {(() => {
@@ -594,7 +633,7 @@ const SpendingTrendsComponent: React.FC = () => {
                     (m) => m.name === month.month
                   );
                   return monthInfo?.createdAt ? (
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-text-tertiary">
                       {new Date(monthInfo.createdAt).toLocaleDateString()}
                     </span>
                   ) : null;
@@ -602,8 +641,8 @@ const SpendingTrendsComponent: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Total Spending</span>
-                  <span className="text-white font-semibold">
+                  <span className="text-text-tertiary">Total Spending</span>
+                  <span className="text-text-primary font-semibold">
                     {formatCurrency(month.totalSpending)}
                   </span>
                 </div>
@@ -613,16 +652,16 @@ const SpendingTrendsComponent: React.FC = () => {
                       key={category.category}
                       className="flex justify-between items-center text-sm"
                     >
-                      <span className="text-slate-300 truncate">
+                      <span className="text-text-secondary truncate">
                         {category.category}
                       </span>
                       <div className="flex items-center space-x-2">
-                        <span className="text-slate-400">
+                        <span className="text-text-tertiary">
                           {formatCurrency(category.amount)}
                         </span>
-                        <div className="w-16 bg-slate-700 rounded-full h-1.5">
+                        <div className="w-16 bg-background-tertiary rounded-full h-1.5">
                           <div
-                            className="bg-gradient-to-r from-[#80A1BA] to-[#91C4C3] h-1.5 rounded-full"
+                            className="h-1.5 rounded-full bg-gradient-to-r from-primary-500 to-secondary-500"
                             style={{ width: `${category.percentage}%` }}
                           />
                         </div>
@@ -636,31 +675,33 @@ const SpendingTrendsComponent: React.FC = () => {
       </div>
 
       {/* Category Trends */}
-      <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-600/30">
-        <h3 className="text-xl font-semibold text-white mb-4">
+      <div className="bg-background-card rounded-xl p-6 border border-border-secondary">
+        <h3 className="text-xl font-semibold text-text-primary mb-4">
           Category Trends
         </h3>
         <div className="space-y-4">
           {trends.slice(0, 10).map((trend) => (
             <div
               key={trend.category}
-              className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg"
+              className="flex items-center justify-between p-4 bg-background-secondary/50 rounded-lg"
             >
               <div className="flex items-center space-x-3">
                 {getTrendIcon(trend.trend)}
-                <span className="text-white font-medium">{trend.category}</span>
+                <span className="text-text-primary font-medium">
+                  {trend.category}
+                </span>
               </div>
               <div className="flex items-center space-x-4">
                 <div className="text-right">
-                  <div className="text-sm text-slate-400">Latest Month</div>
-                  <div className="text-white font-semibold">
+                  <div className="text-sm text-text-tertiary">Latest Month</div>
+                  <div className="text-text-primary font-semibold">
                     {formatCurrency(
                       Object.values(trend.monthlyAmounts).slice(-1)[0] || 0
                     )}
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-sm text-slate-400">Change</div>
+                  <div className="text-sm text-text-tertiary">Change</div>
                   <div
                     className={`font-semibold ${getTrendColor(trend.trend)}`}
                   >
@@ -675,13 +716,13 @@ const SpendingTrendsComponent: React.FC = () => {
       </div>
 
       {/* Combined Plotly Chart for All Trends */}
-      <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-600/30">
-        <h3 className="text-xl font-semibold text-white mb-4">
+      <div className="bg-background-card rounded-xl p-6 border border-border-secondary">
+        <h3 className="text-xl font-semibold text-text-primary mb-4">
           Spending Trends Over Time
         </h3>
 
         {/* Combined Interactive Chart */}
-        <div className="h-96 bg-slate-800/30 rounded-lg p-4 mb-6">
+        <div className="h-96 bg-background-secondary rounded-lg p-4 mb-6">
           <Plot
             data={trends.slice(0, 5).map((trend, index) => {
               // Get selected months and sort by creation date (oldest to newest for chronological order)
@@ -697,13 +738,8 @@ const SpendingTrendsComponent: React.FC = () => {
                   return a.name.localeCompare(b.name);
                 });
 
-              const colors = [
-                "#80A1BA",
-                "#91C4C3",
-                "#B4DEBD",
-                "#F7B2AD",
-                "#D4A5A5",
-              ];
+              // Use theme category colors
+              const colors = theme.categories;
 
               return {
                 x: months.map((month) => month.name),
@@ -727,23 +763,30 @@ const SpendingTrendsComponent: React.FC = () => {
               };
             })}
             layout={{
-              title: "Spending Trends Across Selected Months",
+              title: {
+                text: "Spending Trends Across Selected Months",
+                font: { color: theme.text.primary },
+              },
               xaxis: {
                 title: "Month",
-                color: "#94a3b8",
-                gridcolor: "#374151",
+                color: theme.text.secondary,
+                gridcolor: isLightTheme
+                  ? theme.border.secondary
+                  : theme.border.primary,
                 showgrid: true,
               },
               yaxis: {
                 title: "Amount ($)",
-                color: "#94a3b8",
-                gridcolor: "#374151",
+                color: theme.text.secondary,
+                gridcolor: isLightTheme
+                  ? theme.border.secondary
+                  : theme.border.primary,
                 showgrid: true,
                 tickformat: "$,.0f",
               },
               plot_bgcolor: "rgba(0,0,0,0)",
               paper_bgcolor: "rgba(0,0,0,0)",
-              font: { color: "#94a3b8" },
+              font: { color: theme.text.tertiary },
               margin: { t: 50, b: 50, l: 80, r: 20 },
               hovermode: "closest",
               legend: {
@@ -751,7 +794,7 @@ const SpendingTrendsComponent: React.FC = () => {
                 y: 1,
                 bgcolor: "rgba(0,0,0,0)",
                 bordercolor: "rgba(0,0,0,0)",
-                font: { color: "#ffffff" },
+                font: { color: theme.text.primary },
               },
             }}
             config={{
@@ -779,18 +822,15 @@ const SpendingTrendsComponent: React.FC = () => {
               }
               return a.name.localeCompare(b.name);
             });
-            const maxAmount = Math.max(...Object.values(trend.monthlyAmounts));
-            const minAmount = Math.min(...Object.values(trend.monthlyAmounts));
-            const range = maxAmount - minAmount;
 
             return (
               <div key={trend.category} className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-white font-medium">
+                  <span className="text-text-primary font-medium">
                     {trend.category}
                   </span>
                   <div className="flex items-center space-x-4 text-sm">
-                    <span className="text-slate-400">
+                    <span className="text-text-tertiary">
                       Total:{" "}
                       {formatCurrency(
                         Object.values(trend.monthlyAmounts).reduce(
@@ -799,7 +839,7 @@ const SpendingTrendsComponent: React.FC = () => {
                         )
                       )}
                     </span>
-                    <span className="text-slate-400">
+                    <span className="text-text-tertiary">
                       Avg:{" "}
                       {formatCurrency(
                         Object.values(trend.monthlyAmounts).reduce(
@@ -812,7 +852,7 @@ const SpendingTrendsComponent: React.FC = () => {
                 </div>
 
                 {/* Plotly Line Chart */}
-                <div className="h-80 bg-slate-800/30 rounded-lg p-4">
+                <div className="h-80 bg-background-secondary rounded-lg p-4">
                   <Plot
                     data={[
                       {
@@ -824,40 +864,47 @@ const SpendingTrendsComponent: React.FC = () => {
                         mode: "lines+markers",
                         name: trend.category,
                         line: {
-                          color: "#80A1BA",
+                          color: theme.primary[500],
                           width: 3,
                           shape: "spline",
                         },
                         marker: {
-                          color: "#91C4C3",
+                          color: theme.secondary[500],
                           size: 8,
                           line: {
-                            color: "#80A1BA",
+                            color: theme.primary[500],
                             width: 2,
                           },
                         },
                         fill: "tonexty",
-                        fillcolor: "rgba(128, 161, 186, 0.1)",
+                        fillcolor: `${theme.primary[500]}1A`,
                       },
                     ]}
                     layout={{
-                      title: `Spending Trend: ${trend.category}`,
+                      title: {
+                        text: `Spending Trend: ${trend.category}`,
+                        font: { color: theme.text.primary },
+                      },
                       xaxis: {
                         title: "Month",
-                        color: "#94a3b8",
-                        gridcolor: "#374151",
+                        color: theme.text.secondary,
+                        gridcolor: isLightTheme
+                          ? theme.border.secondary
+                          : theme.border.primary,
                         showgrid: true,
                       },
                       yaxis: {
                         title: "Amount ($)",
-                        color: "#94a3b8",
-                        gridcolor: "#374151",
+                        color: theme.text.secondary,
+                        gridcolor: isLightTheme
+                          ? theme.border.secondary
+                          : theme.border.primary,
                         showgrid: true,
                         tickformat: "$,.0f",
                       },
                       plot_bgcolor: "rgba(0,0,0,0)",
                       paper_bgcolor: "rgba(0,0,0,0)",
-                      font: { color: "#94a3b8" },
+                      font: { color: theme.text.tertiary },
                       margin: { t: 40, b: 40, l: 60, r: 20 },
                       hovermode: "closest",
                       showlegend: false,
@@ -879,12 +926,12 @@ const SpendingTrendsComponent: React.FC = () => {
                     return (
                       <div
                         key={month.name}
-                        className="bg-slate-800/30 rounded p-2 text-center"
+                        className="bg-background-secondary/30 rounded p-2 text-center"
                       >
-                        <div className="text-slate-300 font-medium">
+                        <div className="text-text-secondary font-medium">
                           {month.name}
                         </div>
-                        <div className="text-slate-400">
+                        <div className="text-text-tertiary">
                           {formatCurrency(amount)}
                         </div>
                       </div>

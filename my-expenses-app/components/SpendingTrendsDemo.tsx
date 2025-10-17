@@ -100,11 +100,11 @@ const SpendingTrendsDemo: React.FC = () => {
   return (
     <div className="w-full space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-white flex items-center space-x-2">
-          <FiCalendar className="text-[#80A1BA]" />
+        <h2 className="text-2xl font-bold text-text-primary flex items-center space-x-2">
+          <FiCalendar className="text-[colors.primary.500]" />
           <span>Spending Trends Demo</span>
         </h2>
-        <div className="text-sm text-slate-400">
+        <div className="text-sm text-text-tertiary">
           📊 Sample data for demonstration
         </div>
       </div>
@@ -114,15 +114,15 @@ const SpendingTrendsDemo: React.FC = () => {
         {mockMonthlyData.map((month) => (
           <div
             key={month.month}
-            className="bg-slate-900/50 rounded-xl p-4 border border-slate-600/30"
+            className="bg-background-primary/50 rounded-xl p-4 border border-border-primary/30"
           >
-            <h3 className="text-lg font-semibold text-white mb-3">
+            <h3 className="text-lg font-semibold text-text-primary mb-3">
               {month.month}
             </h3>
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-slate-400">Total Spending</span>
-                <span className="text-white font-semibold">
+                <span className="text-text-tertiary">Total Spending</span>
+                <span className="text-text-primary font-semibold">
                   {formatCurrency(month.totalSpending)}
                 </span>
               </div>
@@ -132,16 +132,16 @@ const SpendingTrendsDemo: React.FC = () => {
                     key={category.category}
                     className="flex justify-between items-center text-sm"
                   >
-                    <span className="text-slate-300 truncate">
+                    <span className="text-text-secondary truncate">
                       {category.category}
                     </span>
                     <div className="flex items-center space-x-2">
-                      <span className="text-slate-400">
+                      <span className="text-text-tertiary">
                         {formatCurrency(category.amount)}
                       </span>
-                      <div className="w-16 bg-slate-700 rounded-full h-1.5">
+                      <div className="w-16 bg-background-tertiary rounded-full h-1.5">
                         <div
-                          className="bg-gradient-to-r from-[#80A1BA] to-[#91C4C3] h-1.5 rounded-full"
+                          className="bg-gradient-to-r from-[colors.primary.500] to-[colors.secondary.500] h-1.5 rounded-full"
                           style={{ width: `${category.percentage}%` }}
                         />
                       </div>
@@ -155,31 +155,31 @@ const SpendingTrendsDemo: React.FC = () => {
       </div>
 
       {/* Category Trends */}
-      <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-600/30">
-        <h3 className="text-xl font-semibold text-white mb-4">
+      <div className="bg-background-primary/50 rounded-xl p-6 border border-border-primary/30">
+        <h3 className="text-xl font-semibold text-text-primary mb-4">
           Category Trends
         </h3>
         <div className="space-y-4">
           {mockTrends.map((trend) => (
             <div
               key={trend.category}
-              className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg"
+              className="flex items-center justify-between p-4 bg-background-secondary/50 rounded-lg"
             >
               <div className="flex items-center space-x-3">
                 {getTrendIcon(trend.trend)}
-                <span className="text-white font-medium">{trend.category}</span>
+                <span className="text-text-primary font-medium">{trend.category}</span>
               </div>
               <div className="flex items-center space-x-4">
                 <div className="text-right">
-                  <div className="text-sm text-slate-400">Latest Month</div>
-                  <div className="text-white font-semibold">
+                  <div className="text-sm text-text-tertiary">Latest Month</div>
+                  <div className="text-text-primary font-semibold">
                     {formatCurrency(
                       Object.values(trend.monthlyAmounts).slice(-1)[0] || 0
                     )}
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-sm text-slate-400">Change</div>
+                  <div className="text-sm text-text-tertiary">Change</div>
                   <div
                     className={`font-semibold ${getTrendColor(trend.trend)}`}
                   >
@@ -194,16 +194,16 @@ const SpendingTrendsDemo: React.FC = () => {
       </div>
 
       {/* Monthly Comparison Chart */}
-      <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-600/30">
-        <h3 className="text-xl font-semibold text-white mb-4">
+      <div className="bg-background-primary/50 rounded-xl p-6 border border-border-primary/30">
+        <h3 className="text-xl font-semibold text-text-primary mb-4">
           Monthly Comparison
         </h3>
         <div className="space-y-3">
           {mockTrends.slice(0, 3).map((trend) => (
             <div key={trend.category} className="space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-white font-medium">{trend.category}</span>
-                <span className="text-slate-400 text-sm">
+                <span className="text-text-primary font-medium">{trend.category}</span>
+                <span className="text-text-tertiary text-sm">
                   {formatCurrency(
                     Object.values(trend.monthlyAmounts).reduce(
                       (sum, amount) => sum + amount,
@@ -227,15 +227,15 @@ const SpendingTrendsDemo: React.FC = () => {
                       className="flex-1 flex flex-col items-center space-y-1"
                     >
                       <div
-                        className="w-full bg-slate-700 rounded-t"
+                        className="w-full bg-background-tertiary rounded-t"
                         style={{ height: "60px" }}
                       >
                         <div
-                          className="bg-gradient-to-t from-[#80A1BA] to-[#91C4C3] rounded-t transition-all duration-500"
+                          className="bg-gradient-to-t from-[colors.primary.500] to-[colors.secondary.500] rounded-t transition-all duration-500"
                           style={{ height: `${height}%` }}
                         />
                       </div>
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs text-text-tertiary">
                         {month.slice(0, 3)}
                       </span>
                       <span className="text-xs text-slate-500">

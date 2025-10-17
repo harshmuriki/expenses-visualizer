@@ -5,7 +5,7 @@ import { FaGithub, FaLinkedin, FaTwitter } from "react-icons/fa";
 
 const Footer: React.FC = () => {
   return (
-    <footer className="bg-slate-900/70 backdrop-blur-sm border-t border-slate-700/50 text-slate-200 py-6 mt-auto w-full">
+    <footer className="bg-background-primary/70 backdrop-blur-sm border-t border-border-secondary/50 text-text-primary py-6 mt-auto w-full">
       <div className="container mx-auto flex flex-col md:flex-row justify-between items-center px-6">
         {/* Left Section: Text */}
         <div className="text-center md:text-left">
@@ -13,14 +13,14 @@ const Footer: React.FC = () => {
             Built by{" "}
             <a
               href="https://harshmuriki.com"
-              className="underline text-[#91C4C3] hover:text-[#7AAFAD] transition"
+              className="underline text-[colors.secondary.500] hover:text-[colors.secondary.600] transition"
               target="_blank"
               rel="noopener noreferrer"
             >
               Harsh
             </a>
           </p>
-          <p className="text-xs mt-1 text-slate-400">
+          <p className="text-xs mt-1 text-text-tertiary">
             © {new Date().getFullYear()} All rights reserved.
           </p>
         </div>
@@ -29,7 +29,7 @@ const Footer: React.FC = () => {
         <div className="text-center md:text-right mt-4 md:mt-0 flex space-x-4">
           <a
             href="https://github.com/harshmuriki"
-            className="text-[#80A1BA] hover:text-[#91C4C3] text-xl transition transform hover:scale-110"
+            className="text-[colors.primary.500] hover:text-[colors.secondary.500] text-xl transition transform hover:scale-110"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="GitHub"
@@ -38,7 +38,7 @@ const Footer: React.FC = () => {
           </a>
           <a
             href="https://www.linkedin.com/in/venkata-harsh-muriki/"
-            className="text-[#80A1BA] hover:text-[#91C4C3] text-xl transition transform hover:scale-110"
+            className="text-[colors.primary.500] hover:text-[colors.secondary.500] text-xl transition transform hover:scale-110"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="LinkedIn"
@@ -47,7 +47,7 @@ const Footer: React.FC = () => {
           </a>
           <a
             href="https://twitter.com/harshmuriki24"
-            className="text-[#80A1BA] hover:text-[#91C4C3] text-xl transition transform hover:scale-110"
+            className="text-[colors.primary.500] hover:text-[colors.secondary.500] text-xl transition transform hover:scale-110"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Twitter"

@@ -3,24 +3,35 @@
 @tailwind utilities;
 
 :root {
-  --background: #1e293b; /* slate-800 */
-  --foreground: #f1f5f9; /* slate-100 */
-  --primary: #80a1ba; /* blue-grey */
-  --secondary: #91c4c3; /* teal */
-  --success: #b4debd; /* mint green */
-  --accent: #fff7dd; /* cream */
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f172a; /* slate-900 */
-    --foreground: #f1f5f9; /* slate-100 */
-  }
+  /* Legacy variables - will be overridden by theme system */
+  --background: #1e293b;
+  --foreground: #f1f5f9;
 }
 
 body {
-  color: var(--foreground);
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-  background-attachment: fixed;
+  /* Use theme-aware CSS variables */
+  color: var(--color-text-primary, #f1f5f9);
+  background: var(--color-background-primary, #1e293b);
   font-family: Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+}
+
+/* Smooth theme transitions */
+.theme-transition,
+.theme-transition *,
+.theme-transition *::before,
+.theme-transition *::after {
+  transition: background-color 0.3s ease-in-out,
+              border-color 0.3s ease-in-out,
+              color 0.3s ease-in-out,
+              fill 0.3s ease-in-out,
+              stroke 0.3s ease-in-out !important;
+}
+
+/* Prevent transitions on page load */
+.no-transitions,
+.no-transitions *,
+.no-transitions *::before,
+.no-transitions *::after {
+  transition: none !important;
 }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { InputModalProps } from "@/app/types/types";
+import { useTheme } from "@/lib/theme-context";
 
 const InputModal: React.FC<InputModalProps> = ({
   clickedNode,
@@ -9,6 +10,7 @@ const InputModal: React.FC<InputModalProps> = ({
   onClose,
   parentOptions,
 }) => {
+  const { theme } = useTheme();
   const [newParentName, setNewParentName] = useState(initialParentName);
   const [isCreatingNewParent, setIsCreatingNewParent] = useState(false);
   const [newPrice, setNewPrice] = useState(initialPrice);
@@ -47,7 +49,7 @@ const InputModal: React.FC<InputModalProps> = ({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [newParentName, newPrice]);
+  }, [newParentName, newPrice, handleSubmit, onClose]);
 
   return (
     <div
@@ -56,12 +58,12 @@ const InputModal: React.FC<InputModalProps> = ({
         top: "50%",
         left: "50%",
         transform: "translate(-50%, -50%)",
-        backgroundColor: "#1e293b", // slate-800
+        backgroundColor: theme.background.secondary,
         padding: "40px",
         borderRadius: "20px",
         boxShadow: "0 20px 60px rgba(0, 0, 0, 0.5)",
-        border: "1px solid #475569", // slate-600
-        color: "#f1f5f9", // slate-100
+        border: `1px solid ${theme.border.primary}`,
+        color: theme.text.primary,
         maxWidth: "500px",
         width: "100%",
         boxSizing: "border-box",
@@ -74,7 +76,7 @@ const InputModal: React.FC<InputModalProps> = ({
           margin: "0 0 20px",
           fontSize: "1.8rem",
           textAlign: "center",
-          background: "linear-gradient(to right, #91C4C3, #B4DEBD)",
+          background: `linear-gradient(to right, ${theme.secondary[500]}, ${theme.accent[500]})`,
           WebkitBackgroundClip: "text",
           WebkitTextFillColor: "transparent",
           backgroundClip: "text",
@@ -88,11 +90,11 @@ const InputModal: React.FC<InputModalProps> = ({
           margin: "10px 0 20px",
           fontSize: "1.1rem",
           textAlign: "center",
-          color: "#cbd5e1", // slate-300
+          color: theme.text.secondary,
         }}
       >
         Transaction:{" "}
-        <span style={{ fontWeight: "600", color: "#80A1BA" }}>
+        <span style={{ fontWeight: "600", color: theme.primary[500] }}>
           {clickedNode.name}
         </span>
       </h2>
@@ -103,7 +105,7 @@ const InputModal: React.FC<InputModalProps> = ({
             display: "block",
             marginBottom: "8px",
             fontWeight: "600",
-            color: "#cbd5e1",
+            color: theme.text.secondary,
           }}
         >
           New Category:
@@ -115,24 +117,41 @@ const InputModal: React.FC<InputModalProps> = ({
             width: "100%",
             padding: "12px",
             borderRadius: "10px",
-            border: "1px solid #475569",
-            backgroundColor: "#0f172a",
-            color: "#f1f5f9",
+            border: `1px solid ${theme.border.primary}`,
+            backgroundColor: theme.background.primary,
+            color: theme.text.primary,
             boxSizing: "border-box",
             fontSize: "1rem",
             cursor: "pointer",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = theme.primary[500];
+            e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = theme.border.primary;
+            e.currentTarget.style.boxShadow = "none";
           }}
         >
           {parentOptions.map((parent) => (
             <option
               key={parent}
               value={parent}
-              style={{ backgroundColor: "#1e293b" }}
+              style={{
+                backgroundColor: theme.background.secondary,
+                color: theme.text.primary,
+              }}
             >
               {parent}
             </option>
           ))}
-          <option value="createNew" style={{ backgroundColor: "#1e293b" }}>
+          <option
+            value="createNew"
+            style={{
+              backgroundColor: theme.background.secondary,
+              color: theme.text.primary,
+            }}
+          >
             Create New Category
           </option>
         </select>
@@ -147,11 +166,27 @@ const InputModal: React.FC<InputModalProps> = ({
               padding: "12px",
               marginTop: "12px",
               borderRadius: "10px",
-              border: "1px solid #91C4C3",
-              backgroundColor: "#0f172a",
-              color: "#f1f5f9",
+              border: `1px solid ${theme.secondary[500]}`,
+              backgroundColor: theme.background.primary,
+              color: theme.text.primary,
               boxSizing: "border-box",
               fontSize: "1rem",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = theme.primary[500];
+              e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = theme.secondary[500];
+              e.currentTarget.style.boxShadow = "none";
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = theme.primary[500];
+              e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = theme.secondary[500];
+              e.currentTarget.style.boxShadow = "none";
             }}
           />
         )}
@@ -162,7 +197,7 @@ const InputModal: React.FC<InputModalProps> = ({
             display: "block",
             marginBottom: "8px",
             fontWeight: "600",
-            color: "#cbd5e1",
+            color: theme.text.secondary,
           }}
         >
           New Price:
@@ -175,12 +210,28 @@ const InputModal: React.FC<InputModalProps> = ({
             width: "100%",
             padding: "12px",
             borderRadius: "10px",
-            border: "1px solid #475569",
-            backgroundColor: "#0f172a",
-            color: "#B4DEBD",
+            border: `1px solid ${theme.border.primary}`,
+            backgroundColor: theme.background.primary,
+            color: theme.accent[500],
             boxSizing: "border-box",
             fontSize: "1.1rem",
             fontWeight: "600",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = theme.primary[500];
+            e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = theme.border.primary;
+            e.currentTarget.style.boxShadow = "none";
+          }}
+          onFocus={(e) => {
+            e.currentTarget.style.borderColor = theme.primary[500];
+            e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.borderColor = theme.border.primary;
+            e.currentTarget.style.boxShadow = "none";
           }}
         />
       </div>
@@ -195,7 +246,7 @@ const InputModal: React.FC<InputModalProps> = ({
           onClick={handleSubmit}
           style={{
             flex: 1,
-            background: "linear-gradient(to right, #80A1BA, #91C4C3)",
+            background: `linear-gradient(to right, ${theme.primary[500]}, ${theme.secondary[500]})`,
             color: "white",
             border: "none",
             padding: "14px 24px",
@@ -203,7 +254,7 @@ const InputModal: React.FC<InputModalProps> = ({
             cursor: "pointer",
             fontSize: "1rem",
             fontWeight: "600",
-            boxShadow: "0 4px 12px rgba(128, 161, 186, 0.3)",
+            boxShadow: `0 4px 12px ${theme.primary[500]}30`,
             transition: "all 0.3s",
           }}
           onMouseEnter={(e) =>
@@ -217,7 +268,7 @@ const InputModal: React.FC<InputModalProps> = ({
           onClick={onClose}
           style={{
             flex: 1,
-            background: "linear-gradient(to right, #ef4444, #dc2626)",
+            background: `linear-gradient(to right, ${theme.semantic.error}, #dc2626)`,
             color: "white",
             border: "none",
             padding: "14px 24px",
@@ -225,7 +276,7 @@ const InputModal: React.FC<InputModalProps> = ({
             cursor: "pointer",
             fontSize: "1rem",
             fontWeight: "600",
-            boxShadow: "0 4px 12px rgba(239, 68, 68, 0.3)",
+            boxShadow: `0 4px 12px ${theme.semantic.error}30`,
             transition: "all 0.3s",
           }}
           onMouseEnter={(e) =>

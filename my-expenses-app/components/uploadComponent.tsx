@@ -297,9 +297,9 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
   return (
     <div className="flex flex-col items-center justify-center space-y-4 p-6">
       {/* PLALD SIGN-IN TEMPORARILY DISABLED */}
-      {/* <div className="w-full space-y-3 rounded-xl border border-slate-600/50 bg-slate-900/50 p-5 backdrop-blur-sm">
-        <h3 className="text-lg font-semibold text-white">Connect accounts</h3>
-        <p className="text-sm text-slate-300">
+      {/* <div className="w-full space-y-3 rounded-xl border border-border-primary/50 bg-background-primary/50 p-5 backdrop-blur-sm">
+        <h3 className="text-lg font-semibold text-text-primary">Connect accounts</h3>
+        <p className="text-sm text-text-secondary">
           Link a bank or card account securely to automatically import
           transactions.
         </p>
@@ -308,8 +308,8 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
           disabled={isLinking || isSyncing || !isPlaidReady}
           className={`w-full rounded-lg px-4 py-2.5 font-semibold transition-all transform ${
             isLinking || isSyncing || !isPlaidReady
-              ? "bg-slate-700 text-slate-400 cursor-not-allowed"
-              : "bg-gradient-to-r from-[#B4DEBD] to-[#91C4C3] hover:from-[#9AC9A4] hover:to-[#7AAFAD] text-white shadow-lg hover:scale-105"
+              ? "bg-background-tertiary text-text-tertiary cursor-not-allowed"
+              : "bg-gradient-to-r from-accent-500 to-secondary-500 hover:from-accent-600 hover:to-secondary-600 text-text-primary shadow-lg hover:scale-105"
           }`}
         >
           {isLinking
@@ -320,15 +320,15 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
         </button>
         {linkError && <p className="text-sm text-red-400">{linkError}</p>}
         {lastSyncMessage && (
-          <p className="text-sm text-[#B4DEBD]">{lastSyncMessage}</p>
+          <p className="text-sm text-accent-500">{lastSyncMessage}</p>
         )}
       </div> */}
 
       <label className="flex flex-col items-center w-full">
-        <span className="mb-2 font-semibold text-white">
+        <span className="mb-2 font-semibold text-text-primary">
           Upload Multiple CSV Files
         </span>
-        <p className="text-xs text-slate-400 mb-2">
+        <p className="text-xs text-text-tertiary mb-2">
           Select CSV files - they will be combined with AI-detected bank names
         </p>
         <input
@@ -336,17 +336,17 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
           accept=".csv"
           multiple
           onChange={handleFileChange}
-          className="p-3 border border-slate-600 rounded-lg bg-slate-900/50 text-slate-200 w-full cursor-pointer hover:border-[#80A1BA] transition file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-[#80A1BA] file:text-white file:cursor-pointer hover:file:bg-[#6B8BA4]"
+          className="p-3 border border-border-primary rounded-lg bg-background-primary/50 text-text-primary w-full cursor-pointer hover:border-primary-500 transition file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary-500 file:text-white file:cursor-pointer hover:file:bg-primary-600"
         />
         {files && files.length > 0 && (
-          <p className="text-xs text-slate-400 mt-2">
+          <p className="text-xs text-text-tertiary mt-2">
             Selected {files.length} CSV file(s)
           </p>
         )}
       </label>
 
       <div className="flex flex-col w-full">
-        <label htmlFor="month" className="mb-2 font-semibold text-white">
+        <label htmlFor="month" className="mb-2 font-semibold text-text-primary">
           Enter New Month
         </label>
         <div className="relative">
@@ -356,13 +356,13 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
             value={month}
             onChange={(e) => setMonth(e.target.value)}
             placeholder="e.g. January, or 2023-01"
-            className="p-3 border border-slate-600 rounded-lg bg-slate-900/50 text-slate-200 placeholder-slate-500 focus:border-[#91C4C3] focus:ring-2 focus:ring-[#91C4C3]/30 transition w-full"
+            className="p-3 border border-border-primary rounded-lg bg-background-primary/50 text-text-primary placeholder-slate-500 focus:border-secondary-500 focus:ring-2 focus:ring-secondary-500/30 transition w-full"
           />
           {month && (
             <button
               type="button"
               onClick={() => setMonth("")}
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-200 transition"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-text-tertiary hover:text-text-primary transition"
             >
               ✕
             </button>
@@ -378,17 +378,17 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
         disabled={isUploading}
         className={`px-6 py-3 rounded-lg transition duration-300 font-semibold shadow-lg transform ${
           isUploading
-            ? "bg-slate-700 cursor-not-allowed text-slate-400"
-            : "bg-gradient-to-r from-[#80A1BA] to-[#91C4C3] hover:from-[#6B8BA4] hover:to-[#7AAFAD] text-white hover:scale-105"
+            ? "bg-background-tertiary cursor-not-allowed text-text-tertiary"
+            : "bg-gradient-to-r from-primary-500 to-secondary-500 hover:from-primary-600 hover:to-secondary-600 text-text-primary hover:scale-105"
         }`}
       >
         {/* Enhanced loading state */}
         {isUploading ? (
           <div className="flex items-center justify-center">
             <div className="relative mr-3">
-              <div className="w-5 h-5 border-2 border-slate-400 border-t-[#80A1BA] rounded-full animate-spin"></div>
+              <div className="w-5 h-5 border-2 border-slate-400 border-t-primary-500 rounded-full animate-spin"></div>
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-2 h-2 bg-[#91C4C3] rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-secondary-500 rounded-full animate-pulse"></div>
               </div>
             </div>
             <span>Uploading...</span>
@@ -401,20 +401,22 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
       {/* Enhanced Previous Months Section */}
       <div className="flex flex-col w-full">
         <div className="flex items-center justify-between mb-4">
-          <label className="text-lg font-semibold text-white">
+          <label className="text-lg font-semibold text-text-primary">
             Previous Months
           </label>
           {months.length > 0 && (
-            <span className="text-sm text-slate-400">
+            <span className="text-sm text-text-tertiary">
               {months.length} month{months.length !== 1 ? "s" : ""} available
             </span>
           )}
         </div>
 
         {months.length === 0 ? (
-          <div className="text-center py-8 bg-slate-800/30 rounded-xl border border-slate-700/50">
+          <div className="text-center py-8 bg-background-secondary/30 rounded-xl border border-border-secondary/50">
             <div className="text-4xl mb-3">📅</div>
-            <p className="text-slate-400 text-sm">No previous months found</p>
+            <p className="text-text-tertiary text-sm">
+              No previous months found
+            </p>
             <p className="text-slate-500 text-xs mt-1">
               Upload some CSV files to get started!
             </p>
@@ -428,14 +430,14 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
                   // Navigate directly to the chart page for this month
                   router.push(`/chart?month=${encodeURIComponent(eachMonth)}`);
                 }}
-                className="p-3 rounded-lg border transition-all duration-200 text-left bg-slate-800/50 border-slate-600 hover:border-[#80A1BA] text-slate-300 hover:bg-gradient-to-r hover:from-[#80A1BA]/10 hover:to-[#91C4C3]/10 hover:text-white group"
+                className="p-3 rounded-lg border transition-all duration-200 text-left bg-background-secondary/50 border-border-primary hover:border-primary-500 text-text-secondary hover:bg-gradient-to-r hover:from-primary-500/10 hover:to-secondary-500/10 hover:text-text-primary group"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <div className="w-2 h-2 rounded-full bg-slate-400 group-hover:bg-white transition-colors"></div>
                     <span className="font-medium">{eachMonth}</span>
                   </div>
-                  <div className="text-slate-400 group-hover:text-white transition-colors">
+                  <div className="text-text-tertiary group-hover:text-text-primary transition-colors">
                     →
                   </div>
                 </div>

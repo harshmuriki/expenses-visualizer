@@ -9,7 +9,7 @@ import type {
 } from "recharts/types/component/DefaultTooltipContent";
 import { SankeyNode, SankeyLink } from "@/app/types/types";
 import { FiX, FiEdit2, FiCheckCircle } from "react-icons/fi";
-import { COLORS } from "@/lib/colors";
+import { useTheme } from "@/lib/theme-context";
 import InsightsPanel from "./InsightsPanel";
 
 interface TreeMapChartProps {
@@ -25,8 +25,6 @@ interface TreeMapChartProps {
   excludedCategories?: string[];
 }
 
-const CHART_COLORS = COLORS.categories;
-
 const TreeMapChart: React.FC<TreeMapChartProps> = ({
   nodes,
   links,
@@ -34,8 +32,12 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
   insights = [],
   excludedCategories = [],
 }) => {
+  const { theme } = useTheme();
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+
+  // Use theme-aware category colors
+  const CHART_COLORS = theme.categories;
 
   // Close panel on ESC key
   React.useEffect(() => {
@@ -77,7 +79,7 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
       name: "Expenses",
       children: children.sort((a, b) => b.size - a.size),
     };
-  }, [nodes, links, excludedCategories]);
+  }, [nodes, links, excludedCategories, CHART_COLORS]);
 
   // Get transactions for selected category
   const selectedTransactions = useMemo(() => {
@@ -130,8 +132,8 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
           width={width + 0.5}
           height={height + 0.5}
           style={{
-            fill: color || COLORS.primary,
-            stroke: isHovered ? "#ffffff" : "none",
+            fill: color || theme.primary[500],
+            stroke: isHovered ? theme.text.primary : "none",
             strokeWidth: isHovered ? 3 : 0,
             cursor: "pointer",
             opacity: isHovered ? 1 : 1,
@@ -151,12 +153,13 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
               x={x + width / 2}
               y={y + height / 2 - 6}
               textAnchor="middle"
-              fill="#000000"
+              fill={theme.text.inverse}
               fontSize={fontSize}
               fontWeight="800"
               style={{
                 pointerEvents: "none",
                 letterSpacing: "0.3px",
+                textShadow: `0 1px 3px ${theme.background.primary}`,
               }}
             >
               {name && name.length > 20
@@ -167,11 +170,12 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
               x={x + width / 2}
               y={y + height / 2 + fontSize + 4}
               textAnchor="middle"
-              fill="#000000"
+              fill={theme.text.inverse}
               fontSize={valueFontSize}
               fontWeight="800"
               style={{
                 pointerEvents: "none",
+                textShadow: `0 1px 3px ${theme.background.primary}`,
               }}
             >
               ${(size || 0).toFixed(0)}
@@ -191,17 +195,17 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
     const data = payload[0].payload;
 
     return (
-      <div className="rounded-lg border border-slate-700 bg-slate-900/95 p-3 shadow-xl backdrop-blur">
-        <p className="font-semibold text-white">{data.name}</p>
+      <div className="rounded-lg border border-border-secondary bg-background-primary/95 p-3 shadow-xl backdrop-blur">
+        <p className="font-semibold text-text-primary">{data.name}</p>
         <p className="mt-1 text-lg font-bold text-emerald-400">
           ${data.size?.toFixed(2) || 0}
         </p>
         {data.transactionCount && (
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs text-text-tertiary">
             {data.transactionCount} transactions
           </p>
         )}
-        <p className="mt-2 text-xs text-[#91C4C3]">
+        <p className="mt-2 text-xs text-secondary-500">
           Click to view transactions
         </p>
       </div>
@@ -217,12 +221,14 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
     <div className="space-y-6">
       {/* TreeMap Visualization */}
       <div
-        className="border border-slate-800/60 bg-slate-900/40 shadow-2xl"
+        className="border border-slate-800/60 bg-background-primary/40 shadow-2xl"
         style={{ overflow: "hidden" }}
       >
         <div className="px-6 pt-6 pb-4 flex items-center justify-between">
-          <h3 className="text-xl font-bold text-white">Expense Categories</h3>
-          <p className="text-sm text-slate-400">
+          <h3 className="text-xl font-bold text-text-primary">
+            Expense Categories
+          </h3>
+          <p className="text-sm text-text-tertiary">
             Click any category to view transactions
           </p>
         </div>
@@ -256,23 +262,23 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
           onClick={() => setSelectedCategory(null)}
         >
           <div
-            className="w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl"
+            className="w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl border border-border-secondary bg-background-primary shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-700 bg-gradient-to-r from-[#80A1BA] to-[#91C4C3] p-6">
+            <div className="flex items-center justify-between border-b border-border-secondary bg-gradient-to-r from-primary-500 to-secondary-500 p-6">
               <div>
-                <h2 className="text-2xl font-bold text-white">
+                <h2 className="text-2xl font-bold text-text-primary">
                   {selectedCategoryNode?.name || "Category"}
                 </h2>
-                <p className="mt-1 text-sm text-white/90">
+                <p className="mt-1 text-sm text-text-primary/90">
                   {selectedTransactions.length} transactions · $
                   {totalCategoryAmount.toFixed(2)}
                 </p>
               </div>
               <button
                 onClick={() => setSelectedCategory(null)}
-                className="rounded-lg p-2 text-white transition hover:bg-white/20"
+                className="rounded-lg p-2 text-text-primary transition hover:bg-white/20"
               >
                 <FiX size={24} />
               </button>
@@ -289,19 +295,19 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
                     return (
                       <div
                         key={transaction.index}
-                        className="group relative rounded-xl border border-slate-700/60 bg-slate-800/50 p-4 transition-all hover:scale-[1.02]"
+                        className="group relative rounded-xl border border-border-secondary/60 bg-background-secondary/50 p-4 transition-all hover:scale-[1.02]"
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#80A1BA] text-xs font-bold text-white">
+                              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-500 text-xs font-bold text-text-primary">
                                 {idx + 1}
                               </span>
                               <div className="flex-1">
-                                <h3 className="font-semibold text-white">
+                                <h3 className="font-semibold text-text-primary">
                                   {transaction.name}
                                 </h3>
-                                <div className="mt-1 flex flex-wrap gap-3 text-xs text-slate-400">
+                                <div className="mt-1 flex flex-wrap gap-3 text-xs text-text-tertiary">
                                   {transaction.node?.date && (
                                     <span className="flex items-center gap-1">
                                       <span className="text-slate-500">📅</span>
@@ -330,7 +336,7 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
                               <p className="text-2xl font-bold text-emerald-400">
                                 ${transaction.amount.toFixed(2)}
                               </p>
-                              <p className="text-xs text-slate-400">
+                              <p className="text-xs text-text-tertiary">
                                 {(
                                   (transaction.amount / totalCategoryAmount) *
                                   100
@@ -346,7 +352,7 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
                                   100
                                 );
                               }}
-                              className="flex items-center gap-2 rounded-lg bg-[#80A1BA] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#6B8BA4] group-hover:shadow-lg"
+                              className="flex items-center gap-2 rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-text-primary transition hover:bg-primary-600 group-hover:shadow-lg"
                             >
                               <FiEdit2 size={14} />
                               Edit
@@ -358,7 +364,7 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
                   })}
                 </div>
               ) : (
-                <div className="flex h-40 items-center justify-center text-slate-400">
+                <div className="flex h-40 items-center justify-center text-text-tertiary">
                   <div className="text-center">
                     <FiCheckCircle className="mx-auto mb-2 h-12 w-12" />
                     <p>No transactions in this category</p>
@@ -368,13 +374,13 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
             </div>
 
             {/* Footer Summary */}
-            <div className="border-t border-slate-700 bg-slate-800/50 p-4">
+            <div className="border-t border-border-secondary bg-background-secondary/50 p-4">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-text-tertiary">
                   Showing {selectedTransactions.length} transaction
                   {selectedTransactions.length !== 1 ? "s" : ""}
                 </p>
-                <p className="text-sm font-semibold text-white">
+                <p className="text-sm font-semibold text-text-primary">
                   Total: ${totalCategoryAmount.toFixed(2)}
                 </p>
               </div>

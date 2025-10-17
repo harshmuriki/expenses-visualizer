@@ -49,20 +49,22 @@ const UploadedFilesPanel: React.FC<UploadedFilesPanelProps> = ({
     } else if (fileType.includes("csv")) {
       return <FiFileText className="h-5 w-5 text-green-400" />;
     }
-    return <FiFile className="h-5 w-5 text-slate-400" />;
+    return <FiFile className="h-5 w-5 text-text-tertiary" />;
   };
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-slate-800/60 bg-slate-900/70 p-5">
+      <div className="rounded-2xl border border-slate-800/60 bg-background-primary/70 p-5">
         <div className="flex items-center space-x-3">
           <div className="relative">
-            <div className="w-6 h-6 border-2 border-slate-600 border-t-[#80A1BA] rounded-full animate-spin"></div>
+            <div className="w-6 h-6 border-2 border-border-primary border-t-primary-500 rounded-full animate-spin"></div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-2 h-2 bg-[#91C4C3] rounded-full animate-pulse"></div>
+              <div className="w-2 h-2 bg-secondary-500 rounded-full animate-pulse"></div>
             </div>
           </div>
-          <p className="text-sm text-slate-400">Loading uploaded files...</p>
+          <p className="text-sm text-text-tertiary">
+            Loading uploaded files...
+          </p>
         </div>
       </div>
     );
@@ -73,20 +75,20 @@ const UploadedFilesPanel: React.FC<UploadedFilesPanelProps> = ({
   }
 
   return (
-    <div className="rounded-2xl border border-slate-800/60 bg-slate-900/70 p-5 shadow-lg">
+    <div className="rounded-2xl border border-slate-800/60 bg-background-primary/70 p-5 shadow-lg">
       <div
         className="flex items-center justify-between cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div>
-          <h3 className="text-lg font-semibold text-white">
+          <h3 className="text-lg font-semibold text-text-primary">
             📎 Uploaded Files ({files.length})
           </h3>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-text-tertiary mt-1">
             {month} - Click to {isExpanded ? "collapse" : "expand"}
           </p>
         </div>
-        <button className="text-slate-400 hover:text-white transition">
+        <button className="text-text-tertiary hover:text-text-primary transition">
           {isExpanded ? <FiX size={20} /> : <FiEye size={20} />}
         </button>
       </div>
@@ -96,15 +98,15 @@ const UploadedFilesPanel: React.FC<UploadedFilesPanelProps> = ({
           {files.map((file) => (
             <div
               key={file.id}
-              className="group flex items-center justify-between rounded-lg border border-slate-700/50 bg-slate-800/30 p-3 transition-all hover:border-[#80A1BA] hover:bg-slate-800/50"
+              className="group flex items-center justify-between rounded-lg border border-border-secondary/50 bg-background-secondary/30 p-3 transition-all hover:border-primary-500 hover:bg-background-secondary/50"
             >
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 {getFileIcon(file.fileType)}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white truncate">
+                  <p className="text-sm font-medium text-text-primary truncate">
                     {file.fileName}
                   </p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-text-tertiary">
                     {formatFileSize(file.fileSize)} •{" "}
                     {new Date(file.uploadDate).toLocaleDateString("en-US", {
                       month: "short",
@@ -120,14 +122,14 @@ const UploadedFilesPanel: React.FC<UploadedFilesPanelProps> = ({
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleView(file)}
-                  className="rounded-lg bg-[#91C4C3] p-2 text-white transition hover:bg-[#7AAFAD] opacity-0 group-hover:opacity-100"
+                  className="rounded-lg bg-secondary-500 p-2 text-text-primary transition hover:bg-secondary-600 opacity-0 group-hover:opacity-100"
                   title="View file"
                 >
                   <FiEye size={16} />
                 </button>
                 <button
                   onClick={() => handleDownload(file)}
-                  className="rounded-lg bg-[#80A1BA] p-2 text-white transition hover:bg-[#6B8BA4]"
+                  className="rounded-lg bg-primary-500 p-2 text-text-primary transition hover:bg-primary-600"
                   title="Download file"
                 >
                   <FiDownload size={16} />

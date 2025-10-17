@@ -5,6 +5,7 @@ import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "./firebaseConfig";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
+// import { useTheme } from "@/lib/theme-context";
 import "../styles/loading-animations.css";
 
 interface ChartLoadingComponentProps {
@@ -16,6 +17,7 @@ const ChartLoadingComponent: React.FC<ChartLoadingComponentProps> = ({
   onDataLoaded,
   onError,
 }) => {
+  // const { theme } = useTheme();
   const [currentStep, setCurrentStep] = useState(1);
   const [processingStatus, setProcessingStatus] = useState(
     "🔄 Checking for data..."
@@ -147,8 +149,8 @@ const ChartLoadingComponent: React.FC<ChartLoadingComponentProps> = ({
   }, [session, onError, startPolling]);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-gray-200 flex items-center justify-center p-6">
-      <div className="w-full max-w-2xl space-y-6 p-6 rounded-xl bg-gradient-to-br from-slate-900/80 to-slate-800/80 border border-slate-600/30 backdrop-blur-sm">
+    <div className="min-h-screen bg-background-primary text-text-primary flex items-center justify-center p-6">
+      <div className="w-full max-w-2xl space-y-6 p-6 rounded-xl bg-background-secondary border border-border-secondary backdrop-blur-sm">
         {/* Progress Steps */}
         <div className="flex items-center justify-center space-x-4">
           {[1, 2, 3, 4].map((step) => (
@@ -156,14 +158,14 @@ const ChartLoadingComponent: React.FC<ChartLoadingComponentProps> = ({
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-700 ${
                   currentStep >= step
-                    ? "bg-gradient-to-r from-[#80A1BA] to-[#91C4C3] text-white shadow-lg animate-pulse-glow"
-                    : "bg-slate-700 text-slate-400"
+                    ? "bg-gradient-to-r from-primary-500 to-secondary-500 text-text-inverse shadow-lg animate-pulse-glow"
+                    : "bg-background-tertiary text-text-tertiary"
                 } ${currentStep === step ? "animate-float" : ""} ${
                   currentStep > step ? "animate-step-complete" : ""
                 }`}
               >
                 {currentStep > step ? (
-                  <span className="text-green-400">✓</span>
+                  <span className="text-emerald-400">✓</span>
                 ) : (
                   <span
                     className={
@@ -178,8 +180,8 @@ const ChartLoadingComponent: React.FC<ChartLoadingComponentProps> = ({
                 <div
                   className={`w-12 h-1 transition-all duration-700 rounded-full ${
                     currentStep > step
-                      ? "bg-gradient-to-r from-[#80A1BA] to-[#91C4C3] animate-shimmer"
-                      : "bg-slate-700"
+                      ? "bg-gradient-to-r from-primary-500 to-secondary-500 animate-shimmer"
+                      : "bg-background-tertiary"
                   }`}
                 />
               )}
@@ -192,8 +194,8 @@ const ChartLoadingComponent: React.FC<ChartLoadingComponentProps> = ({
           <span
             className={`transition-colors duration-500 ${
               currentStep >= 1
-                ? "text-[#80A1BA] animate-gradient-text"
-                : "text-slate-400"
+                ? "text-primary-500 animate-gradient-text"
+                : "text-text-tertiary"
             }`}
           >
             Waiting
@@ -201,8 +203,8 @@ const ChartLoadingComponent: React.FC<ChartLoadingComponentProps> = ({
           <span
             className={`transition-colors duration-500 ${
               currentStep >= 2
-                ? "text-[#80A1BA] animate-gradient-text"
-                : "text-slate-400"
+                ? "text-primary-500 animate-gradient-text"
+                : "text-text-tertiary"
             }`}
           >
             Checking
@@ -210,8 +212,8 @@ const ChartLoadingComponent: React.FC<ChartLoadingComponentProps> = ({
           <span
             className={`transition-colors duration-500 ${
               currentStep >= 3
-                ? "text-[#80A1BA] animate-gradient-text"
-                : "text-slate-400"
+                ? "text-primary-500 animate-gradient-text"
+                : "text-text-tertiary"
             }`}
           >
             Processing
@@ -219,8 +221,8 @@ const ChartLoadingComponent: React.FC<ChartLoadingComponentProps> = ({
           <span
             className={`transition-colors duration-500 ${
               currentStep >= 4
-                ? "text-[#80A1BA] animate-gradient-text"
-                : "text-slate-400"
+                ? "text-primary-500 animate-gradient-text"
+                : "text-text-tertiary"
             }`}
           >
             Complete
@@ -229,9 +231,9 @@ const ChartLoadingComponent: React.FC<ChartLoadingComponentProps> = ({
 
         {/* Animated Processing Display */}
         <div className="relative">
-          <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden shadow-inner">
+          <div className="w-full h-3 bg-background-tertiary rounded-full overflow-hidden shadow-inner">
             <div
-              className="h-full bg-gradient-to-r from-[#80A1BA] to-[#91C4C3] rounded-full transition-all duration-1000 ease-out animate-progress-glow animate-shimmer"
+              className="h-full bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full transition-all duration-1000 ease-out animate-progress-glow animate-shimmer"
               style={{ width: `${(currentStep / 4) * 100}%` }}
             />
           </div>
@@ -241,7 +243,7 @@ const ChartLoadingComponent: React.FC<ChartLoadingComponentProps> = ({
             {[...Array(8)].map((_, i) => (
               <div
                 key={i}
-                className="absolute w-1.5 h-1.5 bg-[#91C4C3] rounded-full animate-particle-float opacity-60"
+                className="absolute w-1.5 h-1.5 bg-secondary-500 rounded-full animate-particle-float opacity-60"
                 style={{
                   left: `${Math.random() * 100}%`,
                   top: `${Math.random() * 100}%`,
@@ -256,39 +258,39 @@ const ChartLoadingComponent: React.FC<ChartLoadingComponentProps> = ({
         {/* Status Message */}
         <div className="text-center space-y-3">
           <div className="flex items-center justify-center space-x-2">
-            <div className="w-3 h-3 bg-[#80A1BA] rounded-full animate-pulse animate-float" />
+            <div className="w-3 h-3 bg-primary-500 rounded-full animate-pulse animate-float" />
             <div
-              className="w-3 h-3 bg-[#91C4C3] rounded-full animate-pulse animate-float"
+              className="w-3 h-3 bg-secondary-500 rounded-full animate-pulse animate-float"
               style={{ animationDelay: "0.2s" }}
             />
             <div
-              className="w-3 h-3 bg-[#B4DEBD] rounded-full animate-pulse animate-float"
+              className="w-3 h-3 bg-accent-500 rounded-full animate-pulse animate-float"
               style={{ animationDelay: "0.4s" }}
             />
           </div>
-          <p className="text-sm text-slate-200 font-medium animate-gradient-text">
+          <p className="text-sm text-text-primary font-medium animate-gradient-text">
             {processingStatus}
           </p>
           {currentStep === 3 && (
             <div className="space-y-2">
-              <p className="text-xs text-slate-400 animate-loading-dots">
+              <p className="text-xs text-text-tertiary animate-loading-dots">
                 AI is analyzing your transactions and categorizing them
               </p>
               <div className="flex justify-center space-x-1">
-                <div className="w-2 h-2 bg-[#80A1BA] rounded-full animate-bounce" />
+                <div className="w-2 h-2 bg-primary-500 rounded-full animate-bounce" />
                 <div
-                  className="w-2 h-2 bg-[#91C4C3] rounded-full animate-bounce"
+                  className="w-2 h-2 bg-secondary-500 rounded-full animate-bounce"
                   style={{ animationDelay: "0.1s" }}
                 />
                 <div
-                  className="w-2 h-2 bg-[#B4DEBD] rounded-full animate-bounce"
+                  className="w-2 h-2 bg-accent-500 rounded-full animate-bounce"
                   style={{ animationDelay: "0.2s" }}
                 />
               </div>
             </div>
           )}
           {currentStep === 4 && (
-            <div className="text-green-400 font-semibold animate-pulse">
+            <div className="text-emerald-400 font-semibold animate-pulse">
               🎉 Data loaded! Preparing your chart...
             </div>
           )}

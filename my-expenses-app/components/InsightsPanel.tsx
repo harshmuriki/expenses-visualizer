@@ -10,6 +10,7 @@ import {
   FiTrendingDown,
 } from "react-icons/fi";
 import { SpendingInsight, SpendingPrediction } from "@/lib/aiAnalytics";
+import { useTheme } from "@/lib/theme-context";
 
 interface InsightsPanelProps {
   insights: SpendingInsight[];
@@ -20,6 +21,9 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
   insights,
   predictions,
 }) => {
+  const { themeName } = useTheme();
+  const isLightTheme = themeName === 'cherryBlossom' || themeName === 'nordic';
+
   const getIcon = (type: SpendingInsight["type"]) => {
     switch (type) {
       case "warning":
@@ -36,27 +40,30 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
   };
 
   const getColorClasses = (type: SpendingInsight["type"]) => {
+    // Use dark text for light themes
+    const textColor = isLightTheme ? "text-text-primary" : "";
+
     switch (type) {
       case "warning":
-        return "border-amber-500/40 bg-amber-500/10 text-amber-200";
+        return `border-amber-500/40 bg-amber-500/10 ${isLightTheme ? "text-amber-900" : "text-amber-200"}`;
       case "info":
-        return "border-[#91C4C3]/40 bg-[#91C4C3]/10 text-[#C8E5E4]";
+        return `border-secondary-500/40 bg-secondary-500/10 ${isLightTheme ? "text-secondary-900" : "text-secondary-200"}`;
       case "success":
-        return "border-[#B4DEBD]/40 bg-[#B4DEBD]/10 text-[#D9EDDE]";
+        return `border-accent-500/40 bg-accent-500/10 ${isLightTheme ? "text-accent-900" : "text-accent-200"}`;
       case "tip":
-        return "border-[#80A1BA]/40 bg-[#80A1BA]/10 text-[#C2D4E0]";
+        return `border-primary-500/40 bg-primary-500/10 ${isLightTheme ? "text-primary-900" : "text-primary-200"}`;
       default:
-        return "border-slate-500/40 bg-slate-500/10 text-slate-200";
+        return `border-border-secondary/40 bg-slate-500/10 ${textColor || "text-text-primary"}`;
     }
   };
 
   return (
     <div className="space-y-6">
       {/* AI Insights Section */}
-      <section className="rounded-2xl border border-slate-800/60 bg-slate-900/70 p-6">
+      <section className="rounded-2xl border border-border-secondary bg-background-card p-6">
         <div className="mb-4 flex items-center gap-2">
-          <FiZap className="h-5 w-5 text-[#80A1BA]" />
-          <h3 className="text-lg font-semibold text-white">AI Insights</h3>
+          <FiZap className="h-5 w-5 text-primary-500" />
+          <h3 className="text-lg font-semibold text-text-primary">AI Insights</h3>
         </div>
 
         {insights.length > 0 ? (
@@ -86,9 +93,9 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
             ))}
           </div>
         ) : (
-          <div className="rounded-xl border border-slate-700/60 bg-slate-800/50 p-6 text-center">
-            <FiInfo className="mx-auto mb-2 h-8 w-8 text-slate-500" />
-            <p className="text-sm text-slate-400">
+          <div className="rounded-xl border border-border-secondary/60 bg-background-secondary/50 p-6 text-center">
+            <FiInfo className="mx-auto mb-2 h-8 w-8 text-text-tertiary" />
+            <p className="text-sm text-text-tertiary">
               No insights available yet. Upload more transaction data to get
               personalized recommendations.
             </p>
@@ -98,10 +105,10 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
 
       {/* Predictions Section */}
       {predictions && predictions.length > 0 && (
-        <section className="rounded-2xl border border-slate-800/60 bg-slate-900/70 p-6">
+        <section className="rounded-2xl border border-border-secondary bg-background-card p-6">
           <div className="mb-4 flex items-center gap-2">
-            <FiTrendingUp className="h-5 w-5 text-[#91C4C3]" />
-            <h3 className="text-lg font-semibold text-white">
+            <FiTrendingUp className="h-5 w-5 text-secondary-500" />
+            <h3 className="text-lg font-semibold text-text-primary">
               Spending Predictions
             </h3>
           </div>
@@ -110,30 +117,30 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
             {predictions.slice(0, 5).map((prediction, index) => (
               <div
                 key={index}
-                className="flex items-center justify-between rounded-xl border border-slate-700/60 bg-slate-800/50 p-4"
+                className="flex items-center justify-between rounded-xl border border-border-secondary/60 bg-background-secondary/50 p-4"
               >
                 <div className="flex items-center gap-3">
                   {prediction.trend === "increasing" ? (
-                    <FiTrendingUp className="h-5 w-5 text-red-400" />
+                    <FiTrendingUp className="h-5 w-5 text-red-500" />
                   ) : prediction.trend === "decreasing" ? (
-                    <FiTrendingDown className="h-5 w-5 text-[#B4DEBD]" />
+                    <FiTrendingDown className="h-5 w-5 text-accent-500" />
                   ) : (
-                    <div className="h-5 w-5 text-slate-400">→</div>
+                    <div className="h-5 w-5 text-text-tertiary">→</div>
                   )}
                   <div>
-                    <p className="font-medium text-slate-200">
+                    <p className="font-medium text-text-primary">
                       {prediction.category}
                     </p>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-text-tertiary">
                       {prediction.confidence.toFixed(0)}% confidence
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-white">
+                  <p className="font-semibold text-text-primary">
                     ${prediction.predictedAmount.toFixed(2)}
                   </p>
-                  <p className="text-xs capitalize text-slate-400">
+                  <p className="text-xs capitalize text-text-tertiary">
                     {prediction.trend}
                   </p>
                 </div>
@@ -141,8 +148,8 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
             ))}
           </div>
 
-          <div className="mt-4 rounded-lg bg-slate-800/50 p-3">
-            <p className="text-xs text-slate-400">
+          <div className="mt-4 rounded-lg bg-background-secondary/50 p-3">
+            <p className="text-xs text-text-tertiary">
               💡 Predictions are based on your current spending patterns and
               historical trends. Actual spending may vary.
             </p>

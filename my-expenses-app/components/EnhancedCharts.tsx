@@ -61,12 +61,12 @@ const EnhancedCharts: React.FC<EnhancedChartsProps> = ({
     if (active && payload && payload.length) {
       const data = payload[0];
       return (
-        <div className="rounded-lg border border-slate-700 bg-slate-900/95 p-3 shadow-lg">
-          <p className="font-semibold text-white">{data.name}</p>
-          <p className="mt-1 text-[#B4DEBD]">
+        <div className="rounded-lg border border-border-secondary bg-background-primary/95 p-3 shadow-lg">
+          <p className="font-semibold text-text-primary">{data.name}</p>
+          <p className="mt-1 text-[colors.accent.500]">
             ${Number(data.value).toFixed(2)}
           </p>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-text-tertiary">
             {((Number(data.value) / totalSpend) * 100).toFixed(1)}% of total
           </p>
         </div>
@@ -122,8 +122,8 @@ const EnhancedCharts: React.FC<EnhancedChartsProps> = ({
 
   if (categoryData.length === 0) {
     return (
-      <div className="rounded-2xl border border-slate-800/60 bg-slate-900/70 p-8 text-center">
-        <p className="text-slate-400">
+      <div className="rounded-2xl border border-slate-800/60 bg-background-primary/70 p-8 text-center">
+        <p className="text-text-tertiary">
           No data available for visualization yet.
         </p>
       </div>
@@ -133,8 +133,8 @@ const EnhancedCharts: React.FC<EnhancedChartsProps> = ({
   return (
     <div className="space-y-6">
       {/* Pie Chart */}
-      <div className="rounded-2xl border border-slate-800/60 bg-slate-900/70 p-6">
-        <h3 className="mb-4 text-lg font-semibold text-white">
+      <div className="rounded-2xl border border-slate-800/60 bg-background-primary/70 p-6">
+        <h3 className="mb-4 text-lg font-semibold text-text-primary">
           Spending by Category
         </h3>
         <ResponsiveContainer width="100%" height={400}>
@@ -158,7 +158,7 @@ const EnhancedCharts: React.FC<EnhancedChartsProps> = ({
               wrapperStyle={{ paddingTop: "20px" }}
               iconType="circle"
               formatter={(value) => (
-                <span className="text-sm text-slate-300">{value}</span>
+                <span className="text-sm text-text-secondary">{value}</span>
               )}
             />
           </PieChart>
@@ -166,8 +166,8 @@ const EnhancedCharts: React.FC<EnhancedChartsProps> = ({
       </div>
 
       {/* Bar Chart */}
-      <div className="rounded-2xl border border-slate-800/60 bg-slate-900/70 p-6">
-        <h3 className="mb-4 text-lg font-semibold text-white">
+      <div className="rounded-2xl border border-slate-800/60 bg-background-primary/70 p-6">
+        <h3 className="mb-4 text-lg font-semibold text-text-primary">
           Category Comparison
         </h3>
         <ResponsiveContainer width="100%" height={400}>
@@ -175,15 +175,15 @@ const EnhancedCharts: React.FC<EnhancedChartsProps> = ({
             data={barChartData}
             margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+            <CartesianGrid strokeDasharray="3 3" stroke="colors.background.tertiary" />
             <XAxis
               dataKey="name"
               angle={-45}
               textAnchor="end"
               height={80}
-              tick={{ fill: "#cbd5e1", fontSize: 12 }}
+              tick={{ fill: "colors.text.secondary", fontSize: 12 }}
             />
-            <YAxis tick={{ fill: "#cbd5e1" }} />
+            <YAxis tick={{ fill: "colors.text.secondary" }} />
             <Tooltip content={<CustomTooltip />} />
             <Bar dataKey="amount" radius={[8, 8, 0, 0]}>
               {barChartData.map((entry, index) => {
@@ -203,8 +203,8 @@ const EnhancedCharts: React.FC<EnhancedChartsProps> = ({
       </div>
 
       {/* Trend Line Chart */}
-      <div className="rounded-2xl border border-slate-800/60 bg-slate-900/70 p-6">
-        <h3 className="mb-4 text-lg font-semibold text-white">
+      <div className="rounded-2xl border border-slate-800/60 bg-background-primary/70 p-6">
+        <h3 className="mb-4 text-lg font-semibold text-text-primary">
           Spending Trend
         </h3>
         <ResponsiveContainer width="100%" height={300}>
@@ -218,16 +218,16 @@ const EnhancedCharts: React.FC<EnhancedChartsProps> = ({
                 <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-            <XAxis dataKey="month" tick={{ fill: "#cbd5e1" }} />
-            <YAxis tick={{ fill: "#cbd5e1" }} />
+            <CartesianGrid strokeDasharray="3 3" stroke="colors.background.tertiary" />
+            <XAxis dataKey="month" tick={{ fill: "colors.text.secondary" }} />
+            <YAxis tick={{ fill: "colors.text.secondary" }} />
             <Tooltip
               contentStyle={{
-                backgroundColor: "#0f172a",
-                border: "1px solid #475569",
+                backgroundColor: "colors.background.primary",
+                border: "1px solid colors.border.primary",
                 borderRadius: "8px",
               }}
-              labelStyle={{ color: "#cbd5e1" }}
+              labelStyle={{ color: "colors.text.secondary" }}
             />
             <Area
               type="monotone"
@@ -239,8 +239,8 @@ const EnhancedCharts: React.FC<EnhancedChartsProps> = ({
             />
           </AreaChart>
         </ResponsiveContainer>
-        <div className="mt-4 rounded-lg bg-slate-800/50 p-3">
-          <p className="text-xs text-slate-400">
+        <div className="mt-4 rounded-lg bg-background-secondary/50 p-3">
+          <p className="text-xs text-text-tertiary">
             📊 This shows simulated historical trends. Connect more months of
             data for accurate trend analysis.
           </p>
@@ -248,15 +248,15 @@ const EnhancedCharts: React.FC<EnhancedChartsProps> = ({
       </div>
 
       {/* Top Expenses Card Grid */}
-      <div className="rounded-2xl border border-slate-800/60 bg-slate-900/70 p-6">
-        <h3 className="mb-4 text-lg font-semibold text-white">
+      <div className="rounded-2xl border border-slate-800/60 bg-background-primary/70 p-6">
+        <h3 className="mb-4 text-lg font-semibold text-text-primary">
           Top 5 Categories
         </h3>
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {categoryData.slice(0, 5).map((category, index) => (
             <div
               key={index}
-              className="rounded-xl border border-slate-700/60 bg-slate-800/50 p-4 transition-all hover:scale-105 hover:border-[#80A1BA]/50"
+              className="rounded-xl border border-border-secondary/60 bg-background-secondary/50 p-4 transition-all hover:scale-105 hover:border-[colors.primary.500]/50"
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -265,19 +265,19 @@ const EnhancedCharts: React.FC<EnhancedChartsProps> = ({
                       className="h-3 w-3 rounded-full"
                       style={{ backgroundColor: category.color }}
                     />
-                    <p className="text-sm font-medium text-slate-300">
+                    <p className="text-sm font-medium text-text-secondary">
                       {category.name}
                     </p>
                   </div>
-                  <p className="text-2xl font-bold text-white">
+                  <p className="text-2xl font-bold text-text-primary">
                     ${category.amount.toFixed(0)}
                   </p>
-                  <p className="mt-1 text-xs text-slate-400">
+                  <p className="mt-1 text-xs text-text-tertiary">
                     {category.percentage.toFixed(1)}% of total
                   </p>
                 </div>
                 <div className="text-right">
-                  <span className="text-2xl font-bold text-[#80A1BA]">
+                  <span className="text-2xl font-bold text-[colors.primary.500]">
                     #{index + 1}
                   </span>
                 </div>

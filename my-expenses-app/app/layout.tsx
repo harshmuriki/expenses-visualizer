@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "next-auth/react";
 import { Analytics } from "@vercel/analytics/react";
+import { ThemeProvider } from "@/lib/theme-context";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,10 +31,16 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <SessionProvider>
-          {children}
-          <Analytics />
-        </SessionProvider>
+        <ThemeProvider>
+          <SessionProvider
+            refetchInterval={0} // Disable automatic session refetching
+            refetchOnWindowFocus={false} // Disable refetch on window focus
+            refetchWhenOffline={false} // Disable refetch when offline
+          >
+            {children}
+            <Analytics />
+          </SessionProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
