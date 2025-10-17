@@ -82,7 +82,6 @@ export interface AggregatorTransaction {
  */
 export interface EnvConfig {
   OPENAI_KEY?: string;
-  OPENAI_API_KEY?: string;
 }
 
 /**

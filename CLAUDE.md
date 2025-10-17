@@ -11,6 +11,7 @@ This is an **Expenses Visualizer** application built with Next.js 15 that allows
 The main application is located in the `my-expenses-app/` directory.
 
 ### Running the Development Server
+
 ```bash
 cd my-expenses-app
 npm run dev
@@ -19,6 +20,7 @@ npm run dev
 ```
 
 ### Building for Production
+
 ```bash
 cd my-expenses-app
 npm run build
@@ -26,6 +28,7 @@ npm start
 ```
 
 ### Linting
+
 ```bash
 cd my-expenses-app
 npm run lint
@@ -44,6 +47,7 @@ npm run lint
 ### Key Architectural Components
 
 #### Transaction Processing Pipeline (`components/process.tsx`)
+
 - **Item Class**: Represents a single transaction with fields: name, cost, index, parenttag, date, location, file_source
 - **Document Class**: Manages collections of transactions and converts them to hierarchical structures
   - `convertDocToItems()`: Processes CSV/PDF rows into Item objects using OpenAI
@@ -51,6 +55,7 @@ npm run lint
   - `fromCategorizedTransactions()`: Converts Plaid transactions to the internal format
 
 **OpenAI Integration**: Uses `gpt-4o-mini` model to extract:
+
 - Transaction name (concise version)
 - Cost
 - Parent category (from predefined tags in `scripts/parenttags.txt`)
@@ -60,6 +65,7 @@ npm run lint
 #### API Routes (`pages/api/`)
 
 **Upload API** (`pages/api/upload.ts`):
+
 - Handles both CSV and PDF uploads via FormData
 - CSV: Processes locally using the Document class
 - PDF: Sends to AWS Lambda endpoint (defined in `AWS_LAMBDA_ENDPOINT` env var) for text extraction, then processes with OpenAI
@@ -68,27 +74,32 @@ npm run lint
 - Saves processed Sankey nodes to Firestore
 
 **Plaid API Routes** (`pages/api/plaid/`):
+
 - `create-link-token.ts`: Generates Plaid Link token for account connection
 - `exchange-public-token.ts`: Exchanges public token for access token
 - `sync-transactions.ts`: Syncs transactions using Plaid's `/transactions/sync` endpoint
 - `webhook.ts`: Handles Plaid webhook events
 
 **AI Routes** (`pages/api/ai/`):
+
 - `validate-transaction`: Validates transaction categorization and provides suggestions
 
 #### Data Storage (`lib/`)
 
 **Firebase Integration**:
+
 - `firebaseUpload.ts`: Uploads Sankey nodes and parent-child maps to Firestore
 - `fileStorage.ts`: Stores original uploaded files in Firebase Storage
 - `components/firebaseConfig.js`: Firebase initialization
 
 **Plaid Integration**:
+
 - `lib/plaidClient.ts`: Wrapper for Plaid API calls
 - `lib/transactionSync.ts`: Syncs Plaid transactions and converts to internal format
 - `lib/secureStore.ts`: Securely stores Plaid access tokens in Firestore
 
 **AI Analytics** (`lib/aiAnalytics.ts`):
+
 - `generateSpendingInsights()`: Detects high-spending categories, unusual transactions, small transaction patterns
 - `analyzeCategorySpending()`: Calculates spending breakdown by category
 - `predictSpending()`: Provides spending predictions (currently uses simple variance model)
@@ -98,6 +109,7 @@ npm run lint
 #### Visualization (`components/`)
 
 **SnakeyChartComponent.tsx** (Main visualization controller):
+
 - Fetches data from Firestore based on user email and month
 - Manages node/link state for Sankey-style visualizations
 - Handles transaction editing via InputModal
@@ -105,19 +117,23 @@ npm run lint
 - Integrates AI insights, anomaly detection, and assistant
 
 **TreeMapChart.tsx**:
+
 - Renders hierarchical treemap using D3
 - Interactive: click categories to expand and see transactions
 - Each transaction is editable with AI validation
 
 **EnhancedCharts.tsx**:
+
 - Alternative view with bar charts, pie charts, and other visualizations
 - Uses category analysis data
 
 **AIAssistant.tsx**:
+
 - Chat interface for natural language queries about spending
 - Uses generated data summary as context
 
 **processLinks.tsx**:
+
 - `calculateLinks()`: Converts parent-child map to Sankey links with proper values
 
 ### Firestore Data Structure
@@ -148,8 +164,8 @@ The system automatically detects the source institution from filenames (e.g., "C
 Required environment variables (create `.env` in `my-expenses-app/`):
 
 ```ini
+
 # OpenAI API (required for transaction categorization)
-OPENAI_API_KEY=your_openai_api_key
 OPENAI_KEY=your_openai_api_key  # Alternative name
 
 # AWS Lambda (required for PDF processing)
@@ -186,6 +202,7 @@ These scripts are primarily for the Lambda function deployment and local experim
 ## Important Type Definitions (`app/types/types.ts`)
 
 **SankeyNode**: Represents a node in the visualization
+
 - `name`: Transaction or category name
 - `index`: Unique identifier
 - `cost?`: Transaction amount
@@ -194,6 +211,7 @@ These scripts are primarily for the Lambda function deployment and local experim
 - `date?`, `location?`, `file_source?`: Optional metadata
 
 **SankeyLink**: Represents relationship between nodes
+
 - `source`: Parent node index
 - `target`: Child node index
 - `value`: Amount flowing through link
@@ -208,17 +226,21 @@ Uses NextAuth with Firebase authentication. User sessions are required to access
 ## Working with the Codebase
 
 ### Adding a New Expense Category
+
 1. Edit `scripts/parenttags.txt` and add the category
 2. Restart the app (categories are loaded at runtime during processing)
 
 ### Modifying AI Prompts
+
 - Transaction categorization prompt: `components/process.tsx` → `Item.setDetails()`
 - PDF conversion prompt: `components/process.tsx` → `Document.convertPdfToCSVRow()`
 
 ### Adding a New File Source Pattern
+
 Edit the `extractFileSource()` function in `pages/api/upload.ts`
 
 ### Adjusting Anomaly Detection Sensitivity
+
 Modify the threshold multiplier in `lib/aiAnalytics.ts` → `detectAnomalies()` (currently 2 standard deviations)
 
 ## Key Design Patterns

@@ -19,7 +19,7 @@ export const config = {
 
 // Initialize OpenAI client
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_KEY,
+  apiKey: process.env.OPENAI_KEY || "",
 });
 
 // Helper function to get bank name using OpenAI

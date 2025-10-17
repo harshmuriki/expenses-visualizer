@@ -515,7 +515,7 @@ Each transaction MUST have all required fields.`;
 
   async runOpenAIWithSchema(prompt: string): Promise<OpenAICompletionResponse> {
     const envConfig: EnvConfig = process.env as unknown as EnvConfig;
-    const apiKey = envConfig.OPENAI_API_KEY;
+    const apiKey = envConfig.OPENAI_KEY || "";
     if (!apiKey) {
       throw new Error("Missing OPENAI_KEY environment variable");
     }

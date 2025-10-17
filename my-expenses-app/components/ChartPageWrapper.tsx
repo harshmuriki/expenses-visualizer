@@ -9,7 +9,9 @@ const ChartPageWrapper: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const handleDataLoaded = (data: Record<string, unknown>) => {
-    console.log("Data loaded:", data);
+    if (process.env.NEXT_PUBLIC_DEBUG === "true") {
+      console.log("Data loaded:", data);
+    }
     setShowLoading(false);
   };
 
