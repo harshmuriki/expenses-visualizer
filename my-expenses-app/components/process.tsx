@@ -115,6 +115,8 @@ class Item {
             parenttag: <broader category from the parent tag list given>
             date: <transaction date>
             location: <merchant location/address or "Unknown">
+
+            Note: If the transaction is a credit card payment, the tag should be "Credit Card Payments"
         `;
 
     const completion: OpenAICompletionResponse = await this.runOpenAI(
