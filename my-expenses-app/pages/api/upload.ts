@@ -141,31 +141,19 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
         console.warn(`⚠️ Ignoring ${nonCsvFiles.length} non-CSV file(s)`);
       }
 
-      // Generate processing ID for tracking
-      const processingId = `processing_${Date.now()}_${Math.random()
-        .toString(36)
-        .substr(2, 9)}`;
-
-      // Start async processing
+      // OPTION A: Process synchronously in this request
       if (DEBUG_ENABLED)
-        console.log("[api/upload] async processing start", {
-          processingId,
+        console.log("[api/upload] synchronous processing start", {
           files: csvFiles.length,
           month,
           useremail,
         });
-      processCsvFilesAsync(csvFiles, useremail, month, processingId);
-
-      // Return immediately with processing ID
-      const json = {
-        message: `Processing started for ${csvFiles.length} CSV file(s)`,
-        processingId,
-        status: "processing",
-        estimatedTime: "30-60 seconds",
-      };
-      if (DEBUG_ENABLED) console.log("[api/upload] response", json);
+      const result = await handleCombinedCsvFiles(csvFiles, useremail, month);
+      const json = { status: "completed", result };
+      if (DEBUG_ENABLED)
+        console.log("[api/upload] synchronous processing done", json);
       if (DEBUG_ENABLED) console.timeEnd("api-upload-total");
-      return res.status(202).json(json);
+      return res.status(200).json(json);
     } catch (error) {
       console.error("Error processing file:", error);
       res.status(500).json({ error: "Internal Server Error" });
@@ -174,91 +162,91 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 };
 
 // Async processing function that runs in background
-const processCsvFilesAsync = async (
-  files: formidable.File[],
-  useremail: string,
-  month: string,
-  processingId: string
-) => {
-  try {
-    if (DEBUG_ENABLED) console.time(`[processCsvFilesAsync] ${processingId}`);
-    if (DEBUG_ENABLED)
-      console.log("[process] start", {
-        files: files.length,
-        useremail,
-        month,
-        processingId,
-      });
+// const processCsvFilesAsync = async (
+//   files: formidable.File[],
+//   useremail: string,
+//   month: string,
+//   processingId: string
+// ) => {
+//   try {
+//     if (DEBUG_ENABLED) console.time(`[processCsvFilesAsync] ${processingId}`);
+//     if (DEBUG_ENABLED)
+//       console.log("[process] start", {
+//         files: files.length,
+//         useremail,
+//         month,
+//         processingId,
+//       });
 
-    // Update status to processing
-    await updateProcessingStatus(
-      processingId,
-      "processing",
-      "Processing CSV files..."
-    );
+//     // Update status to processing
+//     await updateProcessingStatus(
+//       processingId,
+//       "processing",
+//       "Processing CSV files..."
+//     );
 
-    const result = await handleCombinedCsvFiles(files, useremail, month);
+//     const result = await handleCombinedCsvFiles(files, useremail, month);
 
-    // Update status to completed
-    await updateProcessingStatus(
-      processingId,
-      "completed",
-      "Processing completed successfully!",
-      result
-    );
+//     // Update status to completed
+//     await updateProcessingStatus(
+//       processingId,
+//       "completed",
+//       "Processing completed successfully!",
+//       result
+//     );
 
-    if (DEBUG_ENABLED) console.log("[process] completed", { processingId });
-    if (DEBUG_ENABLED)
-      console.timeEnd(`[processCsvFilesAsync] ${processingId}`);
-  } catch (error) {
-    console.error(`❌ Async processing failed for ${processingId}:`, error);
+//     if (DEBUG_ENABLED) console.log("[process] completed", { processingId });
+//     if (DEBUG_ENABLED)
+//       console.timeEnd(`[processCsvFilesAsync] ${processingId}`);
+//   } catch (error) {
+//     console.error(`❌ Async processing failed for ${processingId}:`, error);
 
-    // Update status to failed
-    await updateProcessingStatus(
-      processingId,
-      "failed",
-      "Processing failed",
-      null,
-      error instanceof Error ? error.message : "Unknown error"
-    );
-  }
-};
+//     // Update status to failed
+//     await updateProcessingStatus(
+//       processingId,
+//       "failed",
+//       "Processing failed",
+//       null,
+//       error instanceof Error ? error.message : "Unknown error"
+//     );
+//   }
+// };
 
 // Function to update processing status in Firestore
-const updateProcessingStatus = async (
-  processingId: string,
-  status: "processing" | "completed" | "failed",
-  message: string,
-  result?: Record<string, unknown>,
-  error?: string
-) => {
-  try {
-    const { doc, setDoc } = await import("firebase/firestore");
-    const { db } = await import("@/components/firebaseConfig");
+// const updateProcessingStatus = async (
+//   processingId: string,
+//   status: "processing" | "completed" | "failed",
+//   message: string,
+//   result?: Record<string, unknown>,
+//   error?: string
+// ) => {
+//   try {
+//     const { doc, setDoc } = await import("firebase/firestore");
+//     const { db } = await import("@/components/firebaseConfig");
 
-    const statusDocRef = doc(db, "processing_status", processingId);
+//     const statusDocRef = doc(db, "processing_status", processingId);
 
-    // Build the document data, excluding undefined values
-    const docData: Record<string, unknown> = {
-      status,
-      message,
-      timestamp: new Date().toISOString(),
-      updatedAt: Date.now(),
-    };
+//     // Build the document data, excluding undefined values
+//     const docData: Record<string, unknown> = {
+//       status,
+//       message,
+//       timestamp: new Date().toISOString(),
+//       updatedAt: Date.now(),
+//     };
 
-    // Only add result and error if they are defined
-    if (result !== undefined) {
-      docData.result = result;
-    }
-    if (error !== undefined) {
-      docData.error = error;
-    }
+//     // Only add result and error if they are defined
+//     if (result !== undefined) {
+//       docData.result = result;
+//     }
+//     if (error !== undefined) {
+//       docData.error = error;
+//     }
 
-    await setDoc(statusDocRef, docData);
-  } catch (error) {
-    console.error("Failed to update processing status:", error);
-  }
-};
+//     await setDoc(statusDocRef, docData);
+//   } catch (error) {
+//     console.error("Failed to update processing status:", error);
+//   }
+// };
 
 // New function to handle combined CSV files
 const handleCombinedCsvFiles = async (
