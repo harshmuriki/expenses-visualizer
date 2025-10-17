@@ -9,14 +9,32 @@ export const uploadTransaction = async ({ useremail, month, transaction, index, 
   const userDocSnapshot = await getDoc(userDocRef);
 
   if (userDocSnapshot.exists()) {
-    // Update the months array with the new month
-    await updateDoc(userDocRef, {
-      months: arrayUnion(month)
-    });
+    // Check if this month already exists in the months array
+    const existingMonths = userDocSnapshot.data().months || [];
+    if (!existingMonths.includes(month)) {
+      // Update the months array with the new month
+      await updateDoc(userDocRef, {
+        months: arrayUnion(month)
+      });
+
+      // Store collection creation timestamp
+      const monthMetadataRef = doc(userDocRef, month, 'meta');
+      await setDoc(monthMetadataRef, {
+        createdAt: new Date().toISOString(),
+        createdTimestamp: Date.now()
+      }, { merge: true });
+    }
   } else {
     // Create the document with the months array if it doesn't exist
     await setDoc(userDocRef, {
       months: [month]
+    }, { merge: true });
+
+    // Store collection creation timestamp
+    const monthMetadataRef = doc(userDocRef, month, 'meta');
+    await setDoc(monthMetadataRef, {
+      createdAt: new Date().toISOString(),
+      createdTimestamp: Date.now()
     }, { merge: true });
   }
 
@@ -46,10 +64,21 @@ export const uploadTransactionsInBatch = async (batchData) => {
     const userDocSnapshot = await getDoc(userDocRef);
 
     if (userDocSnapshot.exists()) {
-      // Update the months array with the new month
-      await updateDoc(userDocRef, {
-        months: arrayUnion(batchData[0].month),
-      });
+      // Check if this month already exists in the months array
+      const existingMonths = userDocSnapshot.data().months || [];
+      if (!existingMonths.includes(batchData[0].month)) {
+        // Update the months array with the new month
+        await updateDoc(userDocRef, {
+          months: arrayUnion(batchData[0].month),
+        });
+
+        // Store collection creation timestamp
+        const monthMetadataRef = doc(userDocRef, batchData[0].month, 'meta');
+        await setDoc(monthMetadataRef, {
+          createdAt: new Date().toISOString(),
+          createdTimestamp: Date.now()
+        }, { merge: true });
+      }
     } else {
       // Create the document with the months array if it doesn't exist
       console.log('Creating user document with months array');
@@ -60,6 +89,13 @@ export const uploadTransactionsInBatch = async (batchData) => {
         },
         { merge: true }
       );
+
+      // Store collection creation timestamp
+      const monthMetadataRef = doc(userDocRef, batchData[0].month, 'meta');
+      await setDoc(monthMetadataRef, {
+        createdAt: new Date().toISOString(),
+        createdTimestamp: Date.now()
+      }, { merge: true });
     }
 
     // Initialize Firestore batch

@@ -25,7 +25,7 @@ const ChartLoadingComponent: React.FC<ChartLoadingComponentProps> = ({
   const searchParams = useSearchParams();
   const month = searchParams?.get("month") || "feb";
 
-  const maxAttempts = 30; // Poll for up to 2.5 minutes (30 * 5 seconds)
+  const maxAttempts = 50; // Poll for up to 2.5 minutes (50 * 3 seconds)
 
   const startPolling = React.useCallback(() => {
     const pollInterval = setInterval(async () => {
@@ -128,7 +128,7 @@ const ChartLoadingComponent: React.FC<ChartLoadingComponentProps> = ({
           onError("Unable to check for data. Please try refreshing the page.");
         }
       }
-    }, 5000); // Poll every 5 seconds
+    }, 3000); // Poll every 3 seconds
 
     // Cleanup function
     return () => clearInterval(pollInterval);
@@ -140,14 +140,10 @@ const ChartLoadingComponent: React.FC<ChartLoadingComponentProps> = ({
       return;
     }
 
-    // Start polling after 30 seconds
-    const initialDelay = setTimeout(() => {
-      setCurrentStep(2);
-      setProcessingStatus("🔍 Looking for your data in Firebase...");
-      startPolling();
-    }, 30000); // 30 seconds
-
-    return () => clearTimeout(initialDelay);
+    // Start polling immediately
+    setCurrentStep(2);
+    setProcessingStatus("🔍 Looking for your data in Firebase...");
+    startPolling();
   }, [session, onError, startPolling]);
 
   return (
@@ -273,11 +269,6 @@ const ChartLoadingComponent: React.FC<ChartLoadingComponentProps> = ({
           <p className="text-sm text-slate-200 font-medium animate-gradient-text">
             {processingStatus}
           </p>
-          {currentStep === 1 && (
-            <p className="text-xs text-slate-400">
-              Waiting 30 seconds for initial processing...
-            </p>
-          )}
           {currentStep === 3 && (
             <div className="space-y-2">
               <p className="text-xs text-slate-400 animate-loading-dots">

@@ -294,12 +294,6 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
     fetchUserFields();
   }, [useremail]);
 
-  const handleMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedMonth: string = e.target.value;
-    setMonth(selectedMonth);
-    router.push(`/chart?month=${encodeURIComponent(selectedMonth)}`);
-  };
-
   return (
     <div className="flex flex-col items-center justify-center space-y-4 p-6">
       {/* PLALD SIGN-IN TEMPORARILY DISABLED */}
@@ -353,16 +347,30 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
 
       <div className="flex flex-col w-full">
         <label htmlFor="month" className="mb-2 font-semibold text-white">
-          Enter Month
+          Enter New Month
         </label>
-        <input
-          id="month"
-          type="text"
-          value={month}
-          onChange={(e) => setMonth(e.target.value)}
-          placeholder="e.g. January, or 2023-01"
-          className="p-3 border border-slate-600 rounded-lg bg-slate-900/50 text-slate-200 placeholder-slate-500 focus:border-[#91C4C3] focus:ring-2 focus:ring-[#91C4C3]/30 transition"
-        />
+        <div className="relative">
+          <input
+            id="month"
+            type="text"
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+            placeholder="e.g. January, or 2023-01"
+            className="p-3 border border-slate-600 rounded-lg bg-slate-900/50 text-slate-200 placeholder-slate-500 focus:border-[#91C4C3] focus:ring-2 focus:ring-[#91C4C3]/30 transition w-full"
+          />
+          {month && (
+            <button
+              type="button"
+              onClick={() => setMonth("")}
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-200 transition"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+        {month && (
+          <p className="text-xs text-green-400 mt-1">✓ New month: {month}</p>
+        )}
       </div>
 
       <button
@@ -390,28 +398,51 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
         )}
       </button>
 
+      {/* Enhanced Previous Months Section */}
       <div className="flex flex-col w-full">
-        <label
-          htmlFor="previousMonth"
-          className="mb-2 font-semibold text-white"
-        >
-          Previous Months
-        </label>
-        <select
-          id="previousMonth"
-          value={month}
-          onChange={handleMonthChange}
-          className="p-3 border border-slate-600 rounded-lg bg-slate-900/50 text-slate-200 focus:border-[#91C4C3] focus:ring-2 focus:ring-[#91C4C3]/30 transition cursor-pointer"
-        >
-          <option value="" disabled>
-            Select a month
-          </option>
-          {months.map((eachMonth) => (
-            <option key={eachMonth} value={eachMonth} className="bg-slate-800">
-              {eachMonth}
-            </option>
-          ))}
-        </select>
+        <div className="flex items-center justify-between mb-4">
+          <label className="text-lg font-semibold text-white">
+            Previous Months
+          </label>
+          {months.length > 0 && (
+            <span className="text-sm text-slate-400">
+              {months.length} month{months.length !== 1 ? "s" : ""} available
+            </span>
+          )}
+        </div>
+
+        {months.length === 0 ? (
+          <div className="text-center py-8 bg-slate-800/30 rounded-xl border border-slate-700/50">
+            <div className="text-4xl mb-3">📅</div>
+            <p className="text-slate-400 text-sm">No previous months found</p>
+            <p className="text-slate-500 text-xs mt-1">
+              Upload some CSV files to get started!
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800">
+            {months.map((eachMonth) => (
+              <button
+                key={eachMonth}
+                onClick={() => {
+                  // Navigate directly to the chart page for this month
+                  router.push(`/chart?month=${encodeURIComponent(eachMonth)}`);
+                }}
+                className="p-3 rounded-lg border transition-all duration-200 text-left bg-slate-800/50 border-slate-600 hover:border-[#80A1BA] text-slate-300 hover:bg-gradient-to-r hover:from-[#80A1BA]/10 hover:to-[#91C4C3]/10 hover:text-white group"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 rounded-full bg-slate-400 group-hover:bg-white transition-colors"></div>
+                    <span className="font-medium">{eachMonth}</span>
+                  </div>
+                  <div className="text-slate-400 group-hover:text-white transition-colors">
+                    →
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

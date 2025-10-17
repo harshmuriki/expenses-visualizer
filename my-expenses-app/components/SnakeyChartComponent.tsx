@@ -670,13 +670,22 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
     <div className="relative min-h-screen overflow-x-auto bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-slate-100">
       <header className="sticky top-0 z-50 border-b border-slate-800/60 bg-slate-950/70 backdrop-blur">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
-          <button
-            type="button"
-            onClick={() => router.push("/")}
-            className="inline-flex items-center gap-2 rounded-full border border-slate-700/70 bg-slate-900 px-4 py-2 text-sm font-medium text-slate-100 transition hover:border-slate-500 hover:bg-slate-800"
-          >
-            ← Back to Home
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => router.push("/")}
+              className="inline-flex items-center gap-2 rounded-full border border-slate-700/70 bg-slate-900 px-4 py-2 text-sm font-medium text-slate-100 transition hover:border-slate-500 hover:bg-slate-800"
+            >
+              ← Back to Home
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/trends")}
+              className="inline-flex items-center gap-2 rounded-full border border-slate-700/70 bg-gradient-to-r from-[#91C4C3] to-[#B4DEBD] px-4 py-2 text-sm font-medium text-slate-900 transition hover:from-[#7AAFAD] hover:to-[#9AC9A4]"
+            >
+              📈 View Trends
+            </button>
+          </div>
           <div className="text-center">
             <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
               Editing Month
