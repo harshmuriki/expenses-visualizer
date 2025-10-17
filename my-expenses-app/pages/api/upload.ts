@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { NextApiRequest, NextApiResponse } from "next";
+import { DEBUG_ENABLED } from "@/lib/debug";
 import formidable, { Fields, Files } from "formidable";
 import csv from "csv-parser";
 import { CSVRow, Map, SankeyNode } from "@/app/types/types";
@@ -102,6 +103,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     }
 
     try {
+      if (DEBUG_ENABLED) console.time("api-upload-total");
       const uploadedFiles = Array.isArray(files.file)
         ? files.file
         : [files.file];
@@ -145,15 +147,25 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
         .substr(2, 9)}`;
 
       // Start async processing
+      if (DEBUG_ENABLED)
+        console.log("[api/upload] async processing start", {
+          processingId,
+          files: csvFiles.length,
+          month,
+          useremail,
+        });
       processCsvFilesAsync(csvFiles, useremail, month, processingId);
 
       // Return immediately with processing ID
-      return res.status(202).json({
+      const json = {
         message: `Processing started for ${csvFiles.length} CSV file(s)`,
         processingId,
         status: "processing",
         estimatedTime: "30-60 seconds",
-      });
+      };
+      if (DEBUG_ENABLED) console.log("[api/upload] response", json);
+      if (DEBUG_ENABLED) console.timeEnd("api-upload-total");
+      return res.status(202).json(json);
     } catch (error) {
       console.error("Error processing file:", error);
       res.status(500).json({ error: "Internal Server Error" });
@@ -169,9 +181,14 @@ const processCsvFilesAsync = async (
   processingId: string
 ) => {
   try {
-    console.log(
-      `🚀 Starting async processing for ${files.length} files (ID: ${processingId})`
-    );
+    if (DEBUG_ENABLED) console.time(`[processCsvFilesAsync] ${processingId}`);
+    if (DEBUG_ENABLED)
+      console.log("[process] start", {
+        files: files.length,
+        useremail,
+        month,
+        processingId,
+      });
 
     // Update status to processing
     await updateProcessingStatus(
@@ -190,7 +207,9 @@ const processCsvFilesAsync = async (
       result
     );
 
-    console.log(`✅ Async processing completed for ${processingId}`);
+    if (DEBUG_ENABLED) console.log("[process] completed", { processingId });
+    if (DEBUG_ENABLED)
+      console.timeEnd(`[processCsvFilesAsync] ${processingId}`);
   } catch (error) {
     console.error(`❌ Async processing failed for ${processingId}:`, error);
 
@@ -275,9 +294,12 @@ const handleCombinedCsvFiles = async (
       }));
 
       allRows.push(...rowsWithBank);
-      console.log(
-        `✅ Loaded ${fileRows.length} rows from ${file.originalFilename} (Bank: ${bankName})`
-      );
+      if (DEBUG_ENABLED)
+        console.log("[ai] rows loaded", {
+          file: file.originalFilename,
+          rows: fileRows.length,
+          bankName,
+        });
 
       // // Store original file if requested
       // if (storeFile && file.originalFilename) {
@@ -297,9 +319,11 @@ const handleCombinedCsvFiles = async (
       // }
     }
 
-    console.log(
-      `📊 Combined total: ${allRows.length} rows from ${files.length} file(s)`
-    );
+    if (DEBUG_ENABLED)
+      console.log("[ai] combined total", {
+        rows: allRows.length,
+        files: files.length,
+      });
 
     // Step 2: Process combined data with AI
     const parentTagsPath = path.join(
@@ -315,7 +339,7 @@ const handleCombinedCsvFiles = async (
       parentTagsArray.push("Credit Card Payments");
     }
 
-    console.log("🤖 Processing combined CSV with AI categorization...");
+    if (DEBUG_ENABLED) console.time("ai-categorization");
 
     const document = new Document(
       allRows,
@@ -327,6 +351,7 @@ const handleCombinedCsvFiles = async (
 
     await document.convertDocToItems();
     const { output, parentChildMap } = document.convertData();
+    if (DEBUG_ENABLED) console.timeEnd("ai-categorization");
 
     // Exclude credit card payments from saved nodes, but keep a meta total
     const creditCardCategoryNames = new Set([
@@ -375,12 +400,12 @@ const handleCombinedCsvFiles = async (
       return true;
     });
 
-    console.log(
-      `✅ Processed ${output.nodes.length} nodes with AI categorization`
-    );
-    console.log(
-      `📈 Summary: ${allRows.length} input rows → ${document.items.length} valid items → ${output.nodes.length} total nodes (including categories)`
-    );
+    if (DEBUG_ENABLED)
+      console.log("[ai] processed nodes", {
+        totalNodes: output.nodes.length,
+        inputRows: allRows.length,
+        validItems: document.items.length,
+      });
 
     // Convert to SankeyNode format
     const sankeyNodes: SankeyNode[] = filteredNodes.map((node) => ({
@@ -395,13 +420,14 @@ const handleCombinedCsvFiles = async (
     }));
 
     // Save to Firestore
-    console.log("💾 Saving to Firestore...");
+    if (DEBUG_ENABLED) console.time("firestore-save");
     await uploadSankeyToFirestore({
       nodes: sankeyNodes,
       parentChildMap: parentChildMap as Map,
       useremail,
       month,
     });
+    if (DEBUG_ENABLED) console.timeEnd("firestore-save");
 
     // Save meta totals for insights
     try {
@@ -419,7 +445,7 @@ const handleCombinedCsvFiles = async (
       console.error("Failed saving meta totals:", e);
     }
 
-    console.log("✅ Combined CSV data processed and saved successfully!");
+    if (DEBUG_ENABLED) console.log("[save] completed");
 
     return {
       totalRows: allRows.length,

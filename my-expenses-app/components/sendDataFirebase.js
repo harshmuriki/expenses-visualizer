@@ -1,4 +1,5 @@
 import { db } from './firebaseConfig.js';
+import { DEBUG_ENABLED } from "@/lib/debug";
 import { doc, collection, setDoc, getDoc, updateDoc, arrayUnion, writeBatch } from 'firebase/firestore';
 
 // Function to create a new collection
@@ -39,7 +40,7 @@ export const uploadTransaction = async ({ useremail, month, transaction, index, 
   }
 
   try {
-    console.log(isMap ? 'Saving map on firebase' : 'Saving transaction on firebase');
+    if (DEBUG_ENABLED) console.log('[firestore] single write', { isMap, transaction, index });
     const collectionRef = collection(userDocRef, month);
     const documentRef = isMap ? doc(collectionRef, 'parentChildMap') : doc(collectionRef, transaction + String(index));
     // Default and sanitize fields to avoid undefined in Firestore
@@ -51,7 +52,7 @@ export const uploadTransaction = async ({ useremail, month, transaction, index, 
       ? { [key]: values }
       : { transaction, cost, index, isleaf, visible, date: safeDate, location: safeLocation, file_source: safeFileSource, bank: safeBank };
     await setDoc(documentRef, data, { merge: true });
-    // console.log('Saved successfully!');
+
   } catch (error) {
     console.error('Error saving:', error);
   }
@@ -81,7 +82,7 @@ export const uploadTransactionsInBatch = async (batchData) => {
       }
     } else {
       // Create the document with the months array if it doesn't exist
-      console.log('Creating user document with months array');
+      if (DEBUG_ENABLED) console.log('Creating user document with months array');
       await setDoc(
         userDocRef,
         {
@@ -129,7 +130,7 @@ export const uploadTransactionsInBatch = async (batchData) => {
 
         // Add set operation to the batch
         batch.set(documentRef, docData, { merge: true });
-        // console.log(`Added to batch: ${JSON.stringify(docData)}`);
+        if (DEBUG_ENABLED && (data.index % 100 === 0)) console.log('[batch] queued', { index: data.index });
       } catch (error) {
         console.error('Error adding to batch:', error);
       }
@@ -137,7 +138,7 @@ export const uploadTransactionsInBatch = async (batchData) => {
 
     // Commit the batch operation
     await batch.commit();
-    console.log('Batch upload successful!');
+    if (DEBUG_ENABLED) console.log('Batch upload successful!');
   } catch (error) {
     console.error('Error during batch upload:', error);
     throw error;

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { debugLog, timeStart, timeEnd } from "@/lib/debug";
 import { UploadComponentProps } from "@/app/types/types";
 import { useRouter } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
@@ -62,6 +63,7 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
   };
 
   const handleUpload = async () => {
+    timeStart("upload", "handleUpload");
     if (!files || files.length === 0) {
       alert("Please select at least one file first!");
       return;
@@ -85,17 +87,22 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
     setIsUploading(true);
 
     try {
+      debugLog(
+        "upload",
+        `POST /api/upload start (files=${files.length}, month=${month})`
+      );
       const response = await fetch("/api/upload", {
         method: "POST",
         body: formData,
       });
+      debugLog("upload", `POST /api/upload status=${response.status}`);
 
       if (!response.ok) {
         throw new Error("Failed to upload files");
       }
 
       const result = await response.json();
-      console.log(`Processing started for ${files.length} file(s)...`);
+      debugLog("upload", "upload response", result);
 
       if (result.status === "processing" && result.processingId) {
         // Redirect to chart page immediately - let chart page handle the loading
@@ -109,10 +116,11 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
         router.push(`/chart?month=${encodeURIComponent(month)}`);
       }
     } catch (error) {
-      console.error("Error uploading file:", error);
+      debugLog("upload", "Error uploading file", error);
       alert("Error uploading file. Please try again.");
     } finally {
       setIsUploading(false);
+      timeEnd("upload", "handleUpload");
     }
   };
 

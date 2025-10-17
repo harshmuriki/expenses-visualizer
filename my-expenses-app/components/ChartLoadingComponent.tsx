@@ -112,7 +112,7 @@ const ChartLoadingComponent: React.FC<ChartLoadingComponentProps> = ({
             metaTotals,
             lastUpdated: new Date(),
           });
-        } else if (false) {
+        } else if (attempts >= maxAttempts) {
           // Timeout reached
           clearInterval(pollInterval);
           setCurrentStep(0);
