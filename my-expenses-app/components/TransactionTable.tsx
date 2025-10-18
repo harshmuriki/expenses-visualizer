@@ -11,6 +11,7 @@ import {
   FiChevronDown,
   FiGrid,
 } from "react-icons/fi";
+import { useTheme } from "@/lib/theme-context";
 
 interface TransactionTableProps {
   nodes: SankeyNode[];
@@ -26,10 +27,42 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   links,
   onEditTransaction,
 }) => {
+  const { themeName } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<SortField>("cost");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+
+  // Get background colors based on theme
+  const getHeaderBackground = () => {
+    if (themeName === "nordic") {
+      return "bg-gradient-to-br from-slate-100 to-slate-200";
+    }
+    if (themeName === "cherryBlossom") {
+      return "bg-gradient-to-br from-pink-50 to-rose-100";
+    }
+    return "bg-gradient-to-br from-slate-900/80 to-slate-800/60";
+  };
+
+  const getTableBackground = () => {
+    if (themeName === "nordic") {
+      return "bg-white/90";
+    }
+    if (themeName === "cherryBlossom") {
+      return "bg-white/95";
+    }
+    return "bg-white/5";
+  };
+
+  const getTableHeaderBackground = () => {
+    if (themeName === "nordic") {
+      return "bg-gradient-to-r from-slate-200 to-slate-300";
+    }
+    if (themeName === "cherryBlossom") {
+      return "bg-gradient-to-r from-pink-100 to-rose-200";
+    }
+    return "bg-gradient-to-r from-slate-800 to-slate-700";
+  };
 
   // Get category name for each transaction
   const getCategoryName = useCallback(
@@ -63,6 +96,9 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   // Filter and sort transactions
   const filteredTransactions = useMemo(() => {
     let filtered = transactions;
+
+    // Filter out "Unnamed Transaction"
+    filtered = filtered.filter((t) => t.name !== "Unnamed Transaction");
 
     // Apply search filter
     if (searchQuery) {
@@ -184,7 +220,9 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   return (
     <div className="space-y-4">
       {/* Excel-style Header with filters and stats */}
-      <div className="rounded-2xl border border-slate-800/60 bg-gradient-to-br from-slate-900/80 to-slate-800/60 p-6 shadow-xl">
+      <div
+        className={`rounded-2xl border border-slate-800/60 ${getHeaderBackground()} p-6 shadow-xl`}
+      >
         <div className="flex items-center justify-between mb-6">
           <div>
             <h3 className="text-2xl font-bold text-text-primary flex items-center gap-3">
@@ -259,7 +297,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
             <p className="text-xs font-semibold uppercase tracking-wide text-text-tertiary mb-1">
               Maximum
             </p>
-            <p className="text-xl font-bold text-[#FFE5B4] tabular-nums">
+            <p className="text-xl font-bold text-text-primary tabular-nums">
               ${stats.max.toFixed(2)}
             </p>
           </div>
@@ -275,10 +313,14 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
       </div>
 
       {/* Excel-style Table */}
-      <div className="rounded-2xl border border-slate-800/60 bg-white/5 overflow-hidden shadow-2xl">
+      <div
+        className={`rounded-2xl border border-slate-800/60 ${getTableBackground()} overflow-hidden shadow-2xl`}
+      >
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
-            <thead className="bg-gradient-to-r from-slate-800 to-slate-700 border-b-2 border-border-primary">
+            <thead
+              className={`${getTableHeaderBackground()} border-b-2 border-border-primary`}
+            >
               <tr>
                 <th
                   className="cursor-pointer px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-text-primary hover:text-text-primary hover:bg-background-tertiary/50 transition-colors border-r border-border-primary/50 min-w-[200px]"

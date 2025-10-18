@@ -23,6 +23,7 @@ import SwipeableTransactionEditor from "./SwipeableTransactionEditor";
 import { FiBarChart2, FiGrid, FiEdit3 } from "react-icons/fi";
 import { useTheme } from "@/lib/theme-context";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
+import StatsCards from "./StatsCards";
 
 const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
   const { theme } = useTheme();
@@ -48,7 +49,22 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
+  const [syncNotification, setSyncNotification] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
   // const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  // Show notification bubble that auto-dismisses
+  const showNotification = (
+    message: string,
+    type: "success" | "error" = "success"
+  ) => {
+    setSyncNotification({ message, type });
+    setTimeout(() => {
+      setSyncNotification(null);
+    }, 3000); // Auto-dismiss after 3 seconds
+  };
 
   // Use theme-aware colors for categories
   const parentColors = useMemo(() => theme.categories, [theme]);
@@ -57,7 +73,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
   );
 
   // Categories to exclude from TreeMap (but keep in Table and Insights)
-  const EXCLUDED_CATEGORIES = ["Mobile Phone", "Credit Card Payment"];
+  const EXCLUDED_CATEGORIES = ["Mobile Phone", "Credit Card Payment", "Others"];
 
   // Meta totals from server (e.g., excluded credit card payments)
   const [metaTotals, setMetaTotals] = useState<{
@@ -331,9 +347,10 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
       await uploadTransactionsInBatch(batchData);
 
       console.log("Data saved to Firebase successfully!");
-      alert("Data uploaded successfully!");
+      showNotification("✅ Data synced to cloud successfully!", "success");
     } catch (error) {
       console.error("Error saving data to Firebase:", error);
+      showNotification("❌ Failed to sync data to cloud", "error");
     }
   };
 
@@ -742,6 +759,18 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
     [dataValue.links, dataValue.nodes, parentColors]
   );
 
+  // Filter out "Others" category for stats and insights (case-insensitive)
+  const filteredCategorySummary = useMemo(() => {
+    return categorySummary.filter(
+      (cat) => !cat.name.toLowerCase().includes("other")
+    );
+  }, [categorySummary]);
+
+  // Calculate filtered total spending (excluding "Others" category)
+  const filteredTotalSpend = useMemo(() => {
+    return filteredCategorySummary.reduce((sum, cat) => sum + cat.value, 0);
+  }, [filteredCategorySummary]);
+
   // Unique set of parent category names (children of root only)
   const parentOptions = useMemo(() => {
     const rootLinks = dataValue.links.filter((link) => link.source === 0);
@@ -778,10 +807,24 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
       });
     }
 
+    // Add "Others" category total if it exists
+    const othersCategory = categorySummary.find((cat) =>
+      cat.name.toLowerCase().includes("other")
+    );
+    if (othersCategory) {
+      const othersPercentage = (othersCategory.value / totalSpend) * 100;
+      insights.push({
+        type: "info",
+        title: "Others Expenses",
+        description: `You have $${othersCategory.value.toFixed(2)} in Others expenses (${othersPercentage.toFixed(1)}% of total spending). These are not included in the total spending calculations.`,
+        icon: "📝",
+      });
+    }
+
     // Top spending category
-    if (categorySummary.length > 0) {
-      const topCategory = categorySummary[0];
-      const percentage = (topCategory.value / totalSpend) * 100;
+    if (filteredCategorySummary.length > 0) {
+      const topCategory = filteredCategorySummary[0];
+      const percentage = (topCategory.value / filteredTotalSpend) * 100;
 
       if (percentage > 40) {
         insights.push({
@@ -809,7 +852,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
     }
 
     // Average transaction analysis
-    const avgTransaction = totalSpend / leafNodes.length;
+    const avgTransaction = filteredTotalSpend / leafNodes.length;
     const highValueTransactions = leafNodes.filter(
       (n) => (n.cost || 0) > avgTransaction * 2
     );
@@ -865,33 +908,35 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
 
     // Spending diversity (good sign)
     if (
-      categorySummary.length >= 5 &&
-      categorySummary[0].value / totalSpend < 0.35
+      filteredCategorySummary.length >= 5 &&
+      filteredCategorySummary[0].value / filteredTotalSpend < 0.35
     ) {
       insights.push({
         type: "success",
         title: "Well-Balanced Spending",
-        description: `Your expenses are well-distributed across ${categorySummary.length} categories, showing balanced financial habits.`,
+        description: `Your expenses are well-distributed across ${filteredCategorySummary.length} categories, showing balanced financial habits.`,
         icon: "✅",
       });
     }
 
     // Average per category
-    const avgPerCategory = totalSpend / categorySummary.length;
+    const avgPerCategory = filteredTotalSpend / filteredCategorySummary.length;
     insights.push({
       type: "info",
       title: "Category Average",
       description: `Average spending per category is $${avgPerCategory.toFixed(
         2
-      )}. Total tracked across ${categorySummary.length} categories.`,
+      )}. Total tracked across ${filteredCategorySummary.length} categories.`,
       icon: "📈",
     });
 
     return insights;
   }, [
     dataValue.nodes,
-    totalSpend,
+    filteredTotalSpend,
+    filteredCategorySummary,
     categorySummary,
+    totalSpend,
     formatCurrency,
     metaTotals?.creditCardPaymentsTotal,
   ]);
@@ -999,6 +1044,49 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
           </div>
         )}
 
+        {/* Sync Notification Bubble */}
+        {syncNotification && (
+          <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-right-5 duration-300">
+            <div
+              className={`rounded-lg px-4 py-3 shadow-lg border ${
+                syncNotification.type === "success"
+                  ? "bg-green-500 text-white border-green-400"
+                  : "bg-red-500 text-white border-red-400"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">
+                  {syncNotification.message}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Stats Cards - Only show when chart is ready */}
+        {chartReady && (
+          <div className="mb-6">
+            <StatsCards
+              totalSpend={filteredTotalSpend}
+              categoryCount={filteredCategorySummary.length}
+              topCategory={
+                filteredCategorySummary[0] || {
+                  name: "N/A",
+                  value: 0,
+                  color: "#4fd1c5",
+                }
+              }
+              transactionCount={dataValue.nodes.filter((n) => n.isleaf).length}
+              avgTransaction={
+                dataValue.nodes.filter((n) => n.isleaf).length > 0
+                  ? filteredTotalSpend /
+                    dataValue.nodes.filter((n) => n.isleaf).length
+                  : 0
+              }
+            />
+          </div>
+        )}
+
         {/* Main Content Area */}
         {chartReady ? (
           <>
@@ -1014,35 +1102,25 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
                   insights={insights}
                   excludedCategories={EXCLUDED_CATEGORIES}
                 />
-
-                {/* Helper Text */}
-                <div className="rounded-xl border border-blue-500/40 bg-blue-500/10 p-4">
-                  <p className="text-sm text-blue-200 leading-relaxed">
-                    💡 <strong>Tip:</strong> Click on any category box to see
-                    all its transactions in a beautiful panel. Each transaction
-                    can be edited with AI validation to catch errors
-                    automatically.
-                  </p>
-                </div>
               </>
             )}
 
             {viewMode === "table" && (
               <>
-                <TransactionTable
-                  nodes={dataValue.nodes}
-                  links={dataValue.links}
-                  onEditTransaction={handleEditTransaction}
-                />
-
                 {/* Helper Text */}
-                <div className="rounded-xl border border-blue-500/40 bg-blue-500/10 p-4">
-                  <p className="text-sm text-blue-200 leading-relaxed">
+                <div className="rounded-xl border border-border-secondary bg-background-card p-4 text-sm text-text-secondary">
+                  <p className="text-sm text-text-secondary leading-relaxed">
                     📋 <strong>Table View:</strong> Browse all transactions in
                     an Excel-style format. Use search and filters to find
                     specific transactions, or export to CSV.
                   </p>
                 </div>
+
+                <TransactionTable
+                  nodes={dataValue.nodes}
+                  links={dataValue.links}
+                  onEditTransaction={handleEditTransaction}
+                />
               </>
             )}
 

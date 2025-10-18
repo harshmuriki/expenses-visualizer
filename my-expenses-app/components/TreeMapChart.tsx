@@ -36,12 +36,17 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
   insights = [],
   excludedCategories = [],
 }) => {
-  const { theme } = useTheme();
+  const { theme, themeName } = useTheme();
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
 
   // Use theme-aware category colors
   const CHART_COLORS = theme.categories;
+
+  // Get text color based on theme
+  const getTextColor = () => {
+    return themeName === "nordic" ? "#000000" : theme.text.primary;
+  };
 
   // Close panel on ESC key
   React.useEffect(() => {
@@ -164,7 +169,7 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
               x={x + width / 2}
               y={y + height / 2 - 6}
               textAnchor="middle"
-              fill={theme.text.primary}
+              fill={getTextColor()}
               opacity={0.99}
               fontSize={fontSize}
               fontWeight="500"
@@ -183,7 +188,7 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
               x={x + width / 2}
               y={y + height / 2 + fontSize + 4}
               textAnchor="middle"
-              fill={theme.text.primary}
+              fill={getTextColor()}
               opacity={0.82}
               fontSize={valueFontSize}
               fontWeight="600"
