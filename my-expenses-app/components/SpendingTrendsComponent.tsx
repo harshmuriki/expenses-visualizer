@@ -85,10 +85,10 @@ const SpendingTrendsComponent: React.FC = () => {
               "💡 Make sure you have uploaded CSV files and they have been processed."
             );
           } else {
-            console.log("📋 All months found:");
-            monthsArray.forEach((month: string, index: number) => {
-              console.log(`  ${index + 1}. "${month}"`);
-            });
+            console.log("📋 All months found");
+            // monthsArray.forEach((month: string, index: number) => {
+            //   console.log(`  ${index + 1}. "${month}"`);
+            // });
 
             // Check each month collection for transaction data
             console.log(
@@ -101,9 +101,9 @@ const SpendingTrendsComponent: React.FC = () => {
                 const snapshot = await getDocs(monthCollectionRef);
 
                 if (snapshot.docs.length > 0) {
-                  console.log(
-                    `📁 Found collection: "${monthName}" with ${snapshot.docs.length} documents`
-                  );
+                  // console.log(
+                  //   `📁 Found collection: "${monthName}" with ${snapshot.docs.length} documents`
+                  // );
 
                   // Check if this collection has transaction data
                   const hasTransactions = snapshot.docs.some(
@@ -111,9 +111,9 @@ const SpendingTrendsComponent: React.FC = () => {
                   );
 
                   if (hasTransactions) {
-                    console.log(
-                      `✅ Collection "${monthName}" has transaction data`
-                    );
+                    // console.log(
+                    //   `✅ Collection "${monthName}" has transaction data`
+                    // );
 
                     // Try to get creation timestamp from meta document
                     let createdAt = undefined;
@@ -181,9 +181,9 @@ const SpendingTrendsComponent: React.FC = () => {
         );
       } else {
         console.log("📋 All discovered collections:");
-        monthCollections.forEach((col, index) => {
-          console.log(`  ${index + 1}. "${col.name}"`);
-        });
+        // monthCollections.forEach((col, index) => {
+        //   console.log(`  ${index + 1}. "${col.name}"`);
+        // });
       }
 
       // Sort by creation date (newest first), then by name for consistent ordering

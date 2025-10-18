@@ -16,6 +16,8 @@ interface TreeMapChartProps {
   nodes: SankeyNode[];
   links: SankeyLink[];
   onEditTransaction: (nodeIndex: number) => void;
+  onEditFromCategory?: (nodeIndex: number, categoryIndex: number) => void;
+  returnToCategory?: number | null;
   insights?: Array<{
     type: "info" | "warning" | "success" | "tip";
     title: string;
@@ -29,6 +31,8 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
   nodes,
   links,
   onEditTransaction,
+  onEditFromCategory,
+  returnToCategory,
   insights = [],
   excludedCategories = [],
 }) => {
@@ -50,6 +54,13 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
   }, [selectedCategory]);
+
+  // Handle returning to category after editing
+  React.useEffect(() => {
+    if (returnToCategory !== null && returnToCategory !== undefined) {
+      setSelectedCategory(returnToCategory);
+    }
+  }, [returnToCategory]);
 
   // Build tree data structure for TreeMap
   const treeData = useMemo(() => {
@@ -298,7 +309,21 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
                     return (
                       <div
                         key={transaction.index}
-                        className="group relative rounded-xl border border-border-secondary/60 bg-background-secondary/50 p-4 transition-all hover:scale-[1.02]"
+                        className="group relative rounded-xl border border-border-secondary/60 bg-background-secondary/50 p-4 transition-all hover:scale-[1.02] cursor-pointer"
+                        onClick={() => {
+                          if (onEditFromCategory && selectedCategory !== null) {
+                            onEditFromCategory(
+                              transaction.index,
+                              selectedCategory
+                            );
+                          } else {
+                            setSelectedCategory(null);
+                            setTimeout(
+                              () => onEditTransaction(transaction.index),
+                              100
+                            );
+                          }
+                        }}
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
@@ -323,10 +348,10 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
                                       {transaction.node.location}
                                     </span>
                                   )}
-                                  {transaction.node?.file_source && (
+                                  {transaction.node?.bank && (
                                     <span className="flex items-center gap-1">
                                       <span className="text-slate-500">🏦</span>
-                                      {transaction.node.file_source}
+                                      {transaction.node.bank}
                                     </span>
                                   )}
                                 </div>
@@ -348,12 +373,23 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
                               </p>
                             </div>
                             <button
-                              onClick={() => {
-                                setSelectedCategory(null);
-                                setTimeout(
-                                  () => onEditTransaction(transaction.index),
-                                  100
-                                );
+                              onClick={(e) => {
+                                e.stopPropagation(); // Prevent row click
+                                if (
+                                  onEditFromCategory &&
+                                  selectedCategory !== null
+                                ) {
+                                  onEditFromCategory(
+                                    transaction.index,
+                                    selectedCategory
+                                  );
+                                } else {
+                                  setSelectedCategory(null);
+                                  setTimeout(
+                                    () => onEditTransaction(transaction.index),
+                                    100
+                                  );
+                                }
                               }}
                               className="flex items-center gap-2 rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-text-primary transition hover:bg-primary-600 group-hover:shadow-lg"
                             >

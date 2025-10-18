@@ -129,7 +129,8 @@ export const syncTransactionsForItem = async ({
     visible: true,
     date: node.date,
     location: node.location,
-    file_source: node.file_source,
+    bank: node.bank,
+    raw_str: node.raw_str,
   }));
 
   const targetMonth =

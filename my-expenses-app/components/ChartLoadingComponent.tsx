@@ -23,13 +23,19 @@ const ChartLoadingComponent: React.FC<ChartLoadingComponentProps> = ({
     "🔄 Checking for data..."
   );
   const [attempts, setAttempts] = useState(0);
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const searchParams = useSearchParams();
   const month = searchParams?.get("month") || "feb";
 
   const maxAttempts = 1000; // Poll for up to 1000 * 3 seconds
 
   const startPolling = React.useCallback(() => {
+    // Don't start polling if session is not available
+    if (!session?.user?.email) {
+      console.log("Session not ready, waiting...");
+      return;
+    }
+
     const pollInterval = setInterval(async () => {
       try {
         setAttempts((prev) => prev + 1);
@@ -40,7 +46,16 @@ const ChartLoadingComponent: React.FC<ChartLoadingComponentProps> = ({
           }/${maxAttempts})`
         );
 
-        const userDocRef = doc(db, "users", session?.user?.email || "");
+        // Validate session and email before proceeding
+        if (!session?.user?.email) {
+          throw new Error("User session or email not available");
+        }
+
+        if (!month) {
+          throw new Error("Month parameter not available");
+        }
+
+        const userDocRef = doc(db, "users", session.user.email);
         const nodesCollectionRef = collection(userDocRef, month);
         const nodesSnapshot = await getDocs(nodesCollectionRef);
 
@@ -48,7 +63,6 @@ const ChartLoadingComponent: React.FC<ChartLoadingComponentProps> = ({
         const transactionDocs = nodesSnapshot.docs.filter(
           (doc) => doc.id !== "parentChildMap" && doc.id !== "meta"
         );
-        console.log("cntr", attempts);
         if (transactionDocs.length > 0) {
           // Data found! Process it
           setCurrentStep(4);
@@ -64,7 +78,8 @@ const ChartLoadingComponent: React.FC<ChartLoadingComponentProps> = ({
               visible: snapshotDoc.data().visible,
               date: snapshotDoc.data().date,
               location: snapshotDoc.data().location,
-              file_source: snapshotDoc.data().file_source,
+              bank: snapshotDoc.data().bank,
+              raw_str: snapshotDoc.data().raw_str,
             }))
             .sort((a, b) => a.index - b.index);
 
@@ -137,16 +152,23 @@ const ChartLoadingComponent: React.FC<ChartLoadingComponentProps> = ({
   }, [session, month, attempts, maxAttempts, onDataLoaded, onError]);
 
   useEffect(() => {
-    if (!session?.user?.email) {
-      onError("User not authenticated");
+    // Wait for session to load
+    if (status === "loading") {
+      setProcessingStatus("⏳ Loading authentication...");
       return;
     }
 
-    // Start polling immediately
+    // Only start polling when session is available
+    if (!session?.user?.email) {
+      setProcessingStatus("⏳ Waiting for authentication...");
+      return;
+    }
+
+    // Start polling when session is ready
     setCurrentStep(2);
     setProcessingStatus("🔍 Looking for your data in Firebase...");
     startPolling();
-  }, [session, onError, startPolling]);
+  }, [session, status, onError, startPolling]);
 
   return (
     <div className="min-h-screen bg-background-primary text-text-primary flex items-center justify-center p-6">

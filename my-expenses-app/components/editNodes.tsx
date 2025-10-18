@@ -14,16 +14,19 @@ const InputModal: React.FC<InputModalProps> = ({
   const [newParentName, setNewParentName] = useState(initialParentName);
   const [isCreatingNewParent, setIsCreatingNewParent] = useState(false);
   const [newPrice, setNewPrice] = useState(initialPrice);
+  const [newTransactionName, setNewTransactionName] = useState(
+    clickedNode.name
+  );
 
   const handleSubmit = useCallback(() => {
     const parsedPrice = parseFloat(newPrice);
     if (!isNaN(parsedPrice)) {
-      onSubmit(newParentName, parsedPrice);
+      onSubmit(newParentName, parsedPrice, newTransactionName);
       setTimeout(onClose, 0);
     } else {
       alert("Please enter a valid number for the price.");
     }
-  }, [newPrice, newParentName, onSubmit, onClose]);
+  }, [newPrice, newParentName, newTransactionName, onSubmit, onClose]);
 
   const handleParentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
@@ -83,7 +86,7 @@ const InputModal: React.FC<InputModalProps> = ({
           fontWeight: "bold",
         }}
       >
-        Update Transaction
+        {clickedNode.isleaf ? "Update Transaction" : "Update Category"}
       </h3>
       <h2
         style={{
@@ -93,12 +96,47 @@ const InputModal: React.FC<InputModalProps> = ({
           color: theme.text.secondary,
         }}
       >
-        Transaction:{" "}
+        {clickedNode.isleaf ? "Transaction" : "Category"}:{" "}
         <span style={{ fontWeight: "600", color: theme.primary[500] }}>
           {clickedNode.name}
         </span>
       </h2>
 
+      {/* Raw Transaction Text Display - only for transactions */}
+      {clickedNode.isleaf && clickedNode.raw_str && (
+        <div style={{ marginBottom: "20px" }}>
+          <label
+            style={{
+              display: "block",
+              marginBottom: "8px",
+              fontWeight: "600",
+              color: theme.text.secondary,
+            }}
+          >
+            Original Transaction Text:
+          </label>
+          <div
+            style={{
+              width: "100%",
+              padding: "12px",
+              borderRadius: "10px",
+              border: `1px solid ${theme.border.primary}`,
+              backgroundColor: theme.background.primary,
+              color: theme.text.primary,
+              boxSizing: "border-box",
+              fontSize: "0.9rem",
+              fontFamily: "monospace",
+              maxHeight: "100px",
+              overflowY: "auto",
+              whiteSpace: "pre-wrap",
+            }}
+          >
+            {clickedNode.raw_str}
+          </div>
+        </div>
+      )}
+
+      {/* Name Edit Field */}
       <div style={{ marginBottom: "20px" }}>
         <label
           style={{
@@ -108,11 +146,17 @@ const InputModal: React.FC<InputModalProps> = ({
             color: theme.text.secondary,
           }}
         >
-          New Category:
+          {clickedNode.isleaf ? "Transaction Name:" : "Category Name:"}
         </label>
-        <select
-          value={isCreatingNewParent ? "createNew" : newParentName}
-          onChange={handleParentChange}
+        <input
+          type="text"
+          value={newTransactionName}
+          onChange={(e) => setNewTransactionName(e.target.value)}
+          placeholder={
+            clickedNode.isleaf
+              ? "Enter transaction name"
+              : "Enter category name"
+          }
           style={{
             width: "100%",
             padding: "12px",
@@ -122,100 +166,6 @@ const InputModal: React.FC<InputModalProps> = ({
             color: theme.text.primary,
             boxSizing: "border-box",
             fontSize: "1rem",
-            cursor: "pointer",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = theme.primary[500];
-            e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = theme.border.primary;
-            e.currentTarget.style.boxShadow = "none";
-          }}
-        >
-          {parentOptions.map((parent) => (
-            <option
-              key={parent}
-              value={parent}
-              style={{
-                backgroundColor: theme.background.secondary,
-                color: theme.text.primary,
-              }}
-            >
-              {parent}
-            </option>
-          ))}
-          <option
-            value="createNew"
-            style={{
-              backgroundColor: theme.background.secondary,
-              color: theme.text.primary,
-            }}
-          >
-            Create New Category
-          </option>
-        </select>
-        {isCreatingNewParent && (
-          <input
-            type="text"
-            value={newParentName}
-            onChange={(e) => setNewParentName(e.target.value)}
-            placeholder="Enter new category name"
-            style={{
-              width: "100%",
-              padding: "12px",
-              marginTop: "12px",
-              borderRadius: "10px",
-              border: `1px solid ${theme.secondary[500]}`,
-              backgroundColor: theme.background.primary,
-              color: theme.text.primary,
-              boxSizing: "border-box",
-              fontSize: "1rem",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = theme.primary[500];
-              e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = theme.secondary[500];
-              e.currentTarget.style.boxShadow = "none";
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.borderColor = theme.primary[500];
-              e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.borderColor = theme.secondary[500];
-              e.currentTarget.style.boxShadow = "none";
-            }}
-          />
-        )}
-      </div>
-      <div style={{ marginBottom: "25px" }}>
-        <label
-          style={{
-            display: "block",
-            marginBottom: "8px",
-            fontWeight: "600",
-            color: theme.text.secondary,
-          }}
-        >
-          New Price:
-        </label>
-        <input
-          type="text"
-          value={newPrice}
-          onChange={(e) => setNewPrice(e.target.value)}
-          style={{
-            width: "100%",
-            padding: "12px",
-            borderRadius: "10px",
-            border: `1px solid ${theme.border.primary}`,
-            backgroundColor: theme.background.primary,
-            color: theme.accent[500],
-            boxSizing: "border-box",
-            fontSize: "1.1rem",
-            fontWeight: "600",
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.borderColor = theme.primary[500];
@@ -235,6 +185,150 @@ const InputModal: React.FC<InputModalProps> = ({
           }}
         />
       </div>
+
+      {/* Category Selection - only for transactions */}
+      {clickedNode.isleaf && (
+        <div style={{ marginBottom: "20px" }}>
+          <label
+            style={{
+              display: "block",
+              marginBottom: "8px",
+              fontWeight: "600",
+              color: theme.text.secondary,
+            }}
+          >
+            New Category:
+          </label>
+          <select
+            value={isCreatingNewParent ? "createNew" : newParentName}
+            onChange={handleParentChange}
+            style={{
+              width: "100%",
+              padding: "12px",
+              borderRadius: "10px",
+              border: `1px solid ${theme.border.primary}`,
+              backgroundColor: theme.background.primary,
+              color: theme.text.primary,
+              boxSizing: "border-box",
+              fontSize: "1rem",
+              cursor: "pointer",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = theme.primary[500];
+              e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = theme.border.primary;
+              e.currentTarget.style.boxShadow = "none";
+            }}
+          >
+            {parentOptions.map((parent) => (
+              <option
+                key={parent}
+                value={parent}
+                style={{
+                  backgroundColor: theme.background.secondary,
+                  color: theme.text.primary,
+                }}
+              >
+                {parent}
+              </option>
+            ))}
+            <option
+              value="createNew"
+              style={{
+                backgroundColor: theme.background.secondary,
+                color: theme.text.primary,
+              }}
+            >
+              Create New Category
+            </option>
+          </select>
+          {isCreatingNewParent && (
+            <input
+              type="text"
+              value={newParentName}
+              onChange={(e) => setNewParentName(e.target.value)}
+              placeholder="Enter new category name"
+              style={{
+                width: "100%",
+                padding: "12px",
+                marginTop: "12px",
+                borderRadius: "10px",
+                border: `1px solid ${theme.secondary[500]}`,
+                backgroundColor: theme.background.primary,
+                color: theme.text.primary,
+                boxSizing: "border-box",
+                fontSize: "1rem",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = theme.primary[500];
+                e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = theme.secondary[500];
+                e.currentTarget.style.boxShadow = "none";
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = theme.primary[500];
+                e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = theme.secondary[500];
+                e.currentTarget.style.boxShadow = "none";
+              }}
+            />
+          )}
+        </div>
+      )}
+
+      {/* Price Field - only for transactions */}
+      {clickedNode.isleaf && (
+        <div style={{ marginBottom: "25px" }}>
+          <label
+            style={{
+              display: "block",
+              marginBottom: "8px",
+              fontWeight: "600",
+              color: theme.text.secondary,
+            }}
+          >
+            New Price:
+          </label>
+          <input
+            type="text"
+            value={newPrice}
+            onChange={(e) => setNewPrice(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "12px",
+              borderRadius: "10px",
+              border: `1px solid ${theme.border.primary}`,
+              backgroundColor: theme.background.primary,
+              color: theme.accent[500],
+              boxSizing: "border-box",
+              fontSize: "1.1rem",
+              fontWeight: "600",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = theme.primary[500];
+              e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = theme.border.primary;
+              e.currentTarget.style.boxShadow = "none";
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = theme.primary[500];
+              e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = theme.border.primary;
+              e.currentTarget.style.boxShadow = "none";
+            }}
+          />
+        </div>
+      )}
       <div
         style={{
           display: "flex",

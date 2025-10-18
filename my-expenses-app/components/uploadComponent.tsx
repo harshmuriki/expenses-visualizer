@@ -364,7 +364,7 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
             value={month}
             onChange={(e) => setMonth(e.target.value)}
             placeholder="e.g. January, or 2023-01"
-            className="p-3 border border-border-primary rounded-lg bg-background-primary/50 text-text-primary placeholder-slate-500 focus:border-secondary-500 focus:ring-2 focus:ring-secondary-500/30 transition w-full"
+            className="p-3 border border-border-primary rounded-lg bg-background-primary/50 text-slate-900 placeholder-slate-500 focus:border-secondary-500 focus:ring-2 focus:ring-secondary-500/30 transition w-full"
           />
           {month && (
             <button

@@ -58,7 +58,7 @@ const SmartSearch: React.FC<SmartSearchProps> = ({
         results = results.filter((n) => {
           const matchesName = n.name.toLowerCase().includes(lowerQuery);
           const matchesLocation = n.location?.toLowerCase().includes(lowerQuery);
-          const matchesSource = n.file_source?.toLowerCase().includes(lowerQuery);
+          const matchesSource = n.bank?.toLowerCase().includes(lowerQuery);
           return matchesName || matchesLocation || matchesSource;
         });
       }
@@ -75,11 +75,11 @@ const SmartSearch: React.FC<SmartSearchProps> = ({
       results = results.filter((n) => (n.cost || 0) <= max);
     }
 
-    // Apply file source filter
+    // Apply bank filter
     if (filters.fileSource) {
       results = results.filter(
         (n) =>
-          n.file_source?.toLowerCase().includes(filters.fileSource.toLowerCase())
+          n.bank?.toLowerCase().includes(filters.fileSource.toLowerCase())
       );
     }
 
@@ -206,10 +206,10 @@ const SmartSearch: React.FC<SmartSearchProps> = ({
                           {node.location}
                         </span>
                       )}
-                      {node.file_source && (
+                      {node.bank && (
                         <span className="flex items-center gap-1">
                           <span className="text-slate-500">🏦</span>
-                          {node.file_source}
+                          {node.bank}
                         </span>
                       )}
                     </div>

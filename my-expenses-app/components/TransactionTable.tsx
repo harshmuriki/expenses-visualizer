@@ -72,7 +72,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
           t.name?.toLowerCase().includes(query) ||
           t.category.toLowerCase().includes(query) ||
           t.location?.toLowerCase().includes(query) ||
-          t.file_source?.toLowerCase().includes(query)
+          t.bank?.toLowerCase().includes(query)
       );
     }
 
@@ -102,7 +102,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
           comparison = (a.location || "").localeCompare(b.location || "");
           break;
         case "source":
-          comparison = (a.file_source || "").localeCompare(b.file_source || "");
+          comparison = (a.bank || "").localeCompare(b.bank || "");
           break;
       }
 
@@ -153,7 +153,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
       t.category,
       t.date || "",
       t.location || "",
-      t.file_source || "",
+      t.bank || "",
     ]);
 
     const csvContent = [
@@ -338,11 +338,12 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                 filteredTransactions.map((transaction, idx) => (
                   <tr
                     key={transaction.index}
-                    className={`transition-all duration-150 hover:bg-background-tertiary/30 hover:shadow-md border-b border-border-secondary/30 ${
+                    className={`transition-all duration-150 hover:bg-background-tertiary/30 hover:shadow-md border-b border-border-secondary/30 cursor-pointer ${
                       idx % 2 === 0
                         ? "bg-background-secondary/20"
                         : "bg-background-secondary/10"
                     }`}
+                    onClick={() => onEditTransaction(transaction.index)}
                   >
                     <td className="px-4 py-3 text-sm text-text-primary border-r border-border-secondary/30 font-medium">
                       <div
@@ -389,11 +390,11 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                     <td className="px-4 py-3 text-sm text-text-tertiary border-r border-border-secondary/30">
                       <div
                         className="truncate max-w-[100px]"
-                        title={transaction.file_source || "-"}
+                        title={transaction.bank || "-"}
                       >
-                        {transaction.file_source ? (
+                        {transaction.bank ? (
                           <span className="text-xs bg-background-tertiary/50 px-2 py-1 rounded font-mono">
-                            {transaction.file_source}
+                            {transaction.bank}
                           </span>
                         ) : (
                           <span className="text-slate-500 italic">-</span>
@@ -402,7 +403,10 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                     </td>
                     <td className="px-4 py-3 text-center">
                       <button
-                        onClick={() => onEditTransaction(transaction.index)}
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent row click
+                          onEditTransaction(transaction.index);
+                        }}
                         className="inline-flex items-center gap-1 rounded-md bg-[colors.primary.500] px-3 py-1.5 text-xs font-medium text-text-primary transition-all hover:bg-[colors.primary.600] hover:shadow-md active:scale-95"
                       >
                         <FiEdit2 size={12} />

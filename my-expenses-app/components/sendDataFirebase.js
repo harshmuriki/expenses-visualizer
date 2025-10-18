@@ -3,7 +3,7 @@ import { DEBUG_ENABLED } from "@/lib/debug";
 import { doc, collection, setDoc, getDoc, updateDoc, arrayUnion, writeBatch } from 'firebase/firestore';
 
 // Function to create a new collection
-export const uploadTransaction = async ({ useremail, month, transaction, index, cost, isleaf, visible, isMap, key, values, date, location, file_source, bank }) => {
+export const uploadTransaction = async ({ useremail, month, transaction, index, cost, isleaf, visible, isMap, key, values, date, location, bank, raw_str }) => {
   // console.log('Input parameters:', { transaction, index, cost, isleaf, visible, isMap, key, values });
 
   const userDocRef = doc(db, "users", useremail);
@@ -46,11 +46,11 @@ export const uploadTransaction = async ({ useremail, month, transaction, index, 
     // Default and sanitize fields to avoid undefined in Firestore
     const safeDate = date ?? new Date().toISOString();
     const safeLocation = location ?? "None";
-    const safeFileSource = file_source ?? "Unknown";
     const safeBank = bank ?? "Unknown Bank";
+    const safeRawStr = raw_str ?? null;
     const data = isMap
       ? { [key]: values }
-      : { transaction, cost, index, isleaf, visible, date: safeDate, location: safeLocation, file_source: safeFileSource, bank: safeBank };
+      : { transaction, cost, index, isleaf, visible, date: safeDate, location: safeLocation, bank: safeBank, raw_str: safeRawStr };
     await setDoc(documentRef, data, { merge: true });
 
   } catch (error) {
@@ -105,6 +105,15 @@ export const uploadTransactionsInBatch = async (batchData) => {
     for (const data of batchData) {
       try {
         const collectionRef = collection(userDocRef, data.month);
+
+        // Check if this is a name change (originalName exists and differs from current name)
+        if (!data.isMap && data.originalName && data.originalName !== data.transaction) {
+          // Delete the old document with the original name
+          const oldDocRef = doc(collectionRef, `${data.originalName}_${data.index}`);
+          batch.delete(oldDocRef);
+          if (DEBUG_ENABLED) console.log('[batch] deleting old doc', { oldName: data.originalName, index: data.index });
+        }
+
         const documentRef = data.isMap
           ? doc(collectionRef, 'parentChildMap')
           : doc(collectionRef, `${data.transaction}_${data.index}`);
@@ -112,20 +121,20 @@ export const uploadTransactionsInBatch = async (batchData) => {
         // Default and sanitize fields to avoid undefined in Firestore
         const safeDate = data.date ?? new Date().toISOString();
         const safeLocation = data.location ?? "None";
-        const safeFileSource = data.file_source ?? "Unknown";
         const safeBank = data.bank ?? "Unknown Bank";
+        const safeRawStr = data.raw_str ?? null;
         const docData = data.isMap
           ? { [data.key]: data.values }
           : {
-            transaction: data.transaction,
+            transaction: data.transaction || "None",
             cost: data.cost,
             index: data.index,
             isleaf: data.isleaf,
             visible: data.visible,
             date: safeDate,
             location: safeLocation,
-            file_source: safeFileSource,
             bank: safeBank,
+            raw_str: safeRawStr,
           };
 
         // Add set operation to the batch

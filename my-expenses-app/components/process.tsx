@@ -29,7 +29,6 @@ class Item {
   allparenttags: string[] | null;
   date: string | null;
   location: string | null;
-  file_source: string | null;
   bank: string | null;
 
   constructor(
@@ -42,7 +41,6 @@ class Item {
     allparenttags: string[] | null = null,
     date: string | null = null,
     location: string | null = null,
-    file_source: string | null = null,
     bank: string | null = null
   ) {
     this.name = name;
@@ -54,7 +52,6 @@ class Item {
     this.allparenttags = allparenttags;
     this.date = date;
     this.location = location;
-    this.file_source = file_source;
     this.bank = bank;
   }
 
@@ -103,18 +100,20 @@ class Item {
             Choose the parent tags from this list: ${this.allparenttags}
             Choose the best parent tag for this particular transaction
             Extract the location/merchant address if available
-            
+            If there is a "Bank" field in the data, extract it as well
+
             IMPORTANT: You MUST provide all required fields. If a field is not available, use a reasonable default.
             - If no index is provided, use "0"
             - Cost should always be a positive number
             - Always choose a parenttag from the provided list
-            
+
             name: <item name>
             cost: <item price as a number>
             index: <index of the transaction or use 0>
             parenttag: <broader category from the parent tag list given>
             date: <transaction date>
             location: <merchant location/address or "Unknown">
+            bank: <bank name from the "Bank" field if available>
 
             Note: If the transaction is a credit card payment, the tag should be "Credit Card Payments"
         `;
@@ -146,6 +145,12 @@ class Item {
         this.date = line.split(":", 2)[1].trim();
       } else if (trimmedLine.startsWith("location:")) {
         this.location = line.split(":", 2)[1].trim();
+      } else if (trimmedLine.startsWith("bank:")) {
+        const bankStr = line.split(":", 2)[1].trim();
+        // Only override if we don't already have a bank value
+        if (bankStr && bankStr !== "Unknown Bank" && (!this.bank || this.bank === "Unknown Bank")) {
+          this.bank = bankStr;
+        }
       }
     }
 
@@ -155,6 +160,9 @@ class Item {
     }
     if (!this.location || this.location.trim() === "") {
       this.location = "Unknown";
+    }
+    if (!this.bank || this.bank.trim() === "") {
+      this.bank = "Unknown Bank";
     }
   }
 
@@ -191,7 +199,6 @@ export class Document {
   allparenttags: string[] | null;
   rawData: string | null;
   pdf: boolean = false;
-  fileSource: string | null = null;
 
   constructor(
     document: CSVRow[] | [] = [],
@@ -199,8 +206,7 @@ export class Document {
     alltags: string[] | null = null,
     allparenttags: string[] | null = null,
     rawData: string | null = null,
-    pdf: boolean = false,
-    fileSource: string | null = null
+    pdf: boolean = false
   ) {
     this.document = document;
     this.items = items;
@@ -208,7 +214,6 @@ export class Document {
     this.allparenttags = allparenttags;
     this.rawData = rawData;
     this.pdf = pdf;
-    this.fileSource = fileSource;
   }
 
   async convertPdfToCSVRow(): Promise<CSVRow[]> {
@@ -296,7 +301,6 @@ For EACH transaction, extract:
 - parenttag: category from this list ONLY: ${JSON.stringify(this.allparenttags)}
 - index: use the index provided in the input
 - location: merchant location or "Unknown"
-- file_source: "${this.fileSource || "Unknown"}"
 - bank: extract the "Bank" field from the raw_data (this is the financial institution name)
 
 Return a JSON object with a "transactions" array containing ALL ${
@@ -323,19 +327,38 @@ Each transaction MUST have all required fields.`;
       // Process each transaction from the batch response
       for (const txn of transactions) {
         try {
+          // Find the original raw data for this transaction
+          const originalRow = this.document[parseInt(txn.index) || 0];
+          const rawStr = originalRow
+            ? JSON.stringify(originalRow)
+            : JSON.stringify(txn);
+
+          // Debug: Log rawStr creation
+          console.log(`📝 Creating item for index ${txn.index}:`, {
+            hasOriginalRow: !!originalRow,
+            rawStrPreview: rawStr.substring(0, 100),
+            rawStrLength: rawStr.length,
+          });
+
           const item = new Item(
             txn.name,
             Math.abs(parseFloat(txn.price) || 0),
             txn.index || "0",
             txn.parenttag,
-            JSON.stringify(txn),
+            rawStr,
             this.alltags,
             this.allparenttags,
             txn.date || undefined,
             txn.location || "Unknown",
-            txn.file_source || this.fileSource || undefined,
             txn.bank || "Unknown Bank"
           );
+
+          // Debug: Verify item has raw_str after creation
+          console.log(`✅ Item created with raw_str:`, {
+            index: item.index,
+            hasRawStr: !!item.raw_str,
+            rawStrLength: item.raw_str?.length || 0,
+          });
 
           if (item.isValid()) {
             this.items.push(item);
@@ -387,6 +410,9 @@ Each transaction MUST have all required fields.`;
       const rawStr = JSON.stringify(row);
 
       try {
+        // Extract bank from CSV row if available
+        const bankFromRow = row.Bank || "Unknown Bank";
+
         const tempItem = new Item(
           null,
           null,
@@ -397,7 +423,7 @@ Each transaction MUST have all required fields.`;
           this.allparenttags,
           null,
           null,
-          this.fileSource
+          bankFromRow
         );
         await tempItem.setDetails();
 
@@ -452,14 +478,24 @@ Each transaction MUST have all required fields.`;
       }
 
       const transactionIndex = currentIndex;
+
+      // Debug: Log raw_str to verify it's being captured
+      if (!item.raw_str) {
+        console.warn(`⚠️ Missing raw_str for transaction ${transactionIndex}:`, {
+          name: item.name,
+          hasRawStr: !!item.raw_str,
+          rawStrValue: item.raw_str,
+        });
+      }
+
       output.nodes.push({
         name: item.name ?? "Untitled",
         cost: item.cost ?? 1,
         index: transactionIndex,
         date: item.date || undefined,
         location: item.location || undefined,
-        file_source: item.file_source || undefined,
         bank: item.bank || undefined,
+        raw_str: item.raw_str || undefined,
       });
 
       const parentIndex = parentTagsMap[item.parenttag!];
@@ -563,10 +599,6 @@ Each transaction MUST have all required fields.`;
                         type: "string",
                         description: "The location or merchant address.",
                       },
-                      file_source: {
-                        type: "string",
-                        description: "The source file or bank name.",
-                      },
                       bank: {
                         type: "string",
                         description:
@@ -580,7 +612,6 @@ Each transaction MUST have all required fields.`;
                       "parenttag",
                       "index",
                       "location",
-                      "file_source",
                       "bank",
                     ],
                     additionalProperties: false,
@@ -627,7 +658,7 @@ Each transaction MUST have all required fields.`;
         Array.isArray(transaction.category) ? transaction.category : null,
         transaction.date,
         transaction.merchant_name || transaction.name,
-        "plaid" // File source for Plaid transactions
+        "Plaid" // Bank source for Plaid transactions
       );
     });
     return doc;

@@ -20,7 +20,8 @@ import { useSession } from "next-auth/react";
 import UploadedFilesPanel from "./UploadedFilesPanel";
 import SmartSearch from "./SmartSearch";
 import TransactionTable from "./TransactionTable";
-import { FiBarChart2, FiGrid } from "react-icons/fi";
+import SwipeableTransactionEditor from "./SwipeableTransactionEditor";
+import { FiBarChart2, FiGrid, FiEdit3 } from "react-icons/fi";
 import { useTheme } from "@/lib/theme-context";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 
@@ -34,6 +35,10 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
   const [parentIndex, setParentIndex] = useState<number | null>(null);
   const [nodeIndex, setNodeIndex] = useState<number | null>(null);
   const [clickedNode, setNode] = useState<SankeyNode | null>(null);
+  const [editingFromCategory, setEditingFromCategory] = useState<number | null>(
+    null
+  );
+  const [returnToCategory, setReturnToCategory] = useState<number | null>(null);
   const router = useRouter();
   const { data: session } = useSession();
   const [user, setUser] = useState<{
@@ -48,7 +53,9 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
 
   // Use theme-aware colors for categories
   const parentColors = useMemo(() => theme.categories, [theme]);
-  const [viewMode, setViewMode] = useState<"treemap" | "table">("treemap");
+  const [viewMode, setViewMode] = useState<"treemap" | "table" | "editor">(
+    "treemap"
+  );
 
   // Categories to exclude from TreeMap (but keep in Table and Insights)
   const EXCLUDED_CATEGORIES = ["Mobile Phone", "Credit Card Payment"];
@@ -84,6 +91,17 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
       };
     });
   }, []);
+
+  // Reset returnToCategory after it's been used
+  React.useEffect(() => {
+    if (returnToCategory !== null) {
+      // Reset after a short delay to allow TreeMapChart to process it
+      const timer = setTimeout(() => {
+        setReturnToCategory(null);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [returnToCategory]);
 
   useEffect(() => {
     if (session) {
@@ -129,6 +147,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
           .filter((snapshotDoc) => snapshotDoc.id !== "parentChildMap")
           .map((snapshotDoc) => ({
             name: snapshotDoc.data().transaction,
+            originalName: snapshotDoc.data().transaction, // Store original name for deletion tracking
             cost: snapshotDoc.data().cost || 0,
             index: snapshotDoc.data().index,
             isleaf: snapshotDoc.data().isleaf,
@@ -136,7 +155,8 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
             visible: snapshotDoc.data().visible,
             date: snapshotDoc.data().date,
             location: snapshotDoc.data().location,
-            file_source: snapshotDoc.data().file_source,
+            bank: snapshotDoc.data().bank,
+            raw_str: snapshotDoc.data().raw_str,
           }))
           .sort((a, b) => a.index - b.index);
 
@@ -266,12 +286,19 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
         const isLeaf =
           !parentChildMap.hasOwnProperty(node.index) && node.index !== 0;
         const nowIso = new Date().toISOString();
+
+        // Ensure all required fields have valid values
+        const safeTransactionName = node.name?.trim() || "Unnamed Transaction";
+        const safeCost = typeof node.cost === "number" ? node.cost : 0;
+        const safeIndex = typeof node.index === "number" ? node.index : 0;
+
         batchData.push({
           useremail: user?.email?.toString() || "",
           month: month,
-          transaction: node.name,
-          index: node.index,
-          cost: node.cost || 0,
+          transaction: safeTransactionName,
+          originalName: node.originalName, // Include original name for deletion tracking
+          index: safeIndex,
+          cost: safeCost,
           isleaf: isLeaf,
           isMap: false,
           key: null,
@@ -280,8 +307,8 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
           // Parent tags should always have current date; leaves default to now if missing
           date: isLeaf ? node.date ?? nowIso : nowIso,
           location: node.location ?? "None",
-          file_source: node.file_source ?? "Unknown",
           bank: node.bank ?? "Unknown Bank",
+          raw_str: node.raw_str || "None",
         });
       });
 
@@ -299,6 +326,19 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
           visible: true,
         });
       }
+      // Debug: Log batch data to identify any remaining undefined values
+      console.log("Batch data being sent to Firebase:", batchData.slice(0, 5)); // Log first 5 items for debugging
+      // Log specifically the metadata fields to check if they're being preserved
+      const leafItems = batchData.filter((d: any) => d.isleaf);
+      if (leafItems.length > 0) {
+        const firstLeaf: any = leafItems[0];
+        console.log("First leaf transaction metadata:", {
+          name: firstLeaf.transaction,
+          bank: firstLeaf.bank,
+          location: firstLeaf.location
+        });
+      }
+
       await uploadTransactionsInBatch(batchData);
 
       console.log("Data saved to Firebase successfully!");
@@ -309,7 +349,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
   };
 
   /**
-   * Handle editing a transaction from TreeMap
+   * Handle editing a transaction or category from TreeMap
    */
   const handleEditTransaction = (nodeIndex: number) => {
     const clickedNode = dataValue.nodes.find((n) => n.index === nodeIndex);
@@ -317,7 +357,38 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
 
     setNodeIndex(nodeIndex);
     setNode(clickedNode);
+    setEditingFromCategory(null); // Not editing from category panel
 
+    // If it's a leaf node (transaction), find its parent
+    if (clickedNode.isleaf) {
+      const parentLink = dataValue.links.find(
+        (link) => link.target === nodeIndex
+      );
+      if (parentLink) {
+        setParentIndex(parentLink.source);
+        setIsModalOpen(true);
+      }
+    } else {
+      // If it's a parent node (category), we can edit the category name
+      // For categories, we'll set the parentIndex to the category itself
+      // and allow editing the category name
+      setParentIndex(nodeIndex);
+      setIsModalOpen(true);
+    }
+  };
+
+  /**
+   * Handle editing a transaction from within a category panel
+   */
+  const handleEditFromCategory = (nodeIndex: number, categoryIndex: number) => {
+    const clickedNode = dataValue.nodes.find((n) => n.index === nodeIndex);
+    if (!clickedNode) return;
+
+    setNodeIndex(nodeIndex);
+    setNode(clickedNode);
+    setEditingFromCategory(categoryIndex); // Track that we're editing from category panel
+
+    // Find the parent link for the transaction
     const parentLink = dataValue.links.find(
       (link) => link.target === nodeIndex
     );
@@ -328,13 +399,183 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
   };
 
   /**
+   * Get category name for a transaction
+   */
+  const getCategoryName = useCallback(
+    (nodeIndex: number): string => {
+      const parentLink = dataValue.links.find(
+        (link) => link.target === nodeIndex
+      );
+      if (parentLink) {
+        const parentNode = dataValue.nodes.find(
+          (n) => n.index === parentLink.source
+        );
+        return parentNode?.name || "Uncategorized";
+      }
+      return "Uncategorized";
+    },
+    [dataValue.links, dataValue.nodes]
+  );
+
+  /**
+   * Handle transaction updates from the swipeable editor
+   * Uses the same logic as TreeMap's handleModalSubmit
+   */
+  const handleTransactionUpdate = (
+    nodeIndex: number,
+    updates: { name?: string; cost?: number; category?: string }
+  ) => {
+    setDataValue((prevData) => {
+      const updatedNodes = [...prevData.nodes];
+      const nodePos = updatedNodes.findIndex((n) => n.index === nodeIndex);
+
+      if (nodePos === -1) {
+        console.warn("Could not locate node by index", { nodeIndex });
+        return prevData;
+      }
+
+      // Get current parent index
+      const currentParentLink = prevData.links.find(
+        (link) => link.target === nodeIndex
+      );
+      const currentParentIndex = currentParentLink?.source;
+
+      if (!currentParentIndex) {
+        console.warn("Could not find parent for node", { nodeIndex });
+        return prevData;
+      }
+
+      const parentPos = updatedNodes.findIndex(
+        (n) => n.index === currentParentIndex
+      );
+      if (parentPos === -1) {
+        console.warn("Could not locate parent by index", {
+          currentParentIndex,
+        });
+        return prevData;
+      }
+
+      // Check if we're editing a category (parent node)
+      const clickedNode = updatedNodes[nodePos];
+      if (!clickedNode.isleaf) {
+        // Editing a category - just update the category name
+        updatedNodes[nodePos] = {
+          ...updatedNodes[nodePos],
+          name: updates.name || updatedNodes[nodePos].name,
+        };
+
+        // Recalculate links and return
+        const { nodes: calculatedNodes, links: calculatedLinks } =
+          calculateLinks(updatedNodes, updateParentChildMap(prevData.links));
+        return {
+          nodes: calculatedNodes,
+          links: calculatedLinks,
+        };
+      }
+
+      let newParentIndex = currentParentIndex; // graph index value for the parent
+      let newParentName = updates.category || getCategoryName(nodeIndex);
+
+      // Check if the new parent name already exists (case-insensitive)
+      const normalizedNewName = newParentName.trim().toLowerCase();
+      const existingParentPos = updatedNodes.findIndex(
+        (n) =>
+          !n.isleaf && (n.name ?? "").trim().toLowerCase() === normalizedNewName
+      );
+
+      // If parent doesn't exist, create it
+      if (existingParentPos === -1) {
+        // Find max index to ensure uniqueness
+        const indices = updatedNodes
+          .map((n) => n.index)
+          .filter((idx) => typeof idx === "number" && !isNaN(idx));
+        const maxIndex = indices.length > 0 ? Math.max(...indices) : 0;
+        const newParentNode: SankeyNode = {
+          name: newParentName,
+          value: updatedNodes[nodePos].cost || 0,
+          isleaf: false,
+          visible: true,
+          index: maxIndex + 1,
+        };
+        updatedNodes.push(newParentNode);
+        newParentIndex = newParentNode.index;
+      } else {
+        newParentIndex = updatedNodes[existingParentPos].index;
+      }
+
+      // Update the node's cost/value and name
+      const newPrice =
+        updates.cost !== undefined
+          ? updates.cost
+          : updatedNodes[nodePos].cost || 0;
+
+      // Update the transaction name and cost
+      const shouldUpdateName = updates.name !== undefined && updates.name !== updatedNodes[nodePos].name;
+      const shouldUpdateCost = updatedNodes[nodePos].cost !== newPrice;
+
+      if (shouldUpdateName || shouldUpdateCost) {
+        updatedNodes[nodePos] = {
+          ...updatedNodes[nodePos],
+          ...(shouldUpdateName && { name: updates.name }),
+          ...(shouldUpdateCost && { cost: newPrice, value: newPrice }),
+        };
+      }
+
+      // If the user actually changed the parent (not just the price)
+      if (newParentIndex !== currentParentIndex) {
+        // Build links from the old data for updating the parent-child map
+        const updatedLinks = [...prevData.links];
+        // Subtract the node's value from the old parent
+        const prevNode = prevData.nodes.find((n) => n.index === nodeIndex);
+        const prevCost = prevNode?.cost ?? 0;
+        (updatedNodes as { value: number }[])[parentPos].value -= prevCost;
+
+        // Update parent-child relationships in the map
+        const updatedMap = updateParentChildMap(updatedLinks);
+
+        // Add the node to the new parent (avoid duplicates)
+        if (!updatedMap[newParentIndex]) {
+          updatedMap[newParentIndex] = [];
+        }
+        if (!updatedMap[newParentIndex].includes(nodeIndex)) {
+          updatedMap[newParentIndex].push(nodeIndex);
+        }
+
+        // Remove the node from the old parent
+        if (updatedMap[currentParentIndex]) {
+          updatedMap[currentParentIndex] = updatedMap[
+            currentParentIndex
+          ].filter((val) => val !== nodeIndex);
+          // If the old parent has no children left, remove it from the map
+          if (updatedMap[currentParentIndex].length === 0) {
+            delete updatedMap[currentParentIndex];
+          }
+        }
+
+        // Recalculate ALL links from the updated map - this handles everything including root->parent links
+        const recalculatedData = calculateLinks(updatedNodes, updatedMap);
+        return { nodes: recalculatedData.nodes, links: recalculatedData.links };
+      }
+
+      // No parent change, just cost
+      const updatedMap = updateParentChildMap();
+      const recalculatedData = calculateLinks(updatedNodes, updatedMap);
+      return { nodes: recalculatedData.nodes, links: recalculatedData.links };
+    });
+  };
+
+  /**
    * Handle form submission from the modal:
    * - Possibly create a new parent node or reuse an existing node
    * - Update the cost/value on the leaf node
    * - Update the parent's cost
    * - Update parentChildMap, recalculate links
    */
-  const handleModalSubmit = (newParentName: string, newPrice: number) => {
+  const handleModalSubmit = (
+    newParentName: string,
+    newPrice: number,
+    newTransactionName?: string
+  ) => {
     if (parentIndex === null || nodeIndex === null) return;
 
     setDataValue((prevData) => {
@@ -348,6 +589,24 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
           parentIndex,
         });
         return prevData;
+      }
+
+      // Check if we're editing a category (parent node)
+      const clickedNode = updatedNodes[nodePos];
+      if (!clickedNode.isleaf) {
+        // Editing a category - just update the category name
+        updatedNodes[nodePos] = {
+          ...updatedNodes[nodePos],
+          name: newTransactionName || updatedNodes[nodePos].name,
+        };
+
+        // Recalculate links and return
+        const { nodes: calculatedNodes, links: calculatedLinks } =
+          calculateLinks(updatedNodes, updateParentChildMap(prevData.links));
+        return {
+          nodes: calculatedNodes,
+          links: calculatedLinks,
+        };
       }
 
       let newParentIndex = parentIndex; // graph index value for the parent
@@ -379,12 +638,17 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
         newParentIndex = updatedNodes[existingParentPos].index;
       }
 
-      // Update the node's cost/value
-      if (updatedNodes[nodePos].cost !== newPrice) {
+      // Update the node's cost/value and name
+      if (
+        updatedNodes[nodePos].cost !== newPrice ||
+        (newTransactionName &&
+          updatedNodes[nodePos].name !== newTransactionName)
+      ) {
         updatedNodes[nodePos] = {
           ...updatedNodes[nodePos],
           cost: newPrice,
           value: newPrice,
+          name: newTransactionName || updatedNodes[nodePos].name,
         };
       }
 
@@ -621,13 +885,13 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
 
     // Payment sources diversity
     const uniqueSources = new Set(
-      leafNodes.map((n) => n.file_source).filter(Boolean)
+      leafNodes.map((n) => n.bank).filter(Boolean)
     );
     if (uniqueSources.size > 3) {
       insights.push({
         type: "info",
-        title: "Multiple Payment Sources",
-        description: `Using ${uniqueSources.size} different payment sources. Consolidating could simplify tracking and maximize rewards.`,
+        title: "Multiple Banks/Cards",
+        description: `Using ${uniqueSources.size} different banks or credit cards. Consolidating could simplify tracking and maximize rewards.`,
         icon: "💳",
       });
     }
@@ -723,6 +987,18 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
                 <FiGrid size={16} />
                 Table
               </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("editor")}
+                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition ${
+                  viewMode === "editor"
+                    ? "bg-primary-500 text-text-inverse"
+                    : "text-text-secondary hover:text-text-primary hover:bg-background-tertiary"
+                }`}
+              >
+                <FiEdit3 size={16} />
+                Editor
+              </button>
             </div>
             <button
               type="button"
@@ -744,69 +1020,6 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
       </header>
 
       <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pb-16 pt-24 sm:px-6 lg:px-8">
-        <section className="grid gap-4 md:grid-cols-4">
-          <div className="rounded-2xl border border-border-secondary bg-background-card p-5 shadow-lg">
-            <p className="text-xs uppercase tracking-wide text-text-tertiary">
-              Total tracked spend
-            </p>
-            <p className="mt-3 text-3xl font-semibold text-text-primary">
-              {formattedTotalSpend}
-            </p>
-            {lastUpdatedText && (
-              <p className="mt-3 text-xs text-text-tertiary">
-                Updated {lastUpdatedText}
-              </p>
-            )}
-          </div>
-          <div className="rounded-2xl border border-border-secondary bg-background-card p-5 shadow-lg">
-            <p className="text-xs uppercase tracking-wide text-text-tertiary">
-              Active categories
-            </p>
-            <p className="mt-3 text-3xl font-semibold text-text-primary">
-              {categorySummary.length}
-            </p>
-            <p className="mt-3 text-xs text-text-tertiary">
-              {formattedTransactionCount} leaf transactions
-            </p>
-          </div>
-          <div className="rounded-2xl border border-border-secondary bg-background-card p-5 shadow-lg">
-            <p className="text-xs uppercase tracking-wide text-text-tertiary">
-              Top categories
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {topCategories.length > 0 ? (
-                topCategories.map((category) => (
-                  <span
-                    key={category.name}
-                    className="inline-flex items-center gap-2 rounded-full border border-border-secondary bg-background-tertiary px-3 py-1 text-xs font-medium text-text-primary"
-                  >
-                    <span
-                      className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: category.color }}
-                    />
-                    {category.name}
-                  </span>
-                ))
-              ) : (
-                <span className="text-xs text-text-tertiary">
-                  Upload data to reveal category insights.
-                </span>
-              )}
-            </div>
-          </div>
-          <div className="rounded-2xl border border-border-secondary bg-background-card p-5 shadow-lg">
-            <p className="text-xs uppercase tracking-wide text-text-tertiary">
-              Avg transaction
-            </p>
-            <p className="mt-3 text-3xl font-semibold text-text-primary">
-              {quickStats ? formatCurrency(quickStats.avgTransaction) : "$0"}
-            </p>
-            <p className="mt-3 text-xs text-text-tertiary">
-              Across {transactionCount} transactions
-            </p>
-          </div>
-        </section>
-
         {error && (
           <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-200">
             {error}
@@ -816,21 +1029,6 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
         {infoMessage && !error && !isLoading && (
           <div className="rounded-xl border border-border-secondary bg-background-card p-4 text-sm text-text-primary">
             {infoMessage}
-          </div>
-        )}
-
-        {/* Smart Search */}
-        {chartReady && (
-          <div className="rounded-2xl border border-border-secondary bg-background-card p-6">
-            <div className="mb-4 flex items-center gap-2">
-              <h3 className="text-lg font-semibold text-text-primary">
-                Search Transactions
-              </h3>
-            </div>
-            <SmartSearch
-              nodes={dataValue.nodes}
-              onSelectTransaction={handleEditTransaction}
-            />
           </div>
         )}
 
@@ -844,6 +1042,8 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
                   nodes={dataValue.nodes}
                   links={dataValue.links}
                   onEditTransaction={handleEditTransaction}
+                  onEditFromCategory={handleEditFromCategory}
+                  returnToCategory={returnToCategory}
                   insights={insights}
                   excludedCategories={EXCLUDED_CATEGORIES}
                 />
@@ -874,6 +1074,26 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
                     📋 <strong>Table View:</strong> Browse all transactions in
                     an Excel-style format. Use search and filters to find
                     specific transactions, or export to CSV.
+                  </p>
+                </div>
+              </>
+            )}
+
+            {viewMode === "editor" && (
+              <>
+                <SwipeableTransactionEditor
+                  nodes={dataValue.nodes}
+                  links={dataValue.links}
+                  onUpdateTransaction={handleTransactionUpdate}
+                />
+
+                {/* Helper Text */}
+                <div className="rounded-xl border border-green-500/40 bg-green-500/10 p-4">
+                  <p className="text-sm text-green-200 leading-relaxed">
+                    ✏️ <strong>Transaction Editor:</strong> Swipe through your
+                    transactions one by one. Edit names, amounts, and categories
+                    with a beautiful card-based interface. Perfect for
+                    fine-tuning your data.
                   </p>
                 </div>
               </>
@@ -962,6 +1182,11 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
             onSubmit={handleModalSubmit}
             onClose={() => {
               setIsModalOpen(false);
+              // If we were editing from a category panel, return to that category
+              if (editingFromCategory !== null) {
+                setReturnToCategory(editingFromCategory);
+                setEditingFromCategory(null);
+              }
             }}
             parentOptions={parentOptions}
           />

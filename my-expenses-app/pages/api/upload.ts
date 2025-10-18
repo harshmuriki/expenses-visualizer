@@ -333,8 +333,7 @@ const handleCombinedCsvFiles = async (
       allRows,
       [],
       null,
-      parentTagsArray,
-      "combined" // file_source for combined data
+      parentTagsArray
     );
 
     await document.convertDocToItems();
@@ -403,8 +402,8 @@ const handleCombinedCsvFiles = async (
       visible: true,
       date: node.date,
       location: node.location,
-      file_source: node.file_source,
       bank: node.bank,
+      raw_str: node.raw_str,
     }));
 
     // Save to Firestore

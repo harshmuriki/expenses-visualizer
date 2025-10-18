@@ -27,7 +27,8 @@ export const uploadSankeyToFirestore = async ({
     visible: boolean;
     date?: string | null;
     location?: string | null;
-    file_source?: string | null;
+    bank?: string | null;
+    raw_str?: string | null;
   }>;
 
   for (const node of nodes) {
@@ -49,7 +50,8 @@ export const uploadSankeyToFirestore = async ({
       visible: node.visible ?? true,
       date: node.date,
       location: node.location,
-      file_source: node.file_source,
+      bank: node.bank,
+      raw_str: node.raw_str,
     });
   }
 

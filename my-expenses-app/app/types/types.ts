@@ -2,7 +2,11 @@ export interface InputModalProps {
   clickedNode: SankeyNode;
   initialParentName: string;
   initialPrice: string;
-  onSubmit: (newParentName: string, newPrice: number) => void;
+  onSubmit: (
+    newParentName: string,
+    newPrice: number,
+    newTransactionName?: string
+  ) => void;
   onClose: () => void;
   parentOptions: string[];
 }
@@ -22,8 +26,10 @@ export interface SankeyNode {
   value?: number;
   date?: string;
   location?: string;
-  file_source?: string;
   bank?: string;
+  raw_str?: string;
+  newTransactionName?: string;
+  originalName?: string; // Track the original name from Firebase for deletion
 }
 
 export interface SankeyLink {
@@ -124,8 +130,8 @@ export interface OutputNode {
   cost?: number;
   date?: string;
   location?: string;
-  file_source?: string;
   bank?: string;
+  raw_str?: string;
 }
 
 /**
