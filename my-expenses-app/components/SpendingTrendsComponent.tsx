@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "./firebaseConfig";
 import { useSession } from "next-auth/react";
@@ -9,6 +9,12 @@ import {
   FiTrendingDown,
   FiDollarSign,
   FiCalendar,
+  FiAlertCircle,
+  FiArrowUp,
+  FiArrowDown,
+  FiActivity,
+  FiPieChart,
+  FiBarChart2,
 } from "react-icons/fi";
 import Plot from "react-plotly.js";
 import { useTheme } from "@/lib/theme-context";
@@ -23,6 +29,7 @@ interface MonthlyData {
   month: string;
   totalSpending: number;
   categories: CategorySpending[];
+  transactionCount?: number;
 }
 
 interface TrendData {
@@ -30,6 +37,13 @@ interface TrendData {
   monthlyAmounts: { [month: string]: number };
   trend: "up" | "down" | "stable";
   changePercentage: number;
+}
+
+interface Insight {
+  type: "success" | "warning" | "info" | "alert";
+  title: string;
+  description: string;
+  icon: React.ReactNode;
 }
 
 const SpendingTrendsComponent: React.FC = () => {
@@ -64,140 +78,57 @@ const SpendingTrendsComponent: React.FC = () => {
         createdAt?: string;
       }[] = [];
 
-      console.log("🔍 Starting collection discovery...");
-      console.log("📋 Fetching months from your user document...");
+      const userDocSnapshot = await getDoc(userDocRef);
 
-      try {
-        // Get the user document to fetch the months array
-        const userDocSnapshot = await getDoc(userDocRef);
+      if (userDocSnapshot.exists()) {
+        const userData = userDocSnapshot.data();
+        const monthsArray = userData.months || [];
 
-        if (userDocSnapshot.exists()) {
-          const userData = userDocSnapshot.data();
-          const monthsArray = userData.months || [];
+        for (const monthName of monthsArray) {
+          try {
+            const monthCollectionRef = collection(userDocRef, monthName);
+            const snapshot = await getDocs(monthCollectionRef);
 
-          console.log(
-            `📊 Found ${monthsArray.length} months in your user document:`
-          );
+            if (snapshot.docs.length > 0) {
+              const hasTransactions = snapshot.docs.some(
+                (doc) => doc.id !== "parentChildMap" && doc.id !== "meta"
+              );
 
-          if (monthsArray.length === 0) {
-            console.log("❌ No months found in your user document.");
-            console.log(
-              "💡 Make sure you have uploaded CSV files and they have been processed."
-            );
-          } else {
-            console.log("📋 All months found");
-            // monthsArray.forEach((month: string, index: number) => {
-            //   console.log(`  ${index + 1}. "${month}"`);
-            // });
-
-            // Check each month collection for transaction data
-            console.log(
-              "🔍 Checking each month collection for transaction data..."
-            );
-
-            for (const monthName of monthsArray) {
-              try {
-                const monthCollectionRef = collection(userDocRef, monthName);
-                const snapshot = await getDocs(monthCollectionRef);
-
-                if (snapshot.docs.length > 0) {
-                  // console.log(
-                  //   `📁 Found collection: "${monthName}" with ${snapshot.docs.length} documents`
-                  // );
-
-                  // Check if this collection has transaction data
-                  const hasTransactions = snapshot.docs.some(
-                    (doc) => doc.id !== "parentChildMap" && doc.id !== "meta"
-                  );
-
-                  if (hasTransactions) {
-                    // console.log(
-                    //   `✅ Collection "${monthName}" has transaction data`
-                    // );
-
-                    // Try to get creation timestamp from meta document
-                    let createdAt = undefined;
-                    try {
-                      const metaDocRef = doc(userDocRef, monthName, "meta");
-                      const metaDocSnapshot = await getDoc(metaDocRef);
-                      if (metaDocSnapshot.exists()) {
-                        const metaData = metaDocSnapshot.data();
-                        createdAt =
-                          metaData.createdAt || metaData.createdTimestamp;
-                        console.log(
-                          `📅 Collection "${monthName}" created at: ${createdAt}`
-                        );
-                      }
-                    } catch {
-                      console.log(
-                        `ℹ️ No metadata found for collection "${monthName}"`
-                      );
-                    }
-
-                    monthCollections.push({
-                      name: monthName,
-                      key: monthName,
-                      createdAt: createdAt,
-                    });
-                  } else {
-                    console.log(
-                      `ℹ️ Collection "${monthName}" exists but no transaction data`
-                    );
+              if (hasTransactions) {
+                let createdAt = undefined;
+                try {
+                  const metaDocRef = doc(userDocRef, monthName, "meta");
+                  const metaDocSnapshot = await getDoc(metaDocRef);
+                  if (metaDocSnapshot.exists()) {
+                    const metaData = metaDocSnapshot.data();
+                    createdAt =
+                      metaData.createdAt || metaData.createdTimestamp;
                   }
-                } else {
-                  console.log(
-                    `⚠️ Collection "${monthName}" exists but is empty`
-                  );
+                } catch {
+                  // No metadata
                 }
-              } catch (error) {
-                console.log(
-                  `❌ Error checking collection "${monthName}":`,
-                  error
-                );
+
+                monthCollections.push({
+                  name: monthName,
+                  key: monthName,
+                  createdAt: createdAt,
+                });
               }
             }
+          } catch (error) {
+            console.log(`Error checking collection "${monthName}":`, error);
           }
-        } else {
-          console.log("❌ User document not found.");
-          console.log(
-            "💡 Make sure you have uploaded CSV files and they have been processed."
-          );
         }
-      } catch (error) {
-        console.error("❌ Error fetching user document:", error);
-        console.log(
-          "💡 This might be a Firebase permissions issue or the user document doesn't exist yet."
-        );
       }
 
-      console.log(
-        `🎯 DISCOVERY COMPLETE: Found ${monthCollections.length} collections with transaction data:`
-      );
-
-      if (monthCollections.length === 0) {
-        console.log("❌ No collections with transaction data found!");
-        console.log(
-          "💡 Make sure you have uploaded CSV files and they have been processed."
-        );
-      } else {
-        console.log("📋 All discovered collections:");
-        // monthCollections.forEach((col, index) => {
-        //   console.log(`  ${index + 1}. "${col.name}"`);
-        // });
-      }
-
-      // Sort by creation date (newest first), then by name for consistent ordering
       return monthCollections.sort((a, b) => {
-        // If both have creation dates, sort by date (newest first)
         if (a.createdAt && b.createdAt) {
           const dateA = new Date(a.createdAt).getTime();
           const dateB = new Date(b.createdAt).getTime();
-          return dateB - dateA; // Newest first
+          return dateB - dateA;
         }
-        // If only one has creation date, prioritize it
         if (a.createdAt && !b.createdAt) return -1;
         if (!a.createdAt && b.createdAt) return 1;
-        // If neither has creation date, sort by name
         return a.name.localeCompare(b.name);
       });
     } catch (error) {
@@ -223,7 +154,6 @@ const SpendingTrendsComponent: React.FC = () => {
       const userDocRef = doc(db, "users", session.user.email);
       const monthlyDataArray: MonthlyData[] = [];
 
-      // Fetch data for each selected month
       for (const monthKey of selectedMonths) {
         const month = availableMonths.find((m) => m.key === monthKey);
         if (!month) continue;
@@ -233,21 +163,19 @@ const SpendingTrendsComponent: React.FC = () => {
           const monthCollectionRef = collection(userDocRef, month.key);
           const nodesSnapshot = await getDocs(monthCollectionRef);
 
-          // Get transaction data (exclude parentChildMap and meta)
           const transactionDocs = nodesSnapshot.docs.filter(
             (doc) => doc.id !== "parentChildMap" && doc.id !== "meta"
           );
 
           if (transactionDocs.length > 0) {
-            // Get parentChildMap to understand category structure
             const mapDocRef = doc(monthCollectionRef, "parentChildMap");
             const mapSnapshot = await getDoc(mapDocRef);
 
             if (mapSnapshot.exists()) {
               const parentChildMap = mapSnapshot.data();
               const categorySpending: { [category: string]: number } = {};
+              let transactionCount = 0;
 
-              // Calculate spending by category
               for (const [parentIndex, childIndices] of Object.entries(
                 parentChildMap
               )) {
@@ -261,7 +189,6 @@ const SpendingTrendsComponent: React.FC = () => {
                   const categoryName = parentNode.data().transaction;
                   let categoryTotal = 0;
 
-                  // Sum up all child transactions for this category
                   for (const childIndex of childIndices as number[]) {
                     const childNode = transactionDocs.find(
                       (doc) =>
@@ -270,6 +197,7 @@ const SpendingTrendsComponent: React.FC = () => {
                     );
                     if (childNode) {
                       categoryTotal += childNode.data().cost || 0;
+                      transactionCount++;
                     }
                   }
 
@@ -299,6 +227,7 @@ const SpendingTrendsComponent: React.FC = () => {
                 month: month.name,
                 totalSpending,
                 categories,
+                transactionCount,
               });
             }
           }
@@ -318,24 +247,25 @@ const SpendingTrendsComponent: React.FC = () => {
     }
   }, [session, selectedMonths, availableMonths]);
 
-  // Load available months when component mounts
   const loadAvailableMonths = React.useCallback(async () => {
     if (!session?.user?.email) return;
 
     setLoadingStep("Discovering available months...");
     const months = await discoverAvailableMonths();
     setAvailableMonths(months);
-    setShowMonthSelector(true);
+    // Only show month selector if we're initializing (not if we're refreshing data)
+    if (isInitializing) {
+      setShowMonthSelector(true);
+    }
     setIsInitializing(false);
-  }, [session, discoverAvailableMonths]);
+  }, [session, discoverAvailableMonths, isInitializing]);
 
   useEffect(() => {
-    if (session?.user?.email) {
+    if (session?.user?.email && isInitializing) {
       loadAvailableMonths();
     }
-  }, [session, loadAvailableMonths]);
+  }, [session, loadAvailableMonths, isInitializing]);
 
-  // Fetch data when selected months change
   useEffect(() => {
     if (selectedMonths.length > 0) {
       fetchSpendingData();
@@ -345,7 +275,6 @@ const SpendingTrendsComponent: React.FC = () => {
   const calculateTrends = (data: MonthlyData[]) => {
     const trendMap: { [category: string]: { [month: string]: number } } = {};
 
-    // Collect all categories and their monthly amounts
     data.forEach((monthData) => {
       monthData.categories.forEach((category) => {
         if (!trendMap[category.category]) {
@@ -355,7 +284,6 @@ const SpendingTrendsComponent: React.FC = () => {
       });
     });
 
-    // Calculate trends for each category
     const trendData: TrendData[] = Object.entries(trendMap).map(
       ([category, monthlyAmounts]) => {
         const months = Object.keys(monthlyAmounts).sort();
@@ -399,118 +327,281 @@ const SpendingTrendsComponent: React.FC = () => {
     );
   };
 
+  // Helper function to format currency
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(amount);
   };
 
-  const getTrendIcon = (trend: string) => {
-    switch (trend) {
-      case "up":
-        return <FiTrendingUp className="text-red-500" />;
-      case "down":
-        return <FiTrendingDown className="text-emerald-500" />;
-      default:
-        return <FiDollarSign className="text-text-tertiary" />;
-    }
-  };
+  // Calculate summary statistics
+  const summaryStats = useMemo(() => {
+    if (monthlyData.length === 0) return null;
 
-  const getTrendColor = (trend: string) => {
-    if (trend === "up") return "text-red-500";
-    if (trend === "down") return "text-emerald-500";
-    return "text-text-tertiary";
-  };
+    const totalSpent = monthlyData.reduce(
+      (sum, month) => sum + month.totalSpending,
+      0
+    );
+    const avgMonthly = totalSpent / monthlyData.length;
+    const highestMonth = monthlyData.reduce((max, month) =>
+      month.totalSpending > max.totalSpending ? month : max
+    );
+    const lowestMonth = monthlyData.reduce((min, month) =>
+      month.totalSpending < min.totalSpending ? month : min
+    );
+
+    const totalTransactions = monthlyData.reduce(
+      (sum, month) => sum + (month.transactionCount || 0),
+      0
+    );
+
+    const avgDailySpending = totalSpent / (monthlyData.length * 30);
+
+    // Get top categories across all months
+    const allCategories: { [key: string]: number } = {};
+    monthlyData.forEach((month) => {
+      month.categories.forEach((cat) => {
+        allCategories[cat.category] =
+          (allCategories[cat.category] || 0) + cat.amount;
+      });
+    });
+
+    const topCategory = Object.entries(allCategories).reduce((max, current) =>
+      current[1] > max[1] ? current : max
+    );
+
+    return {
+      totalSpent,
+      avgMonthly,
+      highestMonth,
+      lowestMonth,
+      totalTransactions,
+      avgDailySpending,
+      topCategory: { name: topCategory[0], amount: topCategory[1] },
+    };
+  }, [monthlyData]);
+
+  // Generate insights
+  const insights = useMemo((): Insight[] => {
+    if (!summaryStats || monthlyData.length < 2) return [];
+
+    const insightsList: Insight[] = [];
+
+    // Spending trend insight
+    const recentMonths = monthlyData.slice(-2);
+    if (recentMonths.length === 2) {
+      const change =
+        ((recentMonths[1].totalSpending - recentMonths[0].totalSpending) /
+          recentMonths[0].totalSpending) *
+        100;
+
+      if (change > 15) {
+        insightsList.push({
+          type: "alert",
+          title: "Spending Increased",
+          description: `You spent ${change.toFixed(
+            1
+          )}% more in ${recentMonths[1].month} compared to ${recentMonths[0].month}`,
+          icon: <FiTrendingUp className="w-5 h-5" />,
+        });
+      } else if (change < -15) {
+        insightsList.push({
+          type: "success",
+          title: "Great Progress!",
+          description: `You spent ${Math.abs(change).toFixed(
+            1
+          )}% less in ${recentMonths[1].month} compared to ${recentMonths[0].month}`,
+          icon: <FiTrendingDown className="w-5 h-5" />,
+        });
+      }
+    }
+
+    // Top category insight
+    insightsList.push({
+      type: "info",
+      title: "Top Spending Category",
+      description: `${summaryStats.topCategory.name} accounts for most of your spending`,
+      icon: <FiPieChart className="w-5 h-5" />,
+    });
+
+    // Daily spending insight
+    insightsList.push({
+      type: "info",
+      title: "Daily Average",
+      description: `You're spending about ${formatCurrency(
+        summaryStats.avgDailySpending
+      )} per day`,
+      icon: <FiActivity className="w-5 h-5" />,
+    });
+
+    // Category trend insights
+    const biggestIncrease = trends.find((t) => t.trend === "up");
+    if (biggestIncrease) {
+      insightsList.push({
+        type: "warning",
+        title: "Rising Category",
+        description: `${biggestIncrease.category} spending increased by ${biggestIncrease.changePercentage.toFixed(1)}%`,
+        icon: <FiArrowUp className="w-5 h-5" />,
+      });
+    }
+
+    const biggestDecrease = trends.find((t) => t.trend === "down");
+    if (biggestDecrease) {
+      insightsList.push({
+        type: "success",
+        title: "Reduced Spending",
+        description: `${biggestDecrease.category} spending decreased by ${Math.abs(biggestDecrease.changePercentage).toFixed(1)}%`,
+        icon: <FiArrowDown className="w-5 h-5" />,
+      });
+    }
+
+    return insightsList;
+  }, [summaryStats, monthlyData, trends]);
 
   if (showMonthSelector) {
     return (
       <div className="space-y-6">
-        <div className="bg-background-card rounded-xl p-6 border border-border-secondary">
-          <h3 className="text-xl font-semibold text-text-primary mb-4">
-            Select Months to Analyze
-          </h3>
-          <p className="text-text-tertiary mb-4">
-            Choose which months you&apos;d like to include in your spending
-            trends analysis.
-          </p>
+        <div className="bg-gradient-to-br from-background-card via-background-card to-background-secondary/30 rounded-2xl p-8 border border-border-secondary shadow-xl">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 rounded-xl bg-gradient-to-r from-primary-500 to-secondary-500">
+              <FiCalendar className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-2xl font-bold text-text-primary">
+                Select Time Period
+              </h3>
+              <p className="text-text-tertiary">
+                Choose which months to include in your analysis
+              </p>
+            </div>
+          </div>
 
           {availableMonths.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="text-text-tertiary text-lg mb-2">📊</div>
-              <p className="text-text-tertiary">No transaction data found</p>
-              <p className="text-text-tertiary text-sm">
-                Upload some CSV files to get started!
+            <div className="text-center py-16">
+              <div className="text-6xl mb-4">📊</div>
+              <h4 className="text-xl font-semibold text-text-primary mb-2">
+                No Data Yet
+              </h4>
+              <p className="text-text-tertiary">
+                Upload your first CSV to start tracking trends
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {availableMonths
-                .sort((a, b) => {
-                  // Sort by creation date (newest first) for month selector
-                  if (a.createdAt && b.createdAt) {
-                    return (
-                      new Date(b.createdAt).getTime() -
-                      new Date(a.createdAt).getTime()
-                    );
-                  }
-                  if (a.createdAt && !b.createdAt) return -1;
-                  if (!a.createdAt && b.createdAt) return 1;
-                  return a.name.localeCompare(b.name);
-                })
-                .map((month) => (
-                  <label
-                    key={month.key}
-                    className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
-                      selectedMonths.includes(month.key)
-                        ? "bg-gradient-to-r from-primary-500/20 to-secondary-500/20 border-primary-500 text-text-primary"
-                        : "bg-background-secondary border-border-secondary hover:border-primary-500 text-text-secondary"
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedMonths.includes(month.key)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedMonths([...selectedMonths, month.key]);
-                        } else {
-                          setSelectedMonths(
-                            selectedMonths.filter((m) => m !== month.key)
-                          );
-                        }
-                      }}
-                      className="w-4 h-4 text-primary-500 bg-background-tertiary border-border-primary rounded focus:ring-primary-500 focus:ring-2"
-                    />
-                    <div className="flex flex-col">
-                      <span className="font-medium">{month.name}</span>
-                      {month.createdAt && (
-                        <span className="text-xs text-text-tertiary">
-                          Created:{" "}
-                          {new Date(month.createdAt).toLocaleDateString()}
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+                {availableMonths
+                  .sort((a, b) => {
+                    if (a.createdAt && b.createdAt) {
+                      return (
+                        new Date(b.createdAt).getTime() -
+                        new Date(a.createdAt).getTime()
+                      );
+                    }
+                    if (a.createdAt && !b.createdAt) return -1;
+                    if (!a.createdAt && b.createdAt) return 1;
+                    return a.name.localeCompare(b.name);
+                  })
+                  .map((month) => (
+                    <label
+                      key={month.key}
+                      className={`relative flex items-center space-x-3 p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 ${
+                        selectedMonths.includes(month.key)
+                          ? "bg-gradient-to-br from-primary-500/20 to-secondary-500/20 border-primary-500 shadow-lg scale-105"
+                          : "bg-background-secondary/50 border-border-secondary hover:border-primary-500/50 hover:scale-102"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedMonths.includes(month.key)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedMonths([...selectedMonths, month.key]);
+                          } else {
+                            setSelectedMonths(
+                              selectedMonths.filter((m) => m !== month.key)
+                            );
+                          }
+                        }}
+                        className="w-5 h-5 text-primary-500 bg-background-tertiary border-border-primary rounded-md focus:ring-primary-500 focus:ring-2"
+                      />
+                      <div className="flex flex-col flex-1">
+                        <span className="font-semibold text-text-primary">
+                          {month.name}
                         </span>
+                        {month.createdAt && (
+                          <span className="text-xs text-text-tertiary">
+                            {new Date(month.createdAt).toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "short",
+                                day: "numeric",
+                              }
+                            )}
+                          </span>
+                        )}
+                      </div>
+                      {selectedMonths.includes(month.key) && (
+                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs font-bold">✓</span>
+                        </div>
                       )}
-                    </div>
-                  </label>
-                ))}
-            </div>
-          )}
+                    </label>
+                  ))}
+              </div>
 
-          {selectedMonths.length > 0 && (
-            <div className="mt-6 flex justify-between items-center">
-              <p className="text-text-tertiary">
-                {selectedMonths.length} month
-                {selectedMonths.length !== 1 ? "s" : ""} selected
-              </p>
-              <button
-                onClick={() => {
-                  setShowMonthSelector(false);
-                  fetchSpendingData();
-                }}
-                className="px-6 py-2 bg-gradient-to-r from-primary-500 to-secondary-500 hover:from-primary-600 hover:to-secondary-600 text-text-inverse rounded-lg font-semibold shadow-lg transform hover:scale-105 transition duration-300"
-              >
-                Analyze Trends
-              </button>
-            </div>
+              {/* Quick Select Buttons */}
+              <div className="flex gap-2 mb-6 flex-wrap">
+                <button
+                  onClick={() => setSelectedMonths(availableMonths.map((m) => m.key))}
+                  className="px-4 py-2 text-sm bg-background-tertiary text-text-primary rounded-lg hover:bg-background-secondary transition border border-border-secondary"
+                >
+                  Select All
+                </button>
+                <button
+                  onClick={() => setSelectedMonths([])}
+                  className="px-4 py-2 text-sm bg-background-tertiary text-text-primary rounded-lg hover:bg-background-secondary transition border border-border-secondary"
+                >
+                  Clear All
+                </button>
+                <button
+                  onClick={() => {
+                    const last3 = availableMonths.slice(0, 3).map((m) => m.key);
+                    setSelectedMonths(last3);
+                  }}
+                  className="px-4 py-2 text-sm bg-background-tertiary text-text-primary rounded-lg hover:bg-background-secondary transition border border-border-secondary"
+                >
+                  Last 3 Months
+                </button>
+              </div>
+
+              {selectedMonths.length > 0 && (
+                <div className="flex justify-between items-center pt-6 border-t border-border-secondary">
+                  <div className="flex items-center gap-2">
+                    <div className="px-4 py-2 bg-primary-500/10 rounded-lg border border-primary-500/30">
+                      <span className="text-primary-500 font-bold">
+                        {selectedMonths.length}
+                      </span>
+                      <span className="text-text-tertiary ml-1">
+                        month{selectedMonths.length !== 1 ? "s" : ""} selected
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowMonthSelector(false);
+                      fetchSpendingData();
+                    }}
+                    className="px-8 py-3 bg-gradient-to-r from-primary-500 to-secondary-500 hover:from-primary-600 hover:to-secondary-600 text-white rounded-xl font-bold shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center gap-2"
+                  >
+                    <FiBarChart2 className="w-5 h-5" />
+                    Analyze Trends
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -522,34 +613,23 @@ const SpendingTrendsComponent: React.FC = () => {
       <div className="w-full p-8 bg-background-card rounded-xl border border-border-secondary">
         <div className="flex flex-col items-center space-y-4">
           <div className="relative">
-            <div className="w-12 h-12 border-4 border-border-primary border-t-primary-500 rounded-full animate-spin"></div>
+            <div className="w-16 h-16 border-4 border-border-primary border-t-primary-500 rounded-full animate-spin"></div>
             <div className="absolute inset-0 flex items-center justify-center">
               <div
-                className="w-6 h-6 border-2 border-border-secondary border-t-secondary-500 rounded-full animate-spin"
+                className="w-8 h-8 border-2 border-border-secondary border-t-secondary-500 rounded-full animate-spin"
                 style={{ animationDirection: "reverse" }}
               ></div>
             </div>
           </div>
           <div className="text-center">
-            <h3 className="text-lg font-semibold text-text-primary mb-2">
-              🔍 {loadingStep}
+            <h3 className="text-xl font-bold text-text-primary mb-2">
+              {loadingStep}
             </h3>
-            <p className="text-text-secondary text-sm">
+            <p className="text-text-secondary">
               {isInitializing
-                ? "Setting up your spending analysis..."
-                : "Processing your financial data..."}
+                ? "Preparing your insights..."
+                : "Crunching the numbers..."}
             </p>
-            <div className="mt-3 flex space-x-1 justify-center">
-              <div className="w-2 h-2 bg-primary-500 rounded-full animate-bounce"></div>
-              <div
-                className="w-2 h-2 bg-secondary-500 rounded-full animate-bounce"
-                style={{ animationDelay: "0.1s" }}
-              ></div>
-              <div
-                className="w-2 h-2 bg-accent-500 rounded-full animate-bounce"
-                style={{ animationDelay: "0.2s" }}
-              ></div>
-            </div>
           </div>
         </div>
       </div>
@@ -559,11 +639,12 @@ const SpendingTrendsComponent: React.FC = () => {
   if (error) {
     return (
       <div className="w-full p-6 bg-background-card rounded-xl border border-border-secondary">
-        <div className="text-center text-red-500">
-          <p>{error}</p>
+        <div className="text-center">
+          <FiAlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <p className="text-text-primary mb-4">{error}</p>
           <button
             onClick={fetchSpendingData}
-            className="mt-2 px-4 py-2 bg-primary-500 text-text-inverse rounded-lg hover:bg-primary-600 transition"
+            className="px-6 py-2 bg-gradient-to-r from-primary-500 to-secondary-500 text-white rounded-lg hover:from-primary-600 hover:to-secondary-600 transition"
           >
             Try Again
           </button>
@@ -574,158 +655,313 @@ const SpendingTrendsComponent: React.FC = () => {
 
   return (
     <div className="w-full space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-text-primary flex items-center space-x-2">
-          <FiCalendar className="text-primary-500" />
-          <span>Spending Trends</span>
-        </h2>
-        <div className="flex space-x-2">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-3 rounded-xl bg-gradient-to-r from-primary-500 to-secondary-500">
+            <FiActivity className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h2 className="text-3xl font-bold text-text-primary">
+              Spending Insights
+            </h2>
+            <p className="text-text-tertiary">
+              {selectedMonths.length} month{selectedMonths.length !== 1 ? "s" : ""} of data
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-2">
           <button
             onClick={() => setShowMonthSelector(true)}
-            className="px-4 py-2 bg-background-tertiary text-text-primary rounded-lg hover:bg-background-secondary transition"
+            className="px-4 py-2 bg-background-tertiary text-text-primary rounded-lg hover:bg-background-secondary transition border border-border-secondary flex items-center gap-2"
           >
-            Change Months
+            <FiCalendar className="w-4 h-4" />
+            Change Period
           </button>
           <button
             onClick={fetchSpendingData}
-            className="px-4 py-2 bg-gradient-to-r from-primary-500 to-secondary-500 text-text-inverse rounded-lg hover:from-primary-600 hover:to-secondary-600 transition"
+            className="px-4 py-2 bg-gradient-to-r from-primary-500 to-secondary-500 text-white rounded-lg hover:from-primary-600 hover:to-secondary-600 transition flex items-center gap-2"
           >
             Refresh
           </button>
         </div>
       </div>
 
-      {/* Monthly Overview - only show selected months */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {monthlyData
-          .filter((month) =>
-            selectedMonths.some(
-              (selectedKey) =>
-                availableMonths.find(
-                  (availMonth) => availMonth.key === selectedKey
-                )?.name === month.month
-            )
-          )
-          .sort((a, b) => {
-            // Sort monthly data by creation date
-            const monthA = availableMonths.find((m) => m.name === a.month);
-            const monthB = availableMonths.find((m) => m.name === b.month);
-
-            if (monthA?.createdAt && monthB?.createdAt) {
-              return (
-                new Date(monthA.createdAt).getTime() -
-                new Date(monthB.createdAt).getTime()
-              );
-            }
-            return a.month.localeCompare(b.month);
-          })
-          .map((month) => (
-            <div
-              key={month.month}
-              className="bg-background-card rounded-xl p-4 border border-border-secondary"
-            >
-              <div className="flex justify-between items-start mb-3">
-                <h3 className="text-lg font-semibold text-text-primary">
-                  {month.month}
-                </h3>
-                {(() => {
-                  const monthInfo = availableMonths.find(
-                    (m) => m.name === month.month
-                  );
-                  return monthInfo?.createdAt ? (
-                    <span className="text-xs text-text-tertiary">
-                      {new Date(monthInfo.createdAt).toLocaleDateString()}
-                    </span>
-                  ) : null;
-                })()}
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-text-tertiary">Total Spending</span>
-                  <span className="text-text-primary font-semibold">
-                    {formatCurrency(month.totalSpending)}
-                  </span>
-                </div>
-                <div className="space-y-1">
-                  {month.categories.slice(0, 3).map((category) => (
-                    <div
-                      key={category.category}
-                      className="flex justify-between items-center text-sm"
-                    >
-                      <span className="text-text-secondary truncate">
-                        {category.category}
-                      </span>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-text-tertiary">
-                          {formatCurrency(category.amount)}
-                        </span>
-                        <div className="w-16 bg-background-tertiary rounded-full h-1.5">
-                          <div
-                            className="h-1.5 rounded-full bg-gradient-to-r from-primary-500 to-secondary-500"
-                            style={{ width: `${category.percentage}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+      {/* Summary Stats Cards */}
+      {summaryStats && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Total Spent */}
+          <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 border border-purple-500/20 rounded-2xl p-6 shadow-lg">
+            <div className="flex items-start justify-between mb-3">
+              <div className="p-3 bg-purple-500/20 rounded-xl">
+                <FiDollarSign className="w-6 h-6 text-purple-500" />
               </div>
             </div>
-          ))}
-      </div>
+            <div className="text-3xl font-bold text-text-primary mb-1">
+              {formatCurrency(summaryStats.totalSpent)}
+            </div>
+            <div className="text-sm text-text-tertiary">Total Spent</div>
+            <div className="text-xs text-text-tertiary mt-2">
+              Avg: {formatCurrency(summaryStats.avgMonthly)}/month
+            </div>
+          </div>
 
-      {/* Category Trends */}
-      <div className="bg-background-card rounded-xl p-6 border border-border-secondary">
-        <h3 className="text-xl font-semibold text-text-primary mb-4">
-          Category Trends
-        </h3>
-        <div className="space-y-4">
-          {trends.slice(0, 10).map((trend) => (
-            <div
-              key={trend.category}
-              className="flex items-center justify-between p-4 bg-background-secondary/50 rounded-lg"
-            >
-              <div className="flex items-center space-x-3">
-                {getTrendIcon(trend.trend)}
-                <span className="text-text-primary font-medium">
-                  {trend.category}
-                </span>
+          {/* Daily Average */}
+          <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-500/20 rounded-2xl p-6 shadow-lg">
+            <div className="flex items-start justify-between mb-3">
+              <div className="p-3 bg-blue-500/20 rounded-xl">
+                <FiActivity className="w-6 h-6 text-blue-500" />
               </div>
-              <div className="flex items-center space-x-4">
-                <div className="text-right">
-                  <div className="text-sm text-text-tertiary">Latest Month</div>
-                  <div className="text-text-primary font-semibold">
-                    {formatCurrency(
-                      Object.values(trend.monthlyAmounts).slice(-1)[0] || 0
-                    )}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm text-text-tertiary">Change</div>
+            </div>
+            <div className="text-3xl font-bold text-text-primary mb-1">
+              {formatCurrency(summaryStats.avgDailySpending)}
+            </div>
+            <div className="text-sm text-text-tertiary">Daily Average</div>
+            <div className="text-xs text-text-tertiary mt-2">
+              Based on selected months
+            </div>
+          </div>
+
+          {/* Top Category */}
+          <div className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/10 border border-emerald-500/20 rounded-2xl p-6 shadow-lg">
+            <div className="flex items-start justify-between mb-3">
+              <div className="p-3 bg-emerald-500/20 rounded-xl">
+                <FiPieChart className="w-6 h-6 text-emerald-500" />
+              </div>
+            </div>
+            <div className="text-2xl font-bold text-text-primary mb-1 truncate">
+              {summaryStats.topCategory.name}
+            </div>
+            <div className="text-sm text-text-tertiary">Top Category</div>
+            <div className="text-xs text-text-tertiary mt-2">
+              {formatCurrency(summaryStats.topCategory.amount)}
+            </div>
+          </div>
+
+          {/* Transactions */}
+          <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 border border-orange-500/20 rounded-2xl p-6 shadow-lg">
+            <div className="flex items-start justify-between mb-3">
+              <div className="p-3 bg-orange-500/20 rounded-xl">
+                <FiBarChart2 className="w-6 h-6 text-orange-500" />
+              </div>
+            </div>
+            <div className="text-3xl font-bold text-text-primary mb-1">
+              {summaryStats.totalTransactions}
+            </div>
+            <div className="text-sm text-text-tertiary">Transactions</div>
+            <div className="text-xs text-text-tertiary mt-2">
+              Avg: {Math.round(summaryStats.totalTransactions / monthlyData.length)}/month
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Insights */}
+      {insights.length > 0 && (
+        <div className="bg-gradient-to-br from-background-card via-background-card to-background-secondary/30 rounded-2xl p-6 border border-border-secondary shadow-xl">
+          <h3 className="text-xl font-bold text-text-primary mb-4 flex items-center gap-2">
+            <FiAlertCircle className="w-5 h-5 text-primary-500" />
+            Key Insights
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {insights.map((insight, index) => (
+              <div
+                key={index}
+                className={`p-4 rounded-xl border-2 ${
+                  insight.type === "success"
+                    ? "bg-emerald-500/5 border-emerald-500/30"
+                    : insight.type === "warning"
+                    ? "bg-yellow-500/5 border-yellow-500/30"
+                    : insight.type === "alert"
+                    ? "bg-red-500/5 border-red-500/30"
+                    : "bg-blue-500/5 border-blue-500/30"
+                }`}
+              >
+                <div className="flex items-start gap-3">
                   <div
-                    className={`font-semibold ${getTrendColor(trend.trend)}`}
+                    className={`p-2 rounded-lg ${
+                      insight.type === "success"
+                        ? "bg-emerald-500/20 text-emerald-500"
+                        : insight.type === "warning"
+                        ? "bg-yellow-500/20 text-yellow-500"
+                        : insight.type === "alert"
+                        ? "bg-red-500/20 text-red-500"
+                        : "bg-blue-500/20 text-blue-500"
+                    }`}
                   >
-                    {trend.changePercentage > 0 ? "+" : ""}
-                    {trend.changePercentage.toFixed(1)}%
+                    {insight.icon}
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-text-primary mb-1">
+                      {insight.title}
+                    </h4>
+                    <p className="text-sm text-text-tertiary">
+                      {insight.description}
+                    </p>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Monthly Spending Chart */}
+      <div className="bg-gradient-to-br from-background-card via-background-card to-background-secondary/30 rounded-2xl p-6 border border-border-secondary shadow-xl">
+        <h3 className="text-xl font-bold text-text-primary mb-4">
+          Monthly Spending Overview
+        </h3>
+        <div className="h-96">
+          <Plot
+            data={[
+              {
+                x: monthlyData
+                  .sort((a, b) => {
+                    const monthA = availableMonths.find((m) => m.name === a.month);
+                    const monthB = availableMonths.find((m) => m.name === b.month);
+                    if (monthA?.createdAt && monthB?.createdAt) {
+                      return (
+                        new Date(monthA.createdAt).getTime() -
+                        new Date(monthB.createdAt).getTime()
+                      );
+                    }
+                    return a.month.localeCompare(b.month);
+                  })
+                  .map((m) => m.month),
+                y: monthlyData.map((m) => m.totalSpending),
+                type: "bar",
+                marker: {
+                  color: monthlyData.map((_, i) => theme.categories[i % theme.categories.length]),
+                  line: {
+                    color: theme.primary[500],
+                    width: 1,
+                  },
+                },
+                hovertemplate: "<b>%{x}</b><br>Total: %{y:$,.0f}<extra></extra>",
+              },
+            ]}
+            layout={{
+              xaxis: {
+                title: "Month",
+                color: theme.text.secondary,
+                gridcolor: isLightTheme ? theme.border.secondary : theme.border.primary,
+                showgrid: false,
+              },
+              yaxis: {
+                title: "Amount",
+                color: theme.text.secondary,
+                gridcolor: isLightTheme ? theme.border.secondary : theme.border.primary,
+                showgrid: true,
+                tickformat: "$,.0f",
+              },
+              plot_bgcolor: "rgba(0,0,0,0)",
+              paper_bgcolor: "rgba(0,0,0,0)",
+              font: { color: theme.text.tertiary },
+              margin: { t: 20, b: 50, l: 80, r: 20 },
+              hovermode: "x unified",
+            }}
+            config={{
+              displayModeBar: false,
+              responsive: true,
+            }}
+            style={{ width: "100%", height: "100%" }}
+          />
         </div>
       </div>
 
-      {/* Combined Plotly Chart for All Trends */}
-      <div className="bg-background-card rounded-xl p-6 border border-border-secondary">
-        <h3 className="text-xl font-semibold text-text-primary mb-4">
-          Spending Trends Over Time
-        </h3>
+      {/* Category Breakdown with Pie Chart */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Category Pie Chart */}
+        <div className="bg-gradient-to-br from-background-card via-background-card to-background-secondary/30 rounded-2xl p-6 border border-border-secondary shadow-xl">
+          <h3 className="text-xl font-bold text-text-primary mb-4">
+            Spending by Category
+          </h3>
+          <div className="h-96">
+            {summaryStats && (
+              <Plot
+                data={[
+                  {
+                    labels: monthlyData[0]?.categories.map((c) => c.category) || [],
+                    values: monthlyData[0]?.categories.map((c) => c.amount) || [],
+                    type: "pie",
+                    marker: {
+                      colors: theme.categories,
+                    },
+                    textinfo: "label+percent",
+                    textposition: "auto",
+                    hovertemplate: "<b>%{label}</b><br>%{value:$,.0f}<br>%{percent}<extra></extra>",
+                  },
+                ]}
+                layout={{
+                  plot_bgcolor: "rgba(0,0,0,0)",
+                  paper_bgcolor: "rgba(0,0,0,0)",
+                  font: { color: theme.text.primary },
+                  margin: { t: 20, b: 20, l: 20, r: 20 },
+                  showlegend: true,
+                  legend: {
+                    bgcolor: "rgba(0,0,0,0)",
+                    font: { color: theme.text.primary, size: 10 },
+                  },
+                }}
+                config={{
+                  displayModeBar: false,
+                  responsive: true,
+                }}
+                style={{ width: "100%", height: "100%" }}
+              />
+            )}
+          </div>
+        </div>
 
-        {/* Combined Interactive Chart */}
-        <div className="h-96 bg-background-secondary rounded-lg p-4 mb-6">
+        {/* Top Categories List */}
+        <div className="bg-gradient-to-br from-background-card via-background-card to-background-secondary/30 rounded-2xl p-6 border border-border-secondary shadow-xl">
+          <h3 className="text-xl font-bold text-text-primary mb-4">
+            Top Spending Categories
+          </h3>
+          <div className="space-y-4">
+            {monthlyData[0]?.categories.slice(0, 8).map((category, index) => (
+              <div key={category.category} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl font-bold text-text-tertiary">
+                      #{index + 1}
+                    </span>
+                    <span className="font-semibold text-text-primary truncate">
+                      {category.category}
+                    </span>
+                  </div>
+                  <span className="font-bold text-text-primary">
+                    {formatCurrency(category.amount)}
+                  </span>
+                </div>
+                <div className="relative">
+                  <div className="w-full bg-background-tertiary rounded-full h-3 overflow-hidden">
+                    <div
+                      className="h-3 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${category.percentage}%`,
+                        background: theme.categories[index % theme.categories.length],
+                      }}
+                    />
+                  </div>
+                  <span className="absolute right-2 top-0 text-xs font-bold text-text-primary">
+                    {category.percentage.toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Category Trends Over Time */}
+      <div className="bg-gradient-to-br from-background-card via-background-card to-background-secondary/30 rounded-2xl p-6 border border-border-secondary shadow-xl">
+        <h3 className="text-xl font-bold text-text-primary mb-4">
+          Category Trends Over Time
+        </h3>
+        <div className="h-96">
           <Plot
             data={trends.slice(0, 5).map((trend, index) => {
-              // Get selected months and sort by creation date (oldest to newest for chronological order)
               const months = availableMonths
                 .filter((month) => selectedMonths.includes(month.key))
                 .sort((a, b) => {
@@ -738,9 +974,6 @@ const SpendingTrendsComponent: React.FC = () => {
                   return a.name.localeCompare(b.name);
                 });
 
-              // Use theme category colors
-              const colors = theme.categories;
-
               return {
                 x: months.map((month) => month.name),
                 y: months.map((month) => trend.monthlyAmounts[month.name] || 0),
@@ -748,200 +981,108 @@ const SpendingTrendsComponent: React.FC = () => {
                 mode: "lines+markers",
                 name: trend.category,
                 line: {
-                  color: colors[index % colors.length],
+                  color: theme.categories[index % theme.categories.length],
                   width: 3,
                   shape: "spline",
                 },
                 marker: {
-                  color: colors[index % colors.length],
-                  size: 6,
+                  color: theme.categories[index % theme.categories.length],
+                  size: 8,
                   line: {
-                    color: colors[index % colors.length],
-                    width: 1,
+                    color: theme.background.primary,
+                    width: 2,
                   },
                 },
               };
             })}
             layout={{
-              title: {
-                text: "Spending Trends Across Selected Months",
-                font: { color: theme.text.primary },
-              },
               xaxis: {
                 title: "Month",
                 color: theme.text.secondary,
-                gridcolor: isLightTheme
-                  ? theme.border.secondary
-                  : theme.border.primary,
+                gridcolor: isLightTheme ? theme.border.secondary : theme.border.primary,
                 showgrid: true,
               },
               yaxis: {
-                title: "Amount ($)",
+                title: "Amount",
                 color: theme.text.secondary,
-                gridcolor: isLightTheme
-                  ? theme.border.secondary
-                  : theme.border.primary,
+                gridcolor: isLightTheme ? theme.border.secondary : theme.border.primary,
                 showgrid: true,
                 tickformat: "$,.0f",
               },
               plot_bgcolor: "rgba(0,0,0,0)",
               paper_bgcolor: "rgba(0,0,0,0)",
               font: { color: theme.text.tertiary },
-              margin: { t: 50, b: 50, l: 80, r: 20 },
-              hovermode: "closest",
+              margin: { t: 20, b: 50, l: 80, r: 20 },
+              hovermode: "x unified",
               legend: {
-                x: 0,
-                y: 1,
                 bgcolor: "rgba(0,0,0,0)",
-                bordercolor: "rgba(0,0,0,0)",
                 font: { color: theme.text.primary },
+                orientation: "h",
+                y: -0.2,
               },
             }}
             config={{
-              displayModeBar: true,
-              displaylogo: false,
-              modeBarButtonsToRemove: ["pan2d", "lasso2d", "select2d"],
+              displayModeBar: false,
               responsive: true,
             }}
             style={{ width: "100%", height: "100%" }}
           />
         </div>
+      </div>
 
-        <div className="space-y-6">
-          {trends.slice(0, 5).map((trend) => {
-            // Use only the selected months for the line chart, sorted chronologically
-            const selectedMonthData = availableMonths.filter((month) =>
-              selectedMonths.includes(month.key)
-            );
-            const months = selectedMonthData.sort((a, b) => {
-              if (a.createdAt && b.createdAt) {
-                return (
-                  new Date(a.createdAt).getTime() -
-                  new Date(b.createdAt).getTime()
-                );
-              }
-              return a.name.localeCompare(b.name);
-            });
-
-            return (
-              <div key={trend.category} className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-text-primary font-medium">
-                    {trend.category}
-                  </span>
-                  <div className="flex items-center space-x-4 text-sm">
-                    <span className="text-text-tertiary">
-                      Total:{" "}
-                      {formatCurrency(
-                        Object.values(trend.monthlyAmounts).reduce(
-                          (sum, amount) => sum + amount,
-                          0
-                        )
-                      )}
-                    </span>
-                    <span className="text-text-tertiary">
-                      Avg:{" "}
-                      {formatCurrency(
-                        Object.values(trend.monthlyAmounts).reduce(
-                          (sum, amount) => sum + amount,
-                          0
-                        ) / Object.values(trend.monthlyAmounts).length
-                      )}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Plotly Line Chart */}
-                <div className="h-80 bg-background-secondary rounded-lg p-4">
-                  <Plot
-                    data={[
-                      {
-                        x: months.map((month) => month.name),
-                        y: months.map(
-                          (month) => trend.monthlyAmounts[month.name] || 0
-                        ),
-                        type: "scatter",
-                        mode: "lines+markers",
-                        name: trend.category,
-                        line: {
-                          color: theme.primary[500],
-                          width: 3,
-                          shape: "spline",
-                        },
-                        marker: {
-                          color: theme.secondary[500],
-                          size: 8,
-                          line: {
-                            color: theme.primary[500],
-                            width: 2,
-                          },
-                        },
-                        fill: "tonexty",
-                        fillcolor: `${theme.primary[500]}1A`,
-                      },
-                    ]}
-                    layout={{
-                      title: {
-                        text: `Spending Trend: ${trend.category}`,
-                        font: { color: theme.text.primary },
-                      },
-                      xaxis: {
-                        title: "Month",
-                        color: theme.text.secondary,
-                        gridcolor: isLightTheme
-                          ? theme.border.secondary
-                          : theme.border.primary,
-                        showgrid: true,
-                      },
-                      yaxis: {
-                        title: "Amount ($)",
-                        color: theme.text.secondary,
-                        gridcolor: isLightTheme
-                          ? theme.border.secondary
-                          : theme.border.primary,
-                        showgrid: true,
-                        tickformat: "$,.0f",
-                      },
-                      plot_bgcolor: "rgba(0,0,0,0)",
-                      paper_bgcolor: "rgba(0,0,0,0)",
-                      font: { color: theme.text.tertiary },
-                      margin: { t: 40, b: 40, l: 60, r: 20 },
-                      hovermode: "closest",
-                      showlegend: false,
-                    }}
-                    config={{
-                      displayModeBar: true,
-                      displaylogo: false,
-                      modeBarButtonsToRemove: ["pan2d", "lasso2d", "select2d"],
-                      responsive: true,
-                    }}
-                    style={{ width: "100%", height: "100%" }}
-                  />
-                </div>
-
-                {/* Monthly amounts - only show selected months */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-                  {months.map((month) => {
-                    const amount = trend.monthlyAmounts[month.name] || 0;
-                    return (
-                      <div
-                        key={month.name}
-                        className="bg-background-secondary/30 rounded p-2 text-center"
-                      >
-                        <div className="text-text-secondary font-medium">
-                          {month.name}
-                        </div>
-                        <div className="text-text-tertiary">
-                          {formatCurrency(amount)}
-                        </div>
-                      </div>
-                    );
-                  })}
+      {/* Trend Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {trends.slice(0, 6).map((trend) => (
+          <div
+            key={trend.category}
+            className="bg-gradient-to-br from-background-card via-background-card to-background-secondary/30 rounded-xl p-5 border border-border-secondary shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+          >
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex-1">
+                <h4 className="font-bold text-text-primary mb-1 truncate">
+                  {trend.category}
+                </h4>
+                <div className="text-2xl font-bold text-text-primary">
+                  {formatCurrency(
+                    Object.values(trend.monthlyAmounts).slice(-1)[0] || 0
+                  )}
                 </div>
               </div>
-            );
-          })}
-        </div>
+              <div
+                className={`p-2 rounded-lg ${
+                  trend.trend === "up"
+                    ? "bg-red-500/20"
+                    : trend.trend === "down"
+                    ? "bg-emerald-500/20"
+                    : "bg-slate-500/20"
+                }`}
+              >
+                {trend.trend === "up" ? (
+                  <FiTrendingUp className="w-5 h-5 text-red-500" />
+                ) : trend.trend === "down" ? (
+                  <FiTrendingDown className="w-5 h-5 text-emerald-500" />
+                ) : (
+                  <FiDollarSign className="w-5 h-5 text-slate-500" />
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div
+                className={`px-3 py-1 rounded-full text-sm font-bold ${
+                  trend.trend === "up"
+                    ? "bg-red-500/10 text-red-500"
+                    : trend.trend === "down"
+                    ? "bg-emerald-500/10 text-emerald-500"
+                    : "bg-slate-500/10 text-slate-500"
+                }`}
+              >
+                {trend.changePercentage > 0 ? "+" : ""}
+                {trend.changePercentage.toFixed(1)}%
+              </div>
+              <span className="text-xs text-text-tertiary">vs previous</span>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

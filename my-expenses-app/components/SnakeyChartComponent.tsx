@@ -18,7 +18,6 @@ import { uploadTransactionsInBatch } from "@/components/sendDataFirebase";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import UploadedFilesPanel from "./UploadedFilesPanel";
-import SmartSearch from "./SmartSearch";
 import TransactionTable from "./TransactionTable";
 import SwipeableTransactionEditor from "./SwipeableTransactionEditor";
 import { FiBarChart2, FiGrid, FiEdit3 } from "react-icons/fi";
@@ -49,7 +48,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  // const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   // Use theme-aware colors for categories
   const parentColors = useMemo(() => theme.categories, [theme]);
@@ -200,7 +199,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
 
         if (!isCancelled) {
           setDataValue({ nodes: calculatedNodes, links: enhancedLinks });
-          setLastUpdated(new Date());
+          // setLastUpdated(new Date());
 
           if (enhancedLinks.length === 0) {
             setInfoMessage(
@@ -239,14 +238,14 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
     []
   );
 
-  const compactFormatter = useMemo(
-    () =>
-      new Intl.NumberFormat("en-US", {
-        notation: "compact",
-        maximumFractionDigits: 1,
-      }),
-    []
-  );
+  // const compactFormatter = useMemo(
+  //   () =>
+  //     new Intl.NumberFormat("en-US", {
+  //       notation: "compact",
+  //       maximumFractionDigits: 1,
+  //     }),
+  //   []
+  // );
 
   const formatCurrency = useCallback(
     (value?: number) => currencyFormatter.format(Math.max(0, value ?? 0)),
@@ -328,16 +327,6 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
       }
       // Debug: Log batch data to identify any remaining undefined values
       console.log("Batch data being sent to Firebase:", batchData.slice(0, 5)); // Log first 5 items for debugging
-      // Log specifically the metadata fields to check if they're being preserved
-      const leafItems = batchData.filter((d: any) => d.isleaf);
-      if (leafItems.length > 0) {
-        const firstLeaf: any = leafItems[0];
-        console.log("First leaf transaction metadata:", {
-          name: firstLeaf.transaction,
-          bank: firstLeaf.bank,
-          location: firstLeaf.location
-        });
-      }
 
       await uploadTransactionsInBatch(batchData);
 
@@ -474,7 +463,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
       }
 
       let newParentIndex = currentParentIndex; // graph index value for the parent
-      let newParentName = updates.category || getCategoryName(nodeIndex);
+      const newParentName = updates.category || getCategoryName(nodeIndex);
 
       // Check if the new parent name already exists (case-insensitive)
       const normalizedNewName = newParentName.trim().toLowerCase();
@@ -510,7 +499,9 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
           : updatedNodes[nodePos].cost || 0;
 
       // Update the transaction name and cost
-      const shouldUpdateName = updates.name !== undefined && updates.name !== updatedNodes[nodePos].name;
+      const shouldUpdateName =
+        updates.name !== undefined &&
+        updates.name !== updatedNodes[nodePos].name;
       const shouldUpdateCost = updatedNodes[nodePos].cost !== newPrice;
 
       if (shouldUpdateName || shouldUpdateCost) {
@@ -709,25 +700,25 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
       .reduce((sum, link) => sum + link.value, 0);
   }, [dataValue.links, dataValue.nodes]);
 
-  const transactionCount = useMemo(
-    () => dataValue.nodes.filter((node) => node.isleaf).length,
-    [dataValue.nodes]
-  );
+  // const transactionCount = useMemo(
+  //   () => dataValue.nodes.filter((node) => node.isleaf).length,
+  //   [dataValue.nodes]
+  // );
 
-  const quickStats = useMemo(() => {
-    const leafNodes = dataValue.nodes.filter((n) => n.isleaf && n.cost);
-    const totalTransactionCost = leafNodes.reduce(
-      (sum, n) => sum + (n.cost || 0),
-      0
-    );
-    const avgTransaction =
-      leafNodes.length > 0 ? totalTransactionCost / leafNodes.length : 0;
+  // const quickStats = useMemo(() => {
+  //   const leafNodes = dataValue.nodes.filter((n) => n.isleaf && n.cost);
+  //   const totalTransactionCost = leafNodes.reduce(
+  //     (sum, n) => sum + (n.cost || 0),
+  //     0
+  //   );
+  //   const avgTransaction =
+  //     leafNodes.length > 0 ? totalTransactionCost / leafNodes.length : 0;
 
-    return {
-      avgTransaction,
-      totalTransactions: leafNodes.length,
-    };
-  }, [dataValue.nodes]);
+  //   return {
+  //     avgTransaction,
+  //     totalTransactions: leafNodes.length,
+  //   };
+  // }, [dataValue.nodes]);
 
   const categorySummary = useMemo(
     () =>
@@ -759,28 +750,6 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
       .filter((name): name is string => Boolean(name));
     return Array.from(new Set(names)).sort();
   }, [dataValue.links, dataValue.nodes]);
-
-  const formattedTotalSpend = useMemo(
-    () => formatCurrency(totalSpend),
-    [formatCurrency, totalSpend]
-  );
-  const formattedTransactionCount = useMemo(
-    () => compactFormatter.format(Math.max(0, transactionCount)),
-    [compactFormatter, transactionCount]
-  );
-  const topCategories = useMemo(
-    () => categorySummary.slice(0, 4),
-    [categorySummary]
-  );
-  const lastUpdatedText = useMemo(() => {
-    if (!lastUpdated) {
-      return null;
-    }
-    return lastUpdated.toLocaleTimeString([], {
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  }, [lastUpdated]);
 
   // Smart insights without AI
   const insights = useMemo(() => {
@@ -884,9 +853,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
     }
 
     // Payment sources diversity
-    const uniqueSources = new Set(
-      leafNodes.map((n) => n.bank).filter(Boolean)
-    );
+    const uniqueSources = new Set(leafNodes.map((n) => n.bank).filter(Boolean));
     if (uniqueSources.size > 3) {
       insights.push({
         type: "info",
@@ -1019,7 +986,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pb-16 pt-24 sm:px-6 lg:px-8">
+      <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pb-16 pt-6 sm:px-6 lg:px-8">
         {error && (
           <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-200">
             {error}

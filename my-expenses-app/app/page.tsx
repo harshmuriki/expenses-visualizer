@@ -118,7 +118,7 @@ const HomePage: React.FC = () => {
       </div>
 
       {/* Enhanced Header */}
-      <header className="relative z-10 py-16 text-center">
+      <header className="relative z-10 py-8 text-center">
         <div className="mb-6">
           <div className="inline-flex items-center space-x-2 bg-background-card backdrop-blur-sm border border-border-secondary rounded-full px-6 py-3 mb-8 shadow-lg">
             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
@@ -158,7 +158,7 @@ const HomePage: React.FC = () => {
       </header>
 
       {/* Enhanced Navigation */}
-      <nav className="relative z-20 flex justify-center mb-12">
+      <nav className="relative z-20 flex justify-center mb-6">
         <div className="flex items-center space-x-4 bg-background-card backdrop-blur-sm border border-border-secondary rounded-2xl p-2 shadow-xl">
           <Link
             href="/trends"
@@ -175,7 +175,7 @@ const HomePage: React.FC = () => {
       </nav>
 
       {/* Features Overview */}
-      <div className="relative z-10 flex justify-center mb-12">
+      <div className="relative z-10 flex justify-center mb-6">
         <div className="bg-background-card backdrop-blur-sm border border-border-secondary rounded-2xl p-8 shadow-xl max-w-5xl">
           <div className="text-center mb-6">
             <h2 className="text-2xl font-bold text-text-primary mb-2">

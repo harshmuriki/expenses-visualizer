@@ -11,12 +11,10 @@ import { SankeyNode, SankeyLink } from "@/app/types/types";
 import {
   FiEdit2,
   FiSave,
-  FiX,
   FiChevronLeft,
   FiChevronRight,
   FiTag,
 } from "react-icons/fi";
-import { useTheme } from "@/lib/theme-context";
 
 interface SwipeableTransactionEditorProps {
   nodes: SankeyNode[];
@@ -32,7 +30,6 @@ const SwipeableTransactionEditor: React.FC<SwipeableTransactionEditorProps> = ({
   links,
   onUpdateTransaction,
 }) => {
-  const { theme } = useTheme();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isEditing, setIsEditing] = useState(true); // Start in edit mode
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -180,10 +177,6 @@ const SwipeableTransactionEditor: React.FC<SwipeableTransactionEditorProps> = ({
         (inputs[currentIndex + 1] as HTMLElement).focus();
       }
     }
-  };
-
-  const handleCancel = () => {
-    setIsEditing(false);
   };
 
   const handlePrevious = () => {
