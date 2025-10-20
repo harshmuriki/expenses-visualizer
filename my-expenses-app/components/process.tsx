@@ -13,6 +13,14 @@ import {
   AggregatorTransaction,
 } from "@/app/types/types";
 import path from "path";
+import {
+  processTransactionBatches,
+  callOpenAIWithSchema,
+  createBatchPrompt,
+  ProcessingProgress,
+  OPENAI_CONFIG,
+  type TransactionData,
+} from "@/lib/optimizedOpenAI";
 
 // Load environment variables
 dotenv.config();
@@ -282,63 +290,101 @@ export class Document {
       throw new Error("Document is null");
     }
 
-    // Prepare all transactions as a JSON string
-    const transactionsData = this.document.map((row, index) => ({
-      raw_data: row,
+    console.log(`🚀 Using OPTIMIZED batch processing for ${this.document.length} transactions`);
+
+    // Prepare transaction data
+    const transactionsData: TransactionData[] = this.document.map((row, index) => ({
+      raw_data: row as Record<string, unknown>,
       index: index,
     }));
 
-    const batchPrompt = `
-You are processing a batch of financial transactions. Extract details for ALL transactions and return them in JSON format.
-
-Transactions to process:
-${JSON.stringify(transactionsData, null, 2)}
-
-For EACH transaction, extract:
-- name: concise merchant/transaction name
-- price: amount as a positive number (remove $, commas, etc.)
-- date: transaction date
-- parenttag: category from this list ONLY: ${JSON.stringify(this.allparenttags)}
-- index: use the index provided in the input
-- location: merchant location or "Unknown"
-- bank: extract the "Bank" field from the raw_data (this is the financial institution name)
-
-Return a JSON object with a "transactions" array containing ALL ${
-      this.document.length
-    } transactions.
-Each transaction MUST have all required fields.`;
+    const progress = new ProcessingProgress(this.document.length);
+    let allTransactions: Array<{
+      name: string;
+      price: number;
+      date: string;
+      parenttag: string;
+      index: number;
+      location: string;
+      bank: string;
+    }> = [];
 
     try {
-      console.log("🚀 Sending batch request to OpenAI...");
-      const completion = await this.runOpenAIWithSchema(batchPrompt);
-      const content = completion.choices[0].message.content;
+      // Process in optimized chunks with parallel execution
+      allTransactions = await processTransactionBatches(
+        transactionsData,
+        async (batch) => {
+          const batchPrompt = createBatchPrompt(
+            batch,
+            this.allparenttags || []
+          );
 
-      // Parse the JSON response
-      const result = JSON.parse(content);
-      const transactions = result.transactions || [];
+          const schema = {
+            name: "transactions_list",
+            strict: true,
+            schema: {
+              type: "object",
+              properties: {
+                transactions: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      name: { type: "string" },
+                      price: { type: "number" },
+                      date: { type: "string" },
+                      parenttag: { type: "string" },
+                      index: { type: "number" },
+                      location: { type: "string" },
+                      bank: { type: "string" },
+                    },
+                    required: [
+                      "name",
+                      "price",
+                      "date",
+                      "parenttag",
+                      "index",
+                      "location",
+                      "bank",
+                    ],
+                    additionalProperties: false,
+                  },
+                },
+              },
+              required: ["transactions"],
+              additionalProperties: false,
+            },
+          };
 
-      console.log(
-        `📥 Received ${transactions.length} transactions from OpenAI`
+          const { response, usage } = await callOpenAIWithSchema(
+            batchPrompt,
+            schema
+          );
+
+          progress.update(batch.length, usage);
+          progress.log();
+
+          const result = JSON.parse(response.choices[0].message.content);
+          return result.transactions || [];
+        },
+        {
+          batchSize: OPENAI_CONFIG.BATCH_SIZE,
+          maxParallel: OPENAI_CONFIG.MAX_PARALLEL_BATCHES,
+        }
       );
 
+      console.log(`📥 Received ${allTransactions.length} total transactions from OpenAI`);
+
+      // Process results
       let validCount = 0;
       let invalidCount = 0;
 
-      // Process each transaction from the batch response
-      for (const txn of transactions) {
+      for (const txn of allTransactions) {
         try {
-          // Find the original raw data for this transaction
           const originalRow = this.document[parseInt(txn.index) || 0];
           const rawStr = originalRow
             ? JSON.stringify(originalRow)
             : JSON.stringify(txn);
-
-          // Debug: Log rawStr creation
-          console.log(`📝 Creating item for index ${txn.index}:`, {
-            hasOriginalRow: !!originalRow,
-            rawStrPreview: rawStr.substring(0, 100),
-            rawStrLength: rawStr.length,
-          });
 
           const item = new Item(
             txn.name,
@@ -353,19 +399,12 @@ Each transaction MUST have all required fields.`;
             txn.bank || "Unknown Bank"
           );
 
-          // Debug: Verify item has raw_str after creation
-          console.log(`✅ Item created with raw_str:`, {
-            index: item.index,
-            hasRawStr: !!item.raw_str,
-            rawStrLength: item.raw_str?.length || 0,
-          });
-
           if (item.isValid()) {
             this.items.push(item);
             validCount++;
           } else {
             invalidCount++;
-            console.warn(`⚠️ Invalid transaction from batch:`, {
+            console.warn(`⚠️ Invalid transaction:`, {
               name: item.name,
               cost: item.cost,
               parenttag: item.parenttag,
@@ -373,25 +412,26 @@ Each transaction MUST have all required fields.`;
           }
         } catch (error) {
           invalidCount++;
-          console.error(`❌ Error processing batch transaction:`, error);
+          console.error(`❌ Error processing transaction:`, error);
         }
       }
 
+      const finalStats = progress.getStats();
       console.log(
-        `✅ Batch processing complete: ${validCount} valid, ${invalidCount} invalid out of ${transactions.length} received (expected ${this.document.length})`
+        `✅ OPTIMIZED processing complete:\n` +
+          `   📊 ${validCount} valid, ${invalidCount} invalid\n` +
+          `   ⏱️  ${finalStats.elapsedSeconds}s (${finalStats.itemsPerSecond} items/s)\n` +
+          `   🎯 ${finalStats.totalTokens.toLocaleString()} tokens\n` +
+          `   💰 $${finalStats.estimatedCost} estimated cost`
       );
 
-      if (transactions.length < this.document.length) {
+      if (allTransactions.length < this.document.length) {
         console.warn(
-          `⚠️ WARNING: OpenAI returned fewer transactions (${transactions.length}) than input (${this.document.length})`
+          `⚠️ WARNING: Received ${allTransactions.length}/${this.document.length} transactions`
         );
       }
     } catch (error) {
-      console.error(
-        "❌ Batch processing failed, falling back to individual processing:",
-        error
-      );
-      // Fallback to individual processing if batch fails
+      console.error("❌ Optimized batch processing failed, falling back:", error);
       await this.convertDocToItemsIndividual();
     }
   }

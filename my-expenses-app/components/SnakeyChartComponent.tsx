@@ -910,19 +910,17 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
 
       // Find or create category node
       const normalizedCategory = category.trim();
-      let categoryNode = updatedNodes.find(
+      const categoryNode = updatedNodes.find(
         (n) => !n.isleaf && n.name.toLowerCase() === normalizedCategory.toLowerCase()
       );
 
       let categoryIndex: number;
-      let isCategoryNew = false;
 
       if (!categoryNode) {
         // Create new category
         const validIndices = updatedNodes.map((n) => n.index).filter((idx) => typeof idx === "number" && !isNaN(idx));
         const maxIndex = validIndices.length > 0 ? Math.max(...validIndices) : 0;
         categoryIndex = maxIndex + 1;
-        isCategoryNew = true;
 
         const newCategoryNode: SankeyNode = {
           name: normalizedCategory,
