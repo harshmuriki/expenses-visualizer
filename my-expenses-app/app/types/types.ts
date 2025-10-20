@@ -8,6 +8,7 @@ export interface InputModalProps {
     newTransactionName?: string
   ) => void;
   onClose: () => void;
+  onDelete?: () => void;
   parentOptions: string[];
 }
 

@@ -8,6 +8,7 @@ const InputModal: React.FC<InputModalProps> = ({
   initialPrice,
   onSubmit,
   onClose,
+  onDelete,
   parentOptions,
 }) => {
   const { theme } = useTheme();
@@ -329,6 +330,43 @@ const InputModal: React.FC<InputModalProps> = ({
           />
         </div>
       )}
+      {/* Delete button - only show for leaf nodes (transactions) */}
+      {clickedNode.isleaf && onDelete && (
+        <div style={{ marginBottom: "16px" }}>
+          <button
+            onClick={() => {
+              if (window.confirm(`Are you sure you want to delete "${clickedNode.name}"?`)) {
+                onDelete();
+                onClose();
+              }
+            }}
+            style={{
+              width: "100%",
+              background: `linear-gradient(to right, #991b1b, #7f1d1d)`,
+              color: "white",
+              border: "none",
+              padding: "12px 24px",
+              borderRadius: "10px",
+              cursor: "pointer",
+              fontSize: "0.95rem",
+              fontWeight: "600",
+              boxShadow: `0 4px 12px rgba(153, 27, 27, 0.3)`,
+              transition: "all 0.3s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "scale(1.02)";
+              e.currentTarget.style.background = "linear-gradient(to right, #7f1d1d, #991b1b)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "scale(1)";
+              e.currentTarget.style.background = "linear-gradient(to right, #991b1b, #7f1d1d)";
+            }}
+          >
+            🗑️ Delete Transaction
+          </button>
+        </div>
+      )}
+
       <div
         style={{
           display: "flex",

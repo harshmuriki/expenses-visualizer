@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import TreeMapChart from "./TreeMapChart";
 import { calculateLinks } from "@/components/processLinks";
 import InputModal from "./editNodes";
+import AddTransactionModal from "./AddTransactionModal";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "./firebaseConfig";
 import {
@@ -20,7 +21,7 @@ import { useSession } from "next-auth/react";
 import UploadedFilesPanel from "./UploadedFilesPanel";
 import TransactionTable from "./TransactionTable";
 import SwipeableTransactionEditor from "./SwipeableTransactionEditor";
-import { FiBarChart2, FiGrid, FiEdit3 } from "react-icons/fi";
+import { FiBarChart2, FiGrid, FiEdit3, FiPlus } from "react-icons/fi";
 import { useTheme } from "@/lib/theme-context";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import StatsCards from "./StatsCards";
@@ -32,6 +33,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
     links: [],
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [parentIndex, setParentIndex] = useState<number | null>(null);
   const [nodeIndex, setNodeIndex] = useState<number | null>(null);
   const [clickedNode, setNode] = useState<SankeyNode | null>(null);
@@ -53,6 +55,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
     message: string;
     type: "success" | "error";
   } | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   // const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   // Show notification bubble that auto-dismisses
@@ -287,6 +290,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
   // To update the data in Firebase
   const sendDataToFirebase = async () => {
     console.log("uploading data to firebase");
+    setHasUnsavedChanges(false); // Clear unsaved changes flag
     try {
       // Send the parent-child map to Firebase
       const parentChildMap = updateParentChildMap();
@@ -473,6 +477,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
         // Recalculate links and return
         const { nodes: calculatedNodes, links: calculatedLinks } =
           calculateLinks(updatedNodes, updateParentChildMap(prevData.links));
+        setHasUnsavedChanges(true); // Mark as having unsaved changes
         return {
           nodes: calculatedNodes,
           links: calculatedLinks,
@@ -562,12 +567,14 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
 
         // Recalculate ALL links from the updated map - this handles everything including root->parent links
         const recalculatedData = calculateLinks(updatedNodes, updatedMap);
+        setHasUnsavedChanges(true); // Mark as having unsaved changes
         return { nodes: recalculatedData.nodes, links: recalculatedData.links };
       }
 
       // No parent change, just cost
       const updatedMap = updateParentChildMap();
       const recalculatedData = calculateLinks(updatedNodes, updatedMap);
+      setHasUnsavedChanges(true); // Mark as having unsaved changes
       return { nodes: recalculatedData.nodes, links: recalculatedData.links };
     });
   };
@@ -611,6 +618,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
         // Recalculate links and return
         const { nodes: calculatedNodes, links: calculatedLinks } =
           calculateLinks(updatedNodes, updateParentChildMap(prevData.links));
+        setHasUnsavedChanges(true); // Mark as having unsaved changes
         return {
           nodes: calculatedNodes,
           links: calculatedLinks,
@@ -693,12 +701,14 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
 
         // Recalculate ALL links from the updated map - this handles everything including root->parent links
         const recalculatedData = calculateLinks(updatedNodes, updatedMap);
+        setHasUnsavedChanges(true); // Mark as having unsaved changes
         return { nodes: recalculatedData.nodes, links: recalculatedData.links };
       }
 
       // No parent change, just cost
       const updatedMap = updateParentChildMap();
       const recalculatedData = calculateLinks(updatedNodes, updatedMap);
+      setHasUnsavedChanges(true); // Mark as having unsaved changes
       return { nodes: recalculatedData.nodes, links: recalculatedData.links };
     });
   };
@@ -780,6 +790,240 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
     return Array.from(new Set(names)).sort();
   }, [dataValue.links, dataValue.nodes]);
 
+  /**
+   * Handle deleting a transaction locally (doesn't save to Firebase until sync)
+   */
+  const handleDeleteTransaction = () => {
+    if (nodeIndex === null) return;
+
+    setDataValue((prevData) => {
+      const updatedNodes = [...prevData.nodes];
+      const updatedLinks = [...prevData.links];
+
+      // Find the transaction node
+      const transactionNode = updatedNodes.find((n) => n.index === nodeIndex);
+      if (!transactionNode || !transactionNode.isleaf) {
+        console.warn("Cannot delete: not a leaf node or not found");
+        return prevData;
+      }
+
+      const transactionCost = transactionNode.cost || 0;
+
+      // Find the parent link
+      const parentLink = updatedLinks.find((link) => link.target === nodeIndex);
+      if (!parentLink) {
+        console.warn("Cannot find parent link for transaction");
+        return prevData;
+      }
+
+      const parentIndex = parentLink.source;
+
+      // Remove the transaction node
+      const filteredNodes = updatedNodes.filter((n) => n.index !== nodeIndex);
+
+      // Remove the link from parent to transaction
+      const filteredLinks = updatedLinks.filter((link) => link.target !== nodeIndex);
+
+      // Update parent category cost
+      const parentNodePos = filteredNodes.findIndex((n) => n.index === parentIndex);
+      if (parentNodePos !== -1) {
+        filteredNodes[parentNodePos] = {
+          ...filteredNodes[parentNodePos],
+          cost: Math.max(0, (filteredNodes[parentNodePos].cost || 0) - transactionCost),
+          value: Math.max(0, (filteredNodes[parentNodePos].value || 0) - transactionCost),
+        };
+
+        // Update link from root to parent category
+        const rootToParentLinkPos = filteredLinks.findIndex(
+          (link) => link.source === 0 && link.target === parentIndex
+        );
+        if (rootToParentLinkPos !== -1) {
+          filteredLinks[rootToParentLinkPos] = {
+            ...filteredLinks[rootToParentLinkPos],
+            value: Math.max(0, filteredLinks[rootToParentLinkPos].value - transactionCost),
+          };
+        }
+
+        // Check if parent category still has children
+        const parentHasChildren = filteredLinks.some((link) => link.source === parentIndex);
+
+        // If parent has no more children, remove it
+        if (!parentHasChildren && parentIndex !== 0) {
+          // Remove parent node
+          const finalNodes = filteredNodes.filter((n) => n.index !== parentIndex);
+          // Remove link from root to parent
+          const finalLinks = filteredLinks.filter(
+            (link) => !(link.source === 0 && link.target === parentIndex)
+          );
+
+          // Update root node cost
+          const rootNodePos = finalNodes.findIndex((n) => n.index === 0);
+          if (rootNodePos !== -1) {
+            finalNodes[rootNodePos] = {
+              ...finalNodes[rootNodePos],
+              cost: Math.max(0, (finalNodes[rootNodePos].cost || 0) - transactionCost),
+              value: Math.max(0, (finalNodes[rootNodePos].value || 0) - transactionCost),
+            };
+          }
+
+          showNotification("✅ Transaction deleted! Click 'Sync to Cloud' to save.", "success");
+          setHasUnsavedChanges(true);
+
+          return { nodes: finalNodes, links: enhanceLinks(finalLinks) };
+        }
+      }
+
+      // Update root node cost
+      const rootNodePos = filteredNodes.findIndex((n) => n.index === 0);
+      if (rootNodePos !== -1) {
+        filteredNodes[rootNodePos] = {
+          ...filteredNodes[rootNodePos],
+          cost: Math.max(0, (filteredNodes[rootNodePos].cost || 0) - transactionCost),
+          value: Math.max(0, (filteredNodes[rootNodePos].value || 0) - transactionCost),
+        };
+      }
+
+      showNotification("✅ Transaction deleted! Click 'Sync to Cloud' to save.", "success");
+      setHasUnsavedChanges(true);
+
+      return { nodes: filteredNodes, links: enhanceLinks(filteredLinks) };
+    });
+
+    // Close the modal
+    setIsModalOpen(false);
+  };
+
+  /**
+   * Handle adding a new transaction locally (doesn't save to Firebase until sync)
+   */
+  const handleAddTransaction = (
+    transactionName: string,
+    cost: number,
+    category: string,
+    date?: string,
+    location?: string,
+    bank?: string
+  ) => {
+    setDataValue((prevData) => {
+      const updatedNodes = [...prevData.nodes];
+      const updatedLinks = [...prevData.links];
+
+      // Find or create category node
+      const normalizedCategory = category.trim();
+      let categoryNode = updatedNodes.find(
+        (n) => !n.isleaf && n.name.toLowerCase() === normalizedCategory.toLowerCase()
+      );
+
+      let categoryIndex: number;
+      let isCategoryNew = false;
+
+      if (!categoryNode) {
+        // Create new category
+        const validIndices = updatedNodes.map((n) => n.index).filter((idx) => typeof idx === "number" && !isNaN(idx));
+        const maxIndex = validIndices.length > 0 ? Math.max(...validIndices) : 0;
+        categoryIndex = maxIndex + 1;
+        isCategoryNew = true;
+
+        const newCategoryNode: SankeyNode = {
+          name: normalizedCategory,
+          originalName: normalizedCategory,
+          index: categoryIndex,
+          isleaf: false,
+          visible: true,
+          cost: cost, // Initial cost from first transaction
+          value: cost,
+          date: new Date().toISOString(),
+          location: "None",
+          bank: "Category",
+          raw_str: "Category",
+        };
+
+        updatedNodes.push(newCategoryNode);
+
+        // Add link from root to new category
+        updatedLinks.push({
+          source: 0,
+          target: categoryIndex,
+          value: cost,
+        });
+      } else {
+        categoryIndex = categoryNode.index;
+
+        // Update category cost
+        const categoryPos = updatedNodes.findIndex((n) => n.index === categoryIndex);
+        if (categoryPos !== -1) {
+          updatedNodes[categoryPos] = {
+            ...updatedNodes[categoryPos],
+            cost: (updatedNodes[categoryPos].cost || 0) + cost,
+            value: (updatedNodes[categoryPos].value || 0) + cost,
+          };
+        }
+
+        // Update link from root to category
+        const rootLinkPos = updatedLinks.findIndex(
+          (link) => link.source === 0 && link.target === categoryIndex
+        );
+        if (rootLinkPos !== -1) {
+          updatedLinks[rootLinkPos] = {
+            ...updatedLinks[rootLinkPos],
+            value: updatedLinks[rootLinkPos].value + cost,
+          };
+        }
+      }
+
+      // Create new transaction node
+      const validIndices = updatedNodes.map((n) => n.index).filter((idx) => typeof idx === "number" && !isNaN(idx));
+      const maxIndex = validIndices.length > 0 ? Math.max(...validIndices) : 0;
+      const newTransactionIndex = maxIndex + 1;
+
+      const newTransactionNode: SankeyNode = {
+        name: transactionName,
+        originalName: transactionName, // Add originalName field
+        index: newTransactionIndex,
+        cost: cost,
+        value: cost,
+        isleaf: true,
+        visible: true,
+        date: date || new Date().toISOString(),
+        location: location || "None",
+        bank: bank || "Manual Entry",
+        raw_str: `Manual entry: ${transactionName}`,
+      };
+
+      updatedNodes.push(newTransactionNode);
+
+      // Add link from category to transaction
+      updatedLinks.push({
+        source: categoryIndex,
+        target: newTransactionIndex,
+        value: cost,
+      });
+
+      // Update root node cost
+      const rootNodePos = updatedNodes.findIndex((n) => n.index === 0);
+      if (rootNodePos !== -1) {
+        updatedNodes[rootNodePos] = {
+          ...updatedNodes[rootNodePos],
+          cost: (updatedNodes[rootNodePos].cost || 0) + cost,
+          value: (updatedNodes[rootNodePos].value || 0) + cost,
+        };
+      }
+
+      console.log("Added transaction:", {
+        transaction: newTransactionNode,
+        category: categoryIndex,
+        categoryName: normalizedCategory,
+        totalNodes: updatedNodes.length,
+        totalLinks: updatedLinks.length,
+      });
+
+      showNotification("✅ Transaction added! Click 'Sync to Cloud' to save.", "success");
+      setHasUnsavedChanges(true); // Mark as having unsaved changes
+
+      return { nodes: updatedNodes, links: enhanceLinks(updatedLinks) };
+    });
+  };
+
   // Smart insights without AI
   const insights = useMemo(() => {
     const leafNodes = dataValue.nodes.filter((n) => n.isleaf && n.cost);
@@ -816,7 +1060,11 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
       insights.push({
         type: "info",
         title: "Others Expenses",
-        description: `You have $${othersCategory.value.toFixed(2)} in Others expenses (${othersPercentage.toFixed(1)}% of total spending). These are not included in the total spending calculations.`,
+        description: `You have $${othersCategory.value.toFixed(
+          2
+        )} in Others expenses (${othersPercentage.toFixed(
+          1
+        )}% of total spending). These are not included in the total spending calculations.`,
         icon: "📝",
       });
     }
@@ -1014,9 +1262,21 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
             </div>
             <button
               type="button"
+              onClick={() => setIsAddModalOpen(true)}
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-primary-500 px-4 py-2 text-sm font-semibold text-text-inverse shadow transition hover:bg-primary-600"
+            >
+              <FiPlus size={16} />
+              Add Transaction
+            </button>
+            <button
+              type="button"
               onClick={sendDataToFirebase}
               disabled={syncDisabled}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-accent-500 px-4 py-2 text-sm font-semibold text-text-inverse shadow transition hover:bg-accent-600 disabled:cursor-not-allowed disabled:opacity-50"
+              className={`inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-text-inverse shadow transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                hasUnsavedChanges
+                  ? "bg-red-500 hover:bg-red-600 animate-pulse"
+                  : "bg-accent-500 hover:bg-accent-600"
+              }`}
             >
               {syncDisabled && isLoading ? (
                 <>
@@ -1024,7 +1284,15 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
                   Loading…
                 </>
               ) : (
-                "Sync to Cloud"
+                <>
+                  {hasUnsavedChanges && (
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                    </span>
+                  )}
+                  Sync to Cloud
+                </>
               )}
             </button>
           </div>
@@ -1233,9 +1501,18 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
                 setEditingFromCategory(null);
               }
             }}
+            onDelete={handleDeleteTransaction}
             parentOptions={parentOptions}
           />
         )}
+
+      {isAddModalOpen && (
+        <AddTransactionModal
+          onSubmit={handleAddTransaction}
+          onClose={() => setIsAddModalOpen(false)}
+          parentOptions={parentOptions}
+        />
+      )}
     </div>
   );
 };
