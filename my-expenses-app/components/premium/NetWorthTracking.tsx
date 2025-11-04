@@ -59,7 +59,34 @@ const NetWorthTracking: React.FC<NetWorthTrackingProps> = ({ userId }) => {
       setLiabilities(liabilitiesData);
       setSnapshots(snapshotsData);
 
-      const summaryData = netWorthUtils.calculateNetWorthSummary(assetsData, liabilitiesData, snapshotsData);
+      // Calculate current snapshot and summary
+      const totalAssets = assetsData.reduce((sum, a) => sum + a.currentValue, 0);
+      const totalLiabilities = liabilitiesData.reduce((sum, l) => sum + l.currentBalance, 0);
+      const netWorth = totalAssets - totalLiabilities;
+
+      const currentSnapshot: NetWorthSnapshot = {
+        id: "current",
+        userId,
+        date: new Date().toISOString().split("T")[0],
+        totalAssets,
+        totalLiabilities,
+        netWorth,
+        assetBreakdown: {},
+        liabilityBreakdown: {},
+        createdAt: new Date().toISOString(),
+      };
+
+      const summaryData = snapshotsData.length > 0
+        ? netWorthUtils.calculateNetWorthSummary(currentSnapshot, snapshotsData)
+        : {
+            currentNetWorth: netWorth,
+            totalAssets,
+            totalLiabilities,
+            monthlyChange: 0,
+            monthlyChangePercentage: 0,
+            yearlyChange: 0,
+            yearlyChangePercentage: 0,
+          };
       setSummary(summaryData);
     } catch (error) {
       console.error("Error loading net worth data:", error);
@@ -72,7 +99,7 @@ const NetWorthTracking: React.FC<NetWorthTrackingProps> = ({ userId }) => {
   const handleCreateAsset = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await netWorthUtils.createAsset({
+      await netWorthUtils.addAsset({
         userId,
         name: assetName,
         type: assetType,
@@ -123,7 +150,7 @@ const NetWorthTracking: React.FC<NetWorthTrackingProps> = ({ userId }) => {
   const handleCreateLiability = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await netWorthUtils.createLiability({
+      await netWorthUtils.addLiability({
         userId,
         name: liabilityName,
         type: liabilityType,
@@ -174,7 +201,7 @@ const NetWorthTracking: React.FC<NetWorthTrackingProps> = ({ userId }) => {
 
   const handleTakeSnapshot = async () => {
     try {
-      await netWorthUtils.takeSnapshot(userId, assets, liabilities);
+      await netWorthUtils.createSnapshot(userId, assets, liabilities);
       addToast("Snapshot saved!", "success");
       await loadAllData();
     } catch (error) {
