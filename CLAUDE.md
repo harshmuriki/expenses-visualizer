@@ -91,7 +91,8 @@ npm run lint
 
 **AI Routes** (`pages/api/ai/`):
 
-- `validate-transaction`: Validates transaction categorization and provides suggestions
+- `chat.ts`: AI chatbot endpoint with full data context and anti-hallucination system (see `CHATBOT_GUIDE.md`)
+- `validate-transaction.ts`: Validates transaction categorization and provides suggestions
 
 #### Data Storage (`lib/`)
 
@@ -138,8 +139,12 @@ npm run lint
 
 **AIAssistant.tsx**:
 
-- Chat interface for natural language queries about spending
-- Uses generated data summary as context
+- Full-featured chatbot with comprehensive data access
+- Anti-hallucination system ensures accurate, grounded responses
+- Has complete context of all transactions, categories, and statistics
+- Natural language interface for querying spending data
+- Supports all configured LLM providers
+- See `CHATBOT_GUIDE.md` for detailed usage instructions
 
 **processLinks.tsx**:
 

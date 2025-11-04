@@ -26,6 +26,7 @@ import { useTheme } from "@/lib/theme-context";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import StatsCards from "./StatsCards";
 import { LLMSettings } from "./LLMSettings";
+import AIAssistant from "./AIAssistant";
 
 const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
   const { theme } = useTheme();
@@ -1531,6 +1532,16 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
             <LLMSettings onClose={() => setIsLLMSettingsOpen(false)} />
           </div>
         </div>
+      )}
+
+      {/* AI Assistant Chatbot - Always visible when data is loaded */}
+      {chartReady && user?.email && (
+        <AIAssistant
+          userId={user.email}
+          month={month}
+          dataSummary={`Total spending: $${filteredTotalSpend.toFixed(2)}, ${dataValue.nodes.filter(n => n.isleaf).length} transactions across ${filteredCategorySummary.length} categories`}
+          data={dataValue}
+        />
       )}
     </div>
   );

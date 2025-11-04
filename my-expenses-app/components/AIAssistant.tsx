@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { FiSend, FiMessageCircle, FiX, FiMinimize2 } from "react-icons/fi";
+import { FiSend, FiMessageCircle, FiX, FiMinimize2, FiRefreshCw } from "react-icons/fi";
+import { SankeyData } from "@/app/types/types";
 
 interface Message {
   role: "user" | "assistant";
@@ -13,19 +14,22 @@ interface AIAssistantProps {
   userId: string;
   month: string;
   dataSummary: string;
+  // New: full data context for comprehensive answers
+  data?: SankeyData;
 }
 
 const AIAssistant: React.FC<AIAssistantProps> = ({
   userId,
   month,
   dataSummary,
+  data,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: `Hi! I'm your AI financial assistant. I can help you understand your spending for ${month}. Ask me about your expenses, trends, or get personalized recommendations!`,
+      content: `Hi! I'm your AI financial assistant with full access to your ${month} spending data. I can answer any question about your transactions, categories, amounts, and patterns. What would you like to know?`,
       timestamp: new Date(),
     },
   ]);
@@ -63,6 +67,8 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
           dataSummary,
           userId,
           month,
+          // Send full data for comprehensive context
+          data,
         }),
       });
 
@@ -100,11 +106,23 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
   };
 
   const suggestedQuestions = [
-    "What's my biggest expense category?",
-    "How can I reduce my spending?",
-    "Show me unusual transactions",
-    "What's my average transaction amount?",
+    "What did I spend the most on?",
+    "List all transactions over $100",
+    "What's my total spending?",
+    "Which category has the most transactions?",
+    "Show me all restaurant expenses",
+    "What was my largest single purchase?",
   ];
+
+  const handleResetChat = () => {
+    setMessages([
+      {
+        role: "assistant",
+        content: `Hi! I'm your AI financial assistant with full access to your ${month} spending data. I can answer any question about your transactions, categories, amounts, and patterns. What would you like to know?`,
+        timestamp: new Date(),
+      },
+    ]);
+  };
 
   if (!isOpen) {
     return (
@@ -129,8 +147,21 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
         <div className="flex items-center gap-2">
           <FiMessageCircle size={20} className="text-text-primary" />
           <h3 className="font-semibold text-text-primary">AI Assistant</h3>
+          {data && (
+            <span className="text-xs text-text-primary/80">
+              ({data.nodes.filter(n => n.isleaf).length} transactions)
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleResetChat}
+            className="rounded p-1 text-text-primary transition hover:bg-white/20"
+            aria-label="Reset chat"
+            title="Start new conversation"
+          >
+            <FiRefreshCw size={16} />
+          </button>
           <button
             onClick={() => setIsMinimized(!isMinimized)}
             className="rounded p-1 text-text-primary transition hover:bg-white/20"
