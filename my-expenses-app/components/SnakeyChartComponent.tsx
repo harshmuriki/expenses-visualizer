@@ -21,10 +21,11 @@ import { useSession } from "next-auth/react";
 import UploadedFilesPanel from "./UploadedFilesPanel";
 import TransactionTable from "./TransactionTable";
 import SwipeableTransactionEditor from "./SwipeableTransactionEditor";
-import { FiBarChart2, FiGrid, FiEdit3, FiPlus } from "react-icons/fi";
+import { FiBarChart2, FiGrid, FiEdit3, FiPlus, FiSettings } from "react-icons/fi";
 import { useTheme } from "@/lib/theme-context";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import StatsCards from "./StatsCards";
+import { LLMSettings } from "./LLMSettings";
 
 const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
   const { theme } = useTheme();
@@ -34,6 +35,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isLLMSettingsOpen, setIsLLMSettingsOpen] = useState(false);
   const [parentIndex, setParentIndex] = useState<number | null>(null);
   const [nodeIndex, setNodeIndex] = useState<number | null>(null);
   const [clickedNode, setNode] = useState<SankeyNode | null>(null);
@@ -1219,6 +1221,16 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
             {/* Theme Switcher */}
             <ThemeSwitcher />
 
+            {/* LLM Settings Button */}
+            <button
+              type="button"
+              onClick={() => setIsLLMSettingsOpen(true)}
+              className="inline-flex items-center justify-center rounded-full bg-background-card border border-border-secondary p-2 text-text-secondary transition hover:text-text-primary hover:bg-background-tertiary"
+              title="LLM Provider Settings"
+            >
+              <FiSettings size={18} />
+            </button>
+
             {/* Tab Navigation */}
             <div className="flex rounded-full border border-border-secondary bg-background-card p-1">
               <button
@@ -1510,6 +1522,15 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
           onClose={() => setIsAddModalOpen(false)}
           parentOptions={parentOptions}
         />
+      )}
+
+      {/* LLM Settings Modal */}
+      {isLLMSettingsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <LLMSettings onClose={() => setIsLLMSettingsOpen(false)} />
+          </div>
+        </div>
       )}
     </div>
   );

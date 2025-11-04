@@ -1,5 +1,11 @@
 import axios, { AxiosResponse } from "axios";
 import { OpenAICompletionResponse, EnvConfig } from "@/app/types/types";
+import {
+  LLMProviderFactory,
+  ILLMProvider,
+  JSONSchema as LLMJSONSchema,
+  TokenUsage as LLMTokenUsage,
+} from "./llmProvider";
 
 /**
  * Configuration for OpenAI processing
@@ -135,7 +141,35 @@ export interface JSONSchema {
 }
 
 /**
+ * Get or create LLM provider instance
+ */
+let cachedProvider: ILLMProvider | null = null;
+
+export function getProvider(): ILLMProvider {
+  if (cachedProvider) {
+    return cachedProvider;
+  }
+
+  // Try to create from environment variables
+  try {
+    cachedProvider = LLMProviderFactory.createFromEnv();
+    return cachedProvider;
+  } catch (error) {
+    console.error("Failed to create LLM provider from env:", error);
+    throw error;
+  }
+}
+
+/**
+ * Set a custom provider (for testing or runtime configuration)
+ */
+export function setProvider(provider: ILLMProvider) {
+  cachedProvider = provider;
+}
+
+/**
  * Optimized OpenAI request with structured output
+ * Now supports multiple LLM providers through abstraction layer
  */
 export async function callOpenAIWithSchema(
   prompt: string,
@@ -143,50 +177,61 @@ export async function callOpenAIWithSchema(
   options?: {
     temperature?: number;
     maxTokens?: number;
+    provider?: ILLMProvider;
   }
 ): Promise<{ response: OpenAICompletionResponse; usage: TokenUsage }> {
-  const envConfig: EnvConfig = process.env as unknown as EnvConfig;
-  const apiKey = envConfig.OPENAI_KEY;
-  if (!apiKey) {
-    throw new Error("Missing OPENAI_KEY environment variable");
-  }
+  const provider = options?.provider || getProvider();
 
-  const response: AxiosResponse<OpenAICompletionResponse> = await axios.post(
-    "https://api.openai.com/v1/chat/completions",
-    {
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a financial transaction categorization assistant. Extract transaction details accurately and consistently.",
-        },
-        { role: "user", content: prompt },
-      ],
-      response_format: {
-        type: "json_schema",
-        json_schema: schema,
-      },
-      temperature: options?.temperature ?? OPENAI_CONFIG.TEMPERATURE,
-      max_tokens: options?.maxTokens ?? OPENAI_CONFIG.MAX_TOKENS,
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-    }
+  const llmSchema: LLMJSONSchema = schema as unknown as LLMJSONSchema;
+
+  const result = await provider.completeWithSchema(
+    prompt,
+    llmSchema,
+    "You are a financial transaction categorization assistant. Extract transaction details accurately and consistently."
   );
 
   const usage: TokenUsage = {
-    promptTokens: response.data.usage?.prompt_tokens || 0,
-    completionTokens: response.data.usage?.completion_tokens || 0,
-    totalTokens: response.data.usage?.total_tokens || 0,
-    estimatedCost: 0,
+    promptTokens: result.usage?.promptTokens || 0,
+    completionTokens: result.usage?.completionTokens || 0,
+    totalTokens: result.usage?.totalTokens || 0,
+    estimatedCost: result.usage?.estimatedCost || 0,
   };
-  usage.estimatedCost = calculateCost(usage);
 
-  return { response: response.data, usage };
+  // Parse the content as OpenAI response format
+  let response: OpenAICompletionResponse;
+
+  try {
+    const content = result.content;
+    const parsed = JSON.parse(content);
+
+    // Construct OpenAI-compatible response
+    response = {
+      id: "local-" + Date.now(),
+      object: "chat.completion",
+      created: Date.now(),
+      model: provider.config.model,
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: "assistant",
+            content: content,
+          },
+          finish_reason: "stop",
+        },
+      ],
+      usage: {
+        prompt_tokens: usage.promptTokens,
+        completion_tokens: usage.completionTokens,
+        total_tokens: usage.totalTokens,
+      },
+    };
+  } catch (error) {
+    console.error("Failed to parse LLM response:", error);
+    throw new Error("Invalid response from LLM provider");
+  }
+
+  return { response, usage };
 }
 
 /**

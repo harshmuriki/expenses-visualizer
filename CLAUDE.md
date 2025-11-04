@@ -4,7 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an **Expenses Visualizer** application built with Next.js 15 that allows users to upload financial transaction data (CSV or PDF), process it using OpenAI's API, and visualize the categorized expenses using interactive TreeMap and chart visualizations. It features Firebase integration for data persistence, Plaid integration for bank account synchronization, and AI-powered insights for spending analysis.
+This is an **Expenses Visualizer** application built with Next.js 15 that allows users to upload financial transaction data (CSV or PDF), process it using AI (supports multiple LLM providers including OpenAI, local models via Ollama/LM Studio, Anthropic Claude, and custom APIs), and visualize the categorized expenses using interactive TreeMap and chart visualizations. It features Firebase integration for data persistence, Plaid integration for bank account synchronization, and AI-powered insights for spending analysis.
+
+**NEW**: The app now supports multiple LLM providers! You can use:
+- **OpenAI** (cloud, paid) - gpt-4o-mini, gpt-4
+- **Ollama** (local, free) - llama3.2, mistral, codellama
+- **LM Studio** (local, free) - any GGUF model
+- **Anthropic Claude** (cloud, paid) - claude-3.5-sonnet, claude-3-haiku
+- **Custom** - any OpenAI-compatible API
+
+See `LLM_SETUP_GUIDE.md` for detailed setup instructions.
 
 ## Development Commands
 
@@ -39,7 +48,7 @@ npm run lint
 ### Core Data Flow
 
 1. **Data Input Layer**: Users upload CSV/PDF files or connect bank accounts via Plaid
-2. **AI Processing Layer**: OpenAI GPT-4o-mini categorizes and extracts transaction details
+2. **AI Processing Layer**: Configurable LLM provider (OpenAI, Ollama, LM Studio, Anthropic, or custom) categorizes and extracts transaction details
 3. **Storage Layer**: Firebase Firestore stores processed transactions and hierarchical relationships
 4. **Visualization Layer**: TreeMap and charts display spending patterns
 5. **Insight Generation Layer**: AI analytics detect anomalies and generate spending insights
@@ -163,10 +172,37 @@ The system automatically detects the source institution from filenames (e.g., "C
 
 Required environment variables (create `.env` in `my-expenses-app/`):
 
-```ini
+**See `.env.example` for a complete template, or `LLM_SETUP_GUIDE.md` for detailed LLM configuration.**
 
-# OpenAI API (required for transaction categorization)
-OPENAI_KEY=your_openai_api_key  # Alternative name
+```ini
+# ====================================
+# LLM PROVIDER CONFIGURATION (NEW!)
+# ====================================
+# Choose your AI provider: openai, ollama, lmstudio, anthropic, or custom
+LLM_PROVIDER=openai
+LLM_MODEL=gpt-4o-mini
+LLM_TEMPERATURE=0.2
+LLM_MAX_TOKENS=16000
+
+# For OpenAI (cloud, paid)
+OPENAI_KEY=your_openai_api_key
+
+# For Ollama (local, free) - Install from ollama.com
+OLLAMA_BASE_URL=http://localhost:11434
+
+# For LM Studio (local, free) - Install from lmstudio.ai
+LMSTUDIO_BASE_URL=http://localhost:1234/v1
+
+# For Anthropic Claude (cloud, paid)
+ANTHROPIC_API_KEY=your_anthropic_key
+
+# For Custom OpenAI-compatible APIs
+CUSTOM_LLM_BASE_URL=https://your-api.com/v1
+CUSTOM_LLM_API_KEY=your_custom_key
+
+# ====================================
+# OTHER REQUIRED VARIABLES
+# ====================================
 
 # AWS Lambda (required for PDF processing)
 AWS_LAMBDA_ENDPOINT=your_lambda_endpoint_url
@@ -187,6 +223,23 @@ NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=your_nextauth_secret
 ```
+
+### Configuring Your LLM Provider
+
+You can configure the LLM provider in two ways:
+
+1. **Environment Variables** (recommended for production): Set the variables above in `.env`
+2. **UI Settings** (convenient for development): Click the ⚙️ icon in the app and configure via the settings modal
+
+**Local Models (Free & Private):**
+- **Ollama**: Install from [ollama.com](https://ollama.com), run `ollama pull llama3.2`, set `LLM_PROVIDER=ollama`
+- **LM Studio**: Install from [lmstudio.ai](https://lmstudio.ai), start local server, set `LLM_PROVIDER=lmstudio`
+
+**Cloud Models (Paid but High Quality):**
+- **OpenAI**: Get API key from [platform.openai.com](https://platform.openai.com), set `LLM_PROVIDER=openai`
+- **Anthropic**: Get API key from [console.anthropic.com](https://console.anthropic.com), set `LLM_PROVIDER=anthropic`
+
+See `LLM_SETUP_GUIDE.md` for detailed setup instructions for each provider.
 
 ## Python Scripts
 
