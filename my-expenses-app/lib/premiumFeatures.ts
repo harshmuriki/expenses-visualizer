@@ -41,6 +41,24 @@ import {
 } from "@/app/types/types";
 
 // ============================================
+// UTILITY FUNCTIONS
+// ============================================
+
+/**
+ * Helper function to remove undefined values from objects
+ * Firestore doesn't accept undefined values
+ */
+function removeUndefined<T extends Record<string, any>>(obj: T): Partial<T> {
+  const cleaned: any = { ...obj };
+  Object.keys(cleaned).forEach(key => {
+    if (cleaned[key] === undefined) {
+      delete cleaned[key];
+    }
+  });
+  return cleaned;
+}
+
+// ============================================
 // 1. BUDGET TRACKING UTILITIES
 // ============================================
 
@@ -59,7 +77,7 @@ export const budgetUtils = {
       updatedAt: now,
     };
 
-    await setDoc(doc(db, "budgets", budgetId), newBudget);
+    await setDoc(doc(db, "budgets", budgetId), removeUndefined(newBudget));
     return newBudget;
   },
 
@@ -142,7 +160,7 @@ export const goalsUtils = {
       updatedAt: now,
     };
 
-    await setDoc(doc(db, "savingsGoals", goalId), newGoal);
+    await setDoc(doc(db, "savingsGoals", goalId), removeUndefined(newGoal));
     return newGoal;
   },
 
@@ -272,7 +290,7 @@ export const billsUtils = {
       updatedAt: now,
     };
 
-    await setDoc(doc(db, "bills", billId), newBill);
+    await setDoc(doc(db, "bills", billId), removeUndefined(newBill));
     return newBill;
   },
 
@@ -434,7 +452,7 @@ export const subscriptionsUtils = {
       updatedAt: now,
     };
 
-    await setDoc(doc(db, "subscriptions", subscriptionId), newSubscription);
+    await setDoc(doc(db, "subscriptions", subscriptionId), removeUndefined(newSubscription));
     return newSubscription;
   },
 
@@ -545,7 +563,8 @@ export const netWorthUtils = {
       updatedAt: now,
     };
 
-    await setDoc(doc(db, "assets", assetId), newAsset);
+    // Remove undefined fields before saving to Firestore
+    await setDoc(doc(db, "assets", assetId), removeUndefined(newAsset));
     return newAsset;
   },
 
@@ -563,7 +582,8 @@ export const netWorthUtils = {
       updatedAt: now,
     };
 
-    await setDoc(doc(db, "liabilities", liabilityId), newLiability);
+    // Remove undefined fields before saving to Firestore
+    await setDoc(doc(db, "liabilities", liabilityId), removeUndefined(newLiability));
     return newLiability;
   },
 
