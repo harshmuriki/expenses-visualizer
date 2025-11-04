@@ -37,26 +37,29 @@ const StatsCards: React.FC<StatsCardsProps> = ({
       title: "Total Spending",
       value: formatCurrency(totalSpend),
       icon: FiDollarSign,
-      color: "text-green-400",
-      bgColor: "bg-green-500/10",
-      borderColor: "border-green-500/20",
+      iconColor: "text-emerald-500",
+      iconBg: "bg-emerald-500/15",
+      gradientFrom: "from-emerald-500/10",
+      gradientTo: "to-emerald-500/5",
     },
     {
       title: "Categories",
       value: categoryCount.toString(),
       icon: FiPieChart,
-      color: "text-blue-400",
-      bgColor: "bg-blue-500/10",
-      borderColor: "border-blue-500/20",
+      iconColor: "text-blue-500",
+      iconBg: "bg-blue-500/15",
+      gradientFrom: "from-blue-500/10",
+      gradientTo: "to-blue-500/5",
     },
     {
       title: "Top Category",
       value: topCategory.name,
       subtitle: formatCurrency(topCategory.value),
       icon: FiTrendingUp,
-      color: "text-purple-400",
-      bgColor: "bg-purple-500/10",
-      borderColor: "border-purple-500/20",
+      iconColor: "text-violet-500",
+      iconBg: "bg-violet-500/15",
+      gradientFrom: "from-violet-500/10",
+      gradientTo: "to-violet-500/5",
     },
     ...(transactionCount && avgTransaction
       ? [
@@ -65,39 +68,43 @@ const StatsCards: React.FC<StatsCardsProps> = ({
             value: transactionCount.toString(),
             subtitle: `Avg: ${formatCurrency(avgTransaction)}`,
             icon: FiCreditCard,
-            color: "text-orange-400",
-            bgColor: "bg-orange-500/10",
-            borderColor: "border-orange-500/20",
+            iconColor: "text-amber-500",
+            iconBg: "bg-amber-500/15",
+            gradientFrom: "from-amber-500/10",
+            gradientTo: "to-amber-500/5",
           },
         ]
       : []),
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
       {stats.map((stat, index) => {
         const IconComponent = stat.icon;
         return (
           <div
             key={index}
-            className={`rounded-xl border ${stat.borderColor} ${stat.bgColor} p-4 transition-all hover:scale-105 hover:shadow-lg`}
+            className={`group relative overflow-hidden rounded-2xl border border-border-secondary bg-gradient-to-br ${stat.gradientFrom} ${stat.gradientTo} backdrop-blur-sm p-6 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:border-border-focus/30`}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <p className="text-sm font-medium text-text-tertiary mb-1">
+            {/* Background gradient effect on hover */}
+            <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-background-glass opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+
+            <div className="relative flex items-start justify-between">
+              <div className="flex-1 space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
                   {stat.title}
                 </p>
-                <p className="text-2xl font-bold text-text-primary">
+                <p className="text-3xl font-bold text-text-primary tracking-tight">
                   {stat.value}
                 </p>
                 {stat.subtitle && (
-                  <p className="text-xs text-text-tertiary mt-1">
+                  <p className="text-sm font-medium text-text-secondary">
                     {stat.subtitle}
                   </p>
                 )}
               </div>
-              <div className={`p-3 rounded-lg ${stat.bgColor}`}>
-                <IconComponent className={`h-6 w-6 ${stat.color}`} />
+              <div className={`flex-shrink-0 p-3.5 rounded-xl ${stat.iconBg} transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3`}>
+                <IconComponent className={`h-7 w-7 ${stat.iconColor}`} />
               </div>
             </div>
           </div>

@@ -48,12 +48,13 @@ const UserProfile: React.FC<UserProfileProps> = ({
 
       <button
         onClick={onSignOut}
-        className="group relative bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-text-primary font-bold py-3 px-8 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl btn-animated"
+        className="group relative bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-3.5 px-8 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-[1.02] hover:shadow-2xl active:scale-[0.98]"
       >
-        <span className="relative z-10 flex items-center space-x-2">
+        <span className="relative z-10 flex items-center justify-center gap-2">
           <FiUser className="w-4 h-4" />
-          <span>Sign out</span>
+          <span>Sign Out</span>
         </span>
+        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-red-600 to-red-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
       </button>
     </div>
   );
@@ -118,118 +119,115 @@ const HomePage: React.FC = () => {
       </div>
 
       {/* Enhanced Header */}
-      <header className="relative z-10 py-8 text-center">
+      <header className="relative z-10 py-8 text-center px-4">
         <div className="mb-6">
-          <div className="inline-flex items-center space-x-2 bg-background-card backdrop-blur-sm border border-border-secondary rounded-full px-6 py-3 mb-8 shadow-lg">
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-            <span className="text-sm font-medium text-text-secondary">
+          <div className="inline-flex items-center gap-2.5 bg-background-card backdrop-blur-sm border border-border-secondary rounded-full px-6 py-3 mb-8 shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <div className="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse shadow-lg shadow-emerald-400/50"></div>
+            <span className="text-sm font-semibold text-text-secondary">
               AI-Powered Expense Tracking
             </span>
           </div>
         </div>
-        <h1 className="text-6xl md:text-7xl font-extrabold gradient-text-animated drop-shadow-2xl mb-6 animate-fade-in">
-          AI Personal Expenses Tracker
+        <h1 className="text-5xl md:text-7xl font-extrabold gradient-text-animated drop-shadow-2xl mb-6 animate-fade-in leading-tight">
+          Smart Expense Tracker
         </h1>
-        <p className="text-xl text-text-secondary max-w-3xl mx-auto leading-relaxed animate-fade-in-delay mb-8">
-          Upload your CSV files and let AI categorize your spending
-          automatically. Get insights, trends, and beautiful visualizations of
-          your financial data.
+        <p className="text-lg md:text-xl text-text-secondary max-w-2xl mx-auto leading-relaxed animate-fade-in-delay mb-10">
+          Upload your transactions and let AI categorize your spending
+          automatically. Get powerful insights and beautiful visualizations.
         </p>
 
         {/* Quick Stats */}
-        <div className="flex justify-center space-x-8 mt-8">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-primary-500">
+        <div className="flex flex-wrap justify-center gap-6 md:gap-8 mt-8">
+          <div className="group text-center px-4 py-2 rounded-xl hover:bg-background-card/50 transition-all duration-300">
+            <div className="text-2xl md:text-3xl font-bold text-primary-500 mb-1 group-hover:scale-110 transition-transform duration-300">
               AI-Powered
             </div>
-            <div className="text-sm text-text-tertiary">Categorization</div>
+            <div className="text-xs md:text-sm text-text-tertiary font-medium">Smart Categorization</div>
           </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-secondary-500">
+          <div className="hidden md:block w-px h-16 bg-border-secondary self-center"></div>
+          <div className="group text-center px-4 py-2 rounded-xl hover:bg-background-card/50 transition-all duration-300">
+            <div className="text-2xl md:text-3xl font-bold text-secondary-500 mb-1 group-hover:scale-110 transition-transform duration-300">
               Multi-Month
             </div>
-            <div className="text-sm text-text-tertiary">Analysis</div>
+            <div className="text-xs md:text-sm text-text-tertiary font-medium">Trend Analysis</div>
           </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-accent-500">Beautiful</div>
-            <div className="text-sm text-text-tertiary">Visualizations</div>
+          <div className="hidden md:block w-px h-16 bg-border-secondary self-center"></div>
+          <div className="group text-center px-4 py-2 rounded-xl hover:bg-background-card/50 transition-all duration-300">
+            <div className="text-2xl md:text-3xl font-bold text-accent-500 mb-1 group-hover:scale-110 transition-transform duration-300">
+              Beautiful
+            </div>
+            <div className="text-xs md:text-sm text-text-tertiary font-medium">Visualizations</div>
           </div>
         </div>
       </header>
 
       {/* Enhanced Navigation */}
-      <nav className="relative z-20 flex justify-center mb-6">
-        <div className="flex items-center space-x-4 bg-background-card backdrop-blur-sm border border-border-secondary rounded-2xl p-2 shadow-xl">
+      <nav className="relative z-20 flex justify-center mb-8 px-4">
+        <div className="flex items-center gap-3 bg-background-card backdrop-blur-sm border border-border-secondary rounded-2xl p-2.5 shadow-xl">
           <Link
             href="/trends"
-            className="group flex items-center space-x-3 px-6 py-3 bg-gradient-secondary hover:from-secondary-600 hover:to-accent-600 text-text-primary rounded-xl font-semibold shadow-lg transform hover:scale-105 transition-all duration-300 hover:shadow-xl relative overflow-hidden"
+            className="group relative flex items-center gap-2.5 px-6 py-3.5 bg-gradient-to-r from-secondary-500 to-accent-500 hover:from-secondary-600 hover:to-accent-600 text-white rounded-xl font-semibold shadow-lg transform hover:scale-[1.02] transition-all duration-300 hover:shadow-2xl active:scale-[0.98] overflow-hidden"
           >
-            <FiTrendingUp className="w-5 h-5 transition-transform group-hover:scale-110" />
-            <span>Spending Trends</span>
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+            <FiTrendingUp className="w-5 h-5 transition-transform group-hover:scale-110 relative z-10" />
+            <span className="relative z-10">Spending Trends</span>
           </Link>
-          <div className="px-4 relative z-30">
+          <div className="relative z-30">
             <ThemeSwitcher showLabel={false} size="sm" />
           </div>
         </div>
       </nav>
 
       {/* Features Overview */}
-      <div className="relative z-10 flex justify-center mb-6">
-        <div className="bg-background-card backdrop-blur-sm border border-border-secondary rounded-2xl p-8 shadow-xl max-w-5xl">
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-text-primary mb-2">
-              🚀 Powerful Features
+      <div className="relative z-10 flex justify-center mb-8 px-4">
+        <div className="w-full max-w-5xl bg-background-card backdrop-blur-sm border border-border-secondary rounded-2xl p-8 shadow-xl">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-text-primary mb-3">
+              Powerful Features
             </h2>
-            <p className="text-text-secondary">
+            <p className="text-text-secondary text-lg">
               Everything you need to understand your spending habits
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {/* Spending Trends Feature */}
-            <div className="flex items-start space-x-3 p-4 bg-background-secondary/30 rounded-xl border border-border-secondary/50">
-              <div className="w-10 h-10 bg-gradient-to-r from-secondary-500 to-accent-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                <FiTrendingUp className="w-5 h-5 text-white" />
+            <div className="group relative flex flex-col items-start p-5 bg-gradient-to-br from-secondary-500/10 to-accent-500/5 rounded-xl border border-border-secondary hover:border-secondary-500/50 transition-all duration-300 hover:shadow-lg hover:scale-[1.02]">
+              <div className="w-12 h-12 bg-gradient-to-r from-secondary-500 to-accent-500 rounded-xl flex items-center justify-center flex-shrink-0 mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <FiTrendingUp className="w-6 h-6 text-white" />
               </div>
-              <div>
-                <h3 className="font-semibold text-text-primary mb-1">
-                  Spending Trends
-                </h3>
-                <p className="text-text-tertiary text-sm">
-                  Multi-month analysis with AI insights
-                </p>
-              </div>
+              <h3 className="font-bold text-text-primary mb-2 text-lg">
+                Spending Trends
+              </h3>
+              <p className="text-text-secondary text-sm leading-relaxed">
+                Multi-month analysis with AI-powered insights and predictions
+              </p>
             </div>
 
             {/* Upload Feature */}
-            <div className="flex items-start space-x-3 p-4 bg-background-secondary/30 rounded-xl border border-border-secondary/50">
-              <div className="w-10 h-10 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                <FiUpload className="w-5 h-5 text-white" />
+            <div className="group relative flex flex-col items-start p-5 bg-gradient-to-br from-primary-500/10 to-secondary-500/5 rounded-xl border border-border-secondary hover:border-primary-500/50 transition-all duration-300 hover:shadow-lg hover:scale-[1.02]">
+              <div className="w-12 h-12 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-xl flex items-center justify-center flex-shrink-0 mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <FiUpload className="w-6 h-6 text-white" />
               </div>
-              <div>
-                <h3 className="font-semibold text-text-primary mb-1">
-                  Smart Upload
-                </h3>
-                <p className="text-text-tertiary text-sm">
-                  CSV files with AI categorization
-                </p>
-              </div>
+              <h3 className="font-bold text-text-primary mb-2 text-lg">
+                Smart Upload
+              </h3>
+              <p className="text-text-secondary text-sm leading-relaxed">
+                Upload CSV files and let AI automatically categorize your transactions
+              </p>
             </div>
 
             {/* Analytics Feature */}
-            <div className="flex items-start space-x-3 p-4 bg-background-secondary/30 rounded-xl border border-border-secondary/50">
-              <div className="w-10 h-10 bg-gradient-to-r from-accent-500 to-primary-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                <FiZap className="w-5 h-5 text-white" />
+            <div className="group relative flex flex-col items-start p-5 bg-gradient-to-br from-accent-500/10 to-primary-500/5 rounded-xl border border-border-secondary hover:border-accent-500/50 transition-all duration-300 hover:shadow-lg hover:scale-[1.02]">
+              <div className="w-12 h-12 bg-gradient-to-r from-accent-500 to-primary-500 rounded-xl flex items-center justify-center flex-shrink-0 mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <FiZap className="w-6 h-6 text-white" />
               </div>
-              <div>
-                <h3 className="font-semibold text-text-primary mb-1">
-                  AI Analytics
-                </h3>
-                <p className="text-text-tertiary text-sm">
-                  Intelligent spending insights
-                </p>
-              </div>
+              <h3 className="font-bold text-text-primary mb-2 text-lg">
+                AI Analytics
+              </h3>
+              <p className="text-text-secondary text-sm leading-relaxed">
+                Get intelligent insights and personalized spending recommendations
+              </p>
             </div>
           </div>
         </div>
@@ -239,51 +237,61 @@ const HomePage: React.FC = () => {
       <main className="relative z-10 flex-grow flex items-center justify-center px-4 pb-12">
         <div className="w-full max-w-7xl space-y-8">
           {/* Primary Action Cards */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {/* Enhanced Upload Card */}
-            <div className="group bg-background-card backdrop-blur-sm border border-border-secondary text-text-primary p-8 rounded-3xl shadow-2xl hover:shadow-3xl transition-all duration-500 hover:scale-[1.02] hover:border-primary-500/50 card-hover">
-              <div className="flex items-center space-x-3 mb-6">
-                <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center animate-glow">
-                  <FiUpload className="w-6 h-6 text-text-primary" />
+            <div className="group relative overflow-hidden bg-background-card backdrop-blur-sm border border-border-secondary text-text-primary p-8 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 hover:scale-[1.01] hover:border-primary-500/50">
+              {/* Decorative gradient */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-primary-500/10 to-transparent rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+              <div className="relative z-10">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-14 h-14 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <FiUpload className="w-7 h-7 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-text-primary">
+                      Upload & Analyze
+                    </h2>
+                    <p className="text-text-secondary text-sm font-medium">
+                      CSV files with AI categorization
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-text-primary">
-                    Upload & Analyze
-                  </h2>
-                  <p className="text-text-tertiary text-sm">
-                    CSV files with AI categorization
-                  </p>
-                </div>
+                <UploadComponent
+                  onUploadSuccess={() => {}}
+                  useremail={session.user?.email as string}
+                />
               </div>
-              <UploadComponent
-                onUploadSuccess={() => {}}
-                useremail={session.user?.email as string}
-              />
             </div>
 
             {/* Enhanced User Profile Card */}
-            <div className="group bg-background-card backdrop-blur-sm border border-border-secondary text-text-primary p-8 rounded-3xl shadow-2xl hover:shadow-3xl transition-all duration-500 hover:scale-[1.02] hover:border-secondary-500/50 card-hover">
-              <div className="flex items-center space-x-3 mb-6">
-                <div className="w-12 h-12 bg-gradient-secondary rounded-xl flex items-center justify-center animate-glow">
-                  <FiUser className="w-6 h-6 text-text-primary" />
+            <div className="group relative overflow-hidden bg-background-card backdrop-blur-sm border border-border-secondary text-text-primary p-8 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 hover:scale-[1.01] hover:border-secondary-500/50">
+              {/* Decorative gradient */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-secondary-500/10 to-transparent rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+              <div className="relative z-10">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-14 h-14 bg-gradient-to-br from-secondary-500 to-accent-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <FiUser className="w-7 h-7 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-text-primary">
+                      Your Profile
+                    </h2>
+                    <p className="text-text-secondary text-sm font-medium">
+                      Manage your account
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-text-primary">
-                    Your Profile
-                  </h2>
-                  <p className="text-text-tertiary text-sm">
-                    Manage your account
-                  </p>
-                </div>
+                <UserProfile
+                  user={session?.user?.name || "No User Name"}
+                  image={
+                    (session?.user as { picture?: string })?.picture ||
+                    "/images/defaultuser.jpg"
+                  }
+                  onSignOut={() => signOut()}
+                />
               </div>
-              <UserProfile
-                user={session?.user?.name || "No User Name"}
-                image={
-                  (session?.user as { picture?: string })?.picture ||
-                  "/images/defaultuser.jpg"
-                }
-                onSignOut={() => signOut()}
-              />
             </div>
           </div>
 
