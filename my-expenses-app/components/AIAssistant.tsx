@@ -76,11 +76,11 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
         throw new Error("Failed to get AI response");
       }
 
-      const data = await response.json();
+      const responseData = await response.json();
 
       const assistantMessage: Message = {
         role: "assistant",
-        content: data.message || "I'm sorry, I couldn't process that request.",
+        content: responseData.message || "I'm sorry, I couldn't process that request.",
         timestamp: new Date(),
       };
 
