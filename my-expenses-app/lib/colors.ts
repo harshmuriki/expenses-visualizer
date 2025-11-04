@@ -104,7 +104,7 @@ export interface ColorTheme {
   categories: string[];
 }
 
-// Ocean Theme
+// Ocean Theme - Modern, sophisticated dark theme with excellent contrast
 export const oceanTheme: ColorTheme = {
   primary: {
     50: "#f0f9ff",
@@ -160,58 +160,58 @@ export const oceanTheme: ColorTheme = {
   },
 
   semantic: {
-    success: "#10b981",
+    success: "#22c55e", // Brighter green for better visibility
     warning: "#f59e0b",
     error: "#ef4444",
     info: "#3b82f6",
   },
 
   background: {
-    primary: "#0c1526", // Darker ocean blue
-    secondary: "#1e293b",
-    tertiary: "#334155",
-    glass: "rgba(30, 41, 59, 0.6)",
-    card: "rgba(30, 41, 59, 0.5)",
+    primary: "#0a0f1a", // Deeper, richer dark blue
+    secondary: "#131b2e",
+    tertiary: "#1e293b",
+    glass: "rgba(19, 27, 46, 0.7)",
+    card: "rgba(19, 27, 46, 0.6)",
   },
 
   text: {
-    primary: "#f0f9ff", // Light text for dark theme
-    secondary: "#bae6fd",
-    tertiary: "#7dd3fc",
-    inverse: "#0c1526",
+    primary: "#ffffff", // Pure white for maximum contrast
+    secondary: "#cbd5e1",
+    tertiary: "#94a3b8",
+    inverse: "#0a0f1a",
   },
 
   border: {
-    primary: "#475569",
-    secondary: "#64748b",
-    focus: "#06b6d4",
-    glass: "rgba(71, 85, 105, 0.5)",
+    primary: "#334155",
+    secondary: "#1e293b",
+    focus: "#0ea5e9",
+    glass: "rgba(51, 65, 85, 0.4)",
   },
 
   gradients: {
     primary: "from-sky-500 to-cyan-500",
     secondary: "from-cyan-500 to-teal-500",
-    accent: "from-teal-500 to-sky-500",
+    accent: "from-teal-500 to-emerald-500",
     background: "from-slate-900 via-slate-800 to-slate-900",
   },
 
   categories: [
-    "#0ea5e9",
-    "#06b6d4",
-    "#14b8a6",
-    "#10b981",
-    "#0284c7",
-    "#0891b2",
-    "#0d9488",
-    "#059669",
-    "#0369a1",
-    "#0e7490",
-    "#0f766e",
-    "#047857",
+    "#3b82f6", // Blue - for major categories
+    "#8b5cf6", // Purple - housing/utilities
+    "#ec4899", // Pink - entertainment
+    "#f59e0b", // Amber - food/dining
+    "#10b981", // Emerald - income/savings
+    "#06b6d4", // Cyan - transportation
+    "#ef4444", // Red - bills/debt
+    "#a855f7", // Violet - health
+    "#14b8a6", // Teal - shopping
+    "#f97316", // Orange - subscriptions
+    "#22c55e", // Green - investments
+    "#6366f1", // Indigo - misc
   ],
 };
 
-// Cherry Blossom Theme (Soft pinks and whites)
+// Cherry Blossom Theme - Elegant light theme with soft, warm colors
 export const cherryBlossomTheme: ColorTheme = {
   primary: {
     50: "#fdf2f8",
@@ -267,58 +267,58 @@ export const cherryBlossomTheme: ColorTheme = {
   },
 
   semantic: {
-    success: "#10b981",
-    warning: "#f59e0b",
-    error: "#ef4444",
-    info: "#ec4899",
+    success: "#059669", // Deeper green for better contrast on light
+    warning: "#d97706", // Darker orange for accessibility
+    error: "#dc2626", // Deeper red
+    info: "#db2777", // Pink info for theme consistency
   },
 
   background: {
-    primary: "#fff1f2", // rose-50 - Light cherry blossom
-    secondary: "#ffffff",
-    tertiary: "#ffe4e6", // rose-100
-    glass: "rgba(255, 241, 242, 0.9)",
-    card: "rgba(255, 255, 255, 0.8)",
+    primary: "#fefcfd", // Almost white with hint of pink
+    secondary: "#fff1f2",
+    tertiary: "#ffe4e6",
+    glass: "rgba(255, 252, 253, 0.8)",
+    card: "rgba(255, 255, 255, 0.9)",
   },
 
   text: {
-    primary: "#4c0519", // Dark text for light theme
-    secondary: "#881337",
-    tertiary: "#9f1239",
+    primary: "#1c1917", // Near black for maximum readability
+    secondary: "#57534e",
+    tertiary: "#78716c",
     inverse: "#ffffff",
   },
 
   border: {
-    primary: "#fecdd3", // rose-200
-    secondary: "#fda4af", // rose-300
-    focus: "#ec4899", // pink-500
-    glass: "rgba(254, 205, 211, 0.5)",
+    primary: "#e7e5e4",
+    secondary: "#fecdd3",
+    focus: "#ec4899",
+    glass: "rgba(231, 229, 228, 0.6)",
   },
 
   gradients: {
     primary: "from-pink-500 to-rose-500",
-    secondary: "from-rose-500 to-red-500",
-    accent: "from-red-500 to-pink-500",
-    background: "from-white via-rose-50 to-white",
+    secondary: "from-rose-500 to-red-400",
+    accent: "from-red-400 to-pink-400",
+    background: "from-white via-rose-50 to-pink-50",
   },
 
   categories: [
-    "#ec4899",
-    "#f43f5e",
-    "#ef4444",
-    "#f472b6",
-    "#db2777",
-    "#e11d48",
-    "#dc2626",
-    "#f9a8d4",
-    "#be185d",
-    "#be123c",
-    "#b91c1c",
-    "#fda4af",
+    "#ec4899", // Pink
+    "#f43f5e", // Rose
+    "#ef4444", // Red
+    "#f97316", // Orange
+    "#f59e0b", // Amber
+    "#eab308", // Yellow
+    "#84cc16", // Lime
+    "#10b981", // Emerald
+    "#14b8a6", // Teal
+    "#06b6d4", // Cyan
+    "#8b5cf6", // Purple
+    "#a855f7", // Violet
   ],
 };
 
-// Nordic Theme (Cool blues and grays)
+// Nordic Theme - Clean, minimal light theme with cool colors
 export const nordicTheme: ColorTheme = {
   primary: {
     50: "#f0f9ff",
@@ -374,54 +374,54 @@ export const nordicTheme: ColorTheme = {
   },
 
   semantic: {
-    success: "#10b981",
-    warning: "#f59e0b",
-    error: "#ef4444",
-    info: "#0ea5e9",
+    success: "#059669", // Deeper for better contrast
+    warning: "#d97706", // Darker for accessibility
+    error: "#dc2626", // Deeper red
+    info: "#0284c7", // Sky blue for theme consistency
   },
 
   background: {
-    primary: "#f0f9ff", // sky-50 - Light nordic blue
-    secondary: "#e0f2fe", // sky-100
-    tertiary: "#bae6fd", // sky-200
-    glass: "rgba(240, 249, 255, 0.9)",
-    card: "rgba(224, 242, 254, 0.8)",
+    primary: "#f8fafc", // Pure, clean slate
+    secondary: "#f1f5f9",
+    tertiary: "#e2e8f0",
+    glass: "rgba(248, 250, 252, 0.8)",
+    card: "rgba(255, 255, 255, 0.9)",
   },
 
   text: {
-    primary: "#0c4a6e", // Dark text for light theme
-    secondary: "#075985",
-    tertiary: "#0369a1",
+    primary: "#0f172a", // Deep slate for excellent readability
+    secondary: "#334155",
+    tertiary: "#64748b",
     inverse: "#ffffff",
   },
 
   border: {
-    primary: "#cbd5e1",
-    secondary: "#e2e8f0",
+    primary: "#e2e8f0",
+    secondary: "#cbd5e1",
     focus: "#0ea5e9",
-    glass: "rgba(203, 213, 225, 0.5)",
+    glass: "rgba(226, 232, 240, 0.6)",
   },
 
   gradients: {
-    primary: "from-sky-500 to-slate-500",
-    secondary: "from-slate-500 to-blue-500",
-    accent: "from-blue-500 to-sky-500",
-    background: "from-white via-slate-50 to-white",
+    primary: "from-sky-500 to-blue-500",
+    secondary: "from-slate-400 to-slate-600",
+    accent: "from-blue-500 to-cyan-500",
+    background: "from-white via-slate-50 to-sky-50",
   },
 
   categories: [
-    "#0ea5e9",
-    "#64748b",
-    "#3b82f6",
-    "#38bdf8",
-    "#0284c7",
-    "#475569",
-    "#2563eb",
-    "#7dd3fc",
-    "#0369a1",
-    "#334155",
-    "#1d4ed8",
-    "#93c5fd",
+    "#3b82f6", // Blue
+    "#8b5cf6", // Purple
+    "#06b6d4", // Cyan
+    "#64748b", // Slate
+    "#0ea5e9", // Sky
+    "#14b8a6", // Teal
+    "#6366f1", // Indigo
+    "#a855f7", // Violet
+    "#0284c7", // Light blue
+    "#475569", // Dark slate
+    "#2563eb", // Royal blue
+    "#0891b2", // Dark cyan
   ],
 };
 
