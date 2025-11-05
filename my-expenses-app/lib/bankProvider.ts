@@ -2,10 +2,10 @@
  * Bank Provider Abstraction Layer
  *
  * This module provides a unified interface for different bank connection providers
- * (Plaid, Teller, local CSV/PDF uploads) to enable easy switching between providers.
+ * (Plaid, local CSV/PDF uploads) to enable easy switching between providers.
  */
 
-export type BankProviderType = 'plaid' | 'teller' | 'local';
+export type BankProviderType = 'plaid' | 'local';
 
 export interface BankTransaction {
   transaction_id: string;
@@ -29,7 +29,6 @@ export interface BankAccount {
 
 export interface LinkTokenResponse {
   link_token?: string;  // For Plaid
-  enrollment_url?: string;  // For Teller
   provider: BankProviderType;
 }
 
@@ -54,7 +53,7 @@ export interface IBankProvider {
   readonly provider: BankProviderType;
 
   /**
-   * Create a link token or enrollment URL for user to connect their bank
+   * Create a link token for user to connect their bank
    */
   createLinkToken(userId: string): Promise<LinkTokenResponse>;
 
@@ -86,11 +85,6 @@ export interface ProviderConfig {
   plaidClientId?: string;
   plaidSecret?: string;
   plaidEnv?: string;
-  // Teller specific
-  tellerAppId?: string;
-  tellerCertificate?: string;
-  tellerPrivateKey?: string;
-  tellerEnv?: string;
 }
 
 /**
@@ -115,17 +109,6 @@ export const getProviderConfig = (): ProviderConfig => {
     };
   }
 
-  // For Teller
-  if (envProvider === 'teller') {
-    return {
-      provider: 'teller',
-      tellerAppId: process.env.TELLER_APP_ID,
-      tellerCertificate: process.env.TELLER_CERTIFICATE,
-      tellerPrivateKey: process.env.TELLER_PRIVATE_KEY,
-      tellerEnv: process.env.TELLER_ENV || 'sandbox',
-    };
-  }
-
   // Fallback to local
   return { provider: 'local' };
 };
@@ -140,8 +123,6 @@ export const isProviderAvailable = (provider: BankProviderType): boolean => {
       return true;
     case 'plaid':
       return !!(process.env.PLAID_CLIENT_ID && process.env.PLAID_SECRET);
-    case 'teller':
-      return !!(process.env.TELLER_APP_ID);
     default:
       return false;
   }
@@ -155,10 +136,6 @@ export const getAvailableProviders = (): BankProviderType[] => {
 
   if (isProviderAvailable('plaid')) {
     providers.push('plaid');
-  }
-
-  if (isProviderAvailable('teller')) {
-    providers.push('teller');
   }
 
   return providers;

@@ -47,7 +47,7 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
   const [files, setFiles] = useState<FileList | null>(null);
   const [month, setMonth] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
-  const [bankProvider, setBankProvider] = useState<'local' | 'teller' | 'plaid'>('local');
+  const [bankProvider, setBankProvider] = useState<'local' | 'plaid'>('local');
   const router = useRouter();
   const [months, setMonths] = useState([]);
 
@@ -316,8 +316,8 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
 
   return (
     <div className="flex flex-col items-center justify-center space-y-4 p-6">
-      {/* Bank Connection (Teller/Plaid) */}
-      {(bankProvider === 'teller' || bankProvider === 'plaid') && (
+      {/* Bank Connection (Plaid) */}
+      {bankProvider === 'plaid' && (
         <BankConnection
           useremail={useremail}
           onConnectionSuccess={onUploadSuccess}
@@ -325,7 +325,7 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
       )}
 
       {/* Divider - only show if bank connection is visible */}
-      {(bankProvider === 'teller' || bankProvider === 'plaid') && (
+      {bankProvider === 'plaid' && (
         <div className="w-full flex items-center gap-4">
           <div className="flex-1 h-px bg-border-secondary"></div>
           <span className="text-sm text-text-tertiary">OR</span>
@@ -335,12 +335,12 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
 
       <label className="flex flex-col items-center w-full">
         <span className="mb-2 font-semibold text-text-primary">
-          {(bankProvider === 'teller' || bankProvider === 'plaid')
+          {bankProvider === 'plaid'
             ? 'Manual Upload (CSV Files)'
             : 'Upload Multiple CSV Files'}
         </span>
         <p className="text-xs text-text-tertiary mb-2">
-          {(bankProvider === 'teller' || bankProvider === 'plaid')
+          {bankProvider === 'plaid'
             ? 'Or manually upload CSV files from your bank'
             : 'Select CSV files - they will be combined with AI-detected bank names'}
         </p>

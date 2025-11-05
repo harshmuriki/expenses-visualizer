@@ -6,7 +6,6 @@
 
 import { IBankProvider, BankProviderType, getProviderConfig } from './bankProvider';
 import { plaidProvider } from './plaidClient';
-import { tellerProvider } from './tellerClient';
 
 /**
  * Local Provider (CSV/PDF upload)
@@ -53,8 +52,6 @@ export const getBankProvider = (
   switch (provider) {
     case 'plaid':
       return plaidProvider;
-    case 'teller':
-      return tellerProvider;
     case 'local':
       return localProvider;
     default:

@@ -2,7 +2,7 @@
 
 /**
  * Bank Connection Component
- * Handles connecting to banks via Teller or Plaid and syncing transactions
+ * Handles connecting to banks via Plaid and syncing transactions
  */
 
 import React, { useState, useEffect } from 'react';
@@ -13,7 +13,7 @@ interface BankConnectionProps {
   onConnectionSuccess: () => void;
 }
 
-type ProviderType = 'local' | 'teller' | 'plaid';
+type ProviderType = 'local' | 'plaid';
 
 interface ConnectedAccount {
   itemId: string;
@@ -125,99 +125,13 @@ export default function BankConnection({
     }
   };
 
-  // Teller Connect Integration
-  const connectTeller = async () => {
-    setError(null);
-    setIsConnecting(true);
-
-    try {
-      // Get Teller App ID
-      const enrollmentResponse = await fetch('/api/teller/create-enrollment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (!enrollmentResponse.ok) {
-        throw new Error('Failed to create Teller enrollment');
-      }
-
-      const { enrollment_url } = await enrollmentResponse.json();
-
-      // Extract App ID from URL
-      const appIdMatch = enrollment_url?.match(/teller-connect:\/\/(.+)/);
-      if (!appIdMatch) {
-        throw new Error('Invalid Teller enrollment URL');
-      }
-      const appId = appIdMatch[1];
-
-      // Load Teller Connect SDK
-      const TellerConnect = (window as any).TellerConnect;
-      if (!TellerConnect) {
-        throw new Error('Teller SDK not loaded');
-      }
-
-      const connector = TellerConnect.setup({
-        applicationId: appId,
-        onSuccess: async (enrollment: any) => {
-          try {
-            const accessToken = enrollment.accessToken;
-            const enrollmentId = enrollment.enrollment.id;
-
-            // Validate and store enrollment
-            const validateResponse = await fetch('/api/teller/validate-enrollment', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                accessToken,
-                institution: enrollment.enrollment.institution.name,
-              }),
-            });
-
-            const validateData = await validateResponse.json();
-            if (!validateResponse.ok || !validateData.success) {
-              throw new Error('Failed to validate Teller enrollment');
-            }
-
-            setConnectedAccounts((prev) => [
-              ...prev,
-              {
-                itemId: validateData.item_id,
-                institution: enrollment.enrollment.institution.name,
-                provider: 'teller',
-              },
-            ]);
-
-            setSuccessMessage('Bank account connected successfully!');
-            onConnectionSuccess();
-          } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to connect account');
-          }
-        },
-        onExit: () => {
-          // User closed the modal
-        },
-      });
-
-      connector.open();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to initialize Teller');
-    } finally {
-      setIsConnecting(false);
-    }
-  };
-
   // Sync transactions for a connected account
   const syncTransactions = async (account: ConnectedAccount) => {
     setError(null);
     setIsSyncing(true);
 
     try {
-      const endpoint =
-        account.provider === 'plaid'
-          ? '/api/plaid/sync-transactions'
-          : '/api/teller/sync-transactions';
-
-      const response = await fetch(endpoint, {
+      const response = await fetch('/api/plaid/sync-transactions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -258,19 +172,6 @@ export default function BankConnection({
     }
   }, [provider]);
 
-  // Load Teller SDK
-  useEffect(() => {
-    if (provider === 'teller' && !(window as any).TellerConnect) {
-      const script = document.createElement('script');
-      script.src = 'https://cdn.teller.io/connect/connect.js';
-      script.async = true;
-      document.body.appendChild(script);
-      return () => {
-        document.body.removeChild(script);
-      };
-    }
-  }, [provider]);
-
   if (provider === 'local') {
     return null; // Local provider uses file upload, not this component
   }
@@ -278,7 +179,7 @@ export default function BankConnection({
   return (
     <div className="w-full space-y-4 rounded-xl border border-border-primary/50 bg-background-primary/50 p-5 backdrop-blur-sm">
       <h3 className="text-lg font-semibold text-text-primary">
-        {provider === 'teller' ? 'Connect with Teller' : 'Connect with Plaid'}
+        Connect with Plaid
       </h3>
       <p className="text-sm text-text-secondary">
         Link your bank account securely to automatically import transactions.
@@ -286,7 +187,7 @@ export default function BankConnection({
 
       {/* Connect Button */}
       <button
-        onClick={provider === 'teller' ? connectTeller : connectPlaid}
+        onClick={connectPlaid}
         disabled={isConnecting}
         className={`w-full rounded-lg px-4 py-2.5 font-semibold transition-all transform ${
           isConnecting
@@ -310,9 +211,7 @@ export default function BankConnection({
                 <p className="text-sm font-medium text-text-primary">
                   {account.institution || 'Bank Account'}
                 </p>
-                <p className="text-xs text-text-tertiary">
-                  {account.provider === 'teller' ? 'Teller' : 'Plaid'}
-                </p>
+                <p className="text-xs text-text-tertiary">Plaid</p>
               </div>
               <button
                 onClick={() => syncTransactions(account)}
