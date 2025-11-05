@@ -98,12 +98,22 @@ const tellerRequest = async <T>(
   accessToken: string,
   options: RequestInit = {}
 ): Promise<T> => {
-  const { baseUrl } = getCredentials();
+  const { baseUrl, env } = getCredentials();
+
+  console.log('[TellerClient] tellerRequest:', {
+    path,
+    baseUrl,
+    env,
+    tokenLength: accessToken?.length
+  });
 
   // Teller uses Basic Auth with access token as username (password is empty)
   const auth = Buffer.from(`${accessToken}:`).toString('base64');
 
-  const response = await fetch(`${baseUrl}${path}`, {
+  const url = `${baseUrl}${path}`;
+  console.log('[TellerClient] Making request to:', url);
+
+  const response = await fetch(url, {
     ...options,
     headers: {
       Authorization: `Basic ${auth}`,
@@ -112,12 +122,18 @@ const tellerRequest = async <T>(
     },
   });
 
+  console.log('[TellerClient] Response status:', response.status);
+
   if (!response.ok) {
     const errorText = await response.text();
+    console.error('[TellerClient] Error response:', errorText);
     throw new Error(`Teller request failed (${response.status}): ${errorText}`);
   }
 
-  return (await response.json()) as T;
+  const data = await response.json();
+  console.log('[TellerClient] Response data type:', Array.isArray(data) ? 'array' : typeof data);
+
+  return data as T;
 };
 
 /**
@@ -180,18 +196,26 @@ export const validateEnrollment = async (
   accessToken: string
 ): Promise<AccessTokenResponse> => {
   try {
+    console.log('[TellerClient] validateEnrollment: Starting validation');
+    console.log('[TellerClient] Access token length:', accessToken?.length);
+
     // Test the access token by fetching accounts
+    console.log('[TellerClient] Fetching accounts from Teller API...');
     const accounts = await tellerRequest<TellerAccount[]>(
       '/accounts',
       accessToken
     );
 
+    console.log('[TellerClient] Accounts fetched:', accounts?.length || 0);
+
     if (!accounts || accounts.length === 0) {
+      console.error('[TellerClient] No accounts found');
       throw new Error('No accounts found for this enrollment');
     }
 
     // Use the first account's enrollment_id as the item_id
     const enrollmentId = accounts[0].enrollment_id;
+    console.log('[TellerClient] Enrollment ID:', enrollmentId);
 
     return {
       access_token: accessToken,
@@ -199,6 +223,7 @@ export const validateEnrollment = async (
       provider: 'teller',
     };
   } catch (error) {
+    console.error('[TellerClient] validateEnrollment error:', error);
     throw new Error(
       `Failed to validate Teller enrollment: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
