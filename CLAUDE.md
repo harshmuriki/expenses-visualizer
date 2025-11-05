@@ -4,16 +4,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an **Expenses Visualizer** application built with Next.js 15 that allows users to upload financial transaction data (CSV or PDF), process it using AI (supports multiple LLM providers including OpenAI, local models via Ollama/LM Studio, Anthropic Claude, and custom APIs), and visualize the categorized expenses using interactive TreeMap and chart visualizations. It features Firebase integration for data persistence, Plaid integration for bank account synchronization, and AI-powered insights for spending analysis.
+This is an **Expenses Visualizer** application built with Next.js 15 that allows users to upload financial transaction data (CSV or PDF), process it using AI (supports multiple LLM providers including OpenAI, local models via Ollama/LM Studio, Anthropic Claude, and custom APIs), and visualize the categorized expenses using interactive TreeMap and chart visualizations. It features Firebase integration for data persistence, **flexible bank connection options** (local upload, Teller, or Plaid), and AI-powered insights for spending analysis.
 
-**NEW**: The app now supports multiple LLM providers! You can use:
+**NEW - Multiple Bank Connection Providers**: Choose how you connect to banks:
+- **Local Upload** (default, free) - Manual CSV/PDF upload, maximum privacy
+- **Teller** (100 free connections) - Developer-friendly, automatic sync
+- **Plaid** (enterprise, paid) - 12,000+ banks worldwide
+
+See `BANK_PROVIDER_GUIDE.md` for detailed setup instructions.
+
+**NEW - Multiple LLM Providers**: You can use:
 - **OpenAI** (cloud, paid) - gpt-4o-mini, gpt-4
 - **Ollama** (local, free) - llama3.2, mistral, codellama
 - **LM Studio** (local, free) - any GGUF model
 - **Anthropic Claude** (cloud, paid) - claude-3.5-sonnet, claude-3-haiku
 - **Custom** - any OpenAI-compatible API
 
-See `LLM_SETUP_GUIDE.md` for detailed setup instructions.
+See `LLM_SETUP_GUIDE.md` for detailed LLM setup instructions.
 
 ## Development Commands
 
@@ -47,11 +54,20 @@ npm run lint
 
 ### Core Data Flow
 
-1. **Data Input Layer**: Users upload CSV/PDF files or connect bank accounts via Plaid
+1. **Data Input Layer**: Users upload CSV/PDF files OR connect bank accounts via configurable provider (Teller, Plaid, or local upload)
 2. **AI Processing Layer**: Configurable LLM provider (OpenAI, Ollama, LM Studio, Anthropic, or custom) categorizes and extracts transaction details
 3. **Storage Layer**: Firebase Firestore stores processed transactions and hierarchical relationships
 4. **Visualization Layer**: TreeMap and charts display spending patterns
 5. **Insight Generation Layer**: AI analytics detect anomalies and generate spending insights
+
+### Bank Provider Abstraction
+
+The app uses a **provider abstraction layer** (`lib/bankProvider.ts`) that allows seamless switching between:
+- **Local Upload**: Manual CSV/PDF processing (no API required)
+- **Teller**: 100 free connections via `lib/tellerClient.ts`
+- **Plaid**: Enterprise integration via `lib/plaidClient.ts`
+
+The active provider is configured via the `BANK_PROVIDER` environment variable.
 
 ### Key Architectural Components
 
@@ -82,12 +98,23 @@ npm run lint
 - Stores files in Firebase Storage if `storeFile` flag is set
 - Saves processed Sankey nodes to Firestore
 
-**Plaid API Routes** (`pages/api/plaid/`):
+**Bank Provider API Routes**:
 
+**Unified Routes** (`pages/api/bank/`):
+- `connect.ts`: Universal bank connection (works with any configured provider)
+- `exchange-token.ts`: Universal token exchange
+- `provider-status.ts`: Get active and available providers
+
+**Plaid Routes** (`pages/api/plaid/`):
 - `create-link-token.ts`: Generates Plaid Link token for account connection
 - `exchange-public-token.ts`: Exchanges public token for access token
 - `sync-transactions.ts`: Syncs transactions using Plaid's `/transactions/sync` endpoint
 - `webhook.ts`: Handles Plaid webhook events
+
+**Teller Routes** (`pages/api/teller/`):
+- `create-enrollment.ts`: Returns Teller App ID for enrollment
+- `validate-enrollment.ts`: Validates Teller access token and stores it
+- `sync-transactions.ts`: Syncs transactions from Teller
 
 **AI Routes** (`pages/api/ai/`):
 

@@ -22,10 +22,12 @@ import UploadedFilesPanel from "./UploadedFilesPanel";
 import TransactionTable from "./TransactionTable";
 import SwipeableTransactionEditor from "./SwipeableTransactionEditor";
 import { FiBarChart2, FiGrid, FiEdit3, FiPlus, FiSettings } from "react-icons/fi";
+import { FaUniversity } from "react-icons/fa";
 import { useTheme } from "@/lib/theme-context";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import StatsCards from "./StatsCards";
 import { LLMSettings } from "./LLMSettings";
+import BankProviderSettings from "./BankProviderSettings";
 
 const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
   const { theme } = useTheme();
@@ -36,6 +38,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isLLMSettingsOpen, setIsLLMSettingsOpen] = useState(false);
+  const [isBankProviderSettingsOpen, setIsBankProviderSettingsOpen] = useState(false);
   const [parentIndex, setParentIndex] = useState<number | null>(null);
   const [nodeIndex, setNodeIndex] = useState<number | null>(null);
   const [clickedNode, setNode] = useState<SankeyNode | null>(null);
@@ -1221,6 +1224,16 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
             {/* Theme Switcher */}
             <ThemeSwitcher />
 
+            {/* Bank Provider Settings Button */}
+            <button
+              type="button"
+              onClick={() => setIsBankProviderSettingsOpen(true)}
+              className="inline-flex items-center justify-center rounded-full bg-background-card border border-border-secondary p-2 text-text-secondary transition hover:text-text-primary hover:bg-background-tertiary"
+              title="Bank Connection Settings"
+            >
+              <FaUniversity size={18} />
+            </button>
+
             {/* LLM Settings Button */}
             <button
               type="button"
@@ -1523,6 +1536,12 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
           parentOptions={parentOptions}
         />
       )}
+
+      {/* Bank Provider Settings Modal */}
+      <BankProviderSettings
+        isOpen={isBankProviderSettingsOpen}
+        onClose={() => setIsBankProviderSettingsOpen(false)}
+      />
 
       {/* LLM Settings Modal */}
       {isLLMSettingsOpen && (

@@ -130,3 +130,74 @@ export const syncTransactions = async ({
     count: 500,
   });
 };
+
+/**
+ * Plaid Provider Implementation
+ * Implements IBankProvider for unified bank provider interface
+ */
+import {
+  IBankProvider,
+  LinkTokenResponse,
+  AccessTokenResponse,
+  TransactionSyncResponse,
+  BankTransaction,
+  BankAccount,
+} from './bankProvider';
+
+const mapPlaidToBankTransaction = (txn: PlaidTransaction): BankTransaction => {
+  return {
+    transaction_id: txn.transaction_id,
+    account_id: txn.account_id,
+    name: txn.name || 'Transaction',
+    amount: txn.amount,
+    date: txn.date,
+    pending: txn.pending ?? false,
+    category: txn.category,
+    merchant_name: txn.merchant_name,
+    iso_currency_code: txn.iso_currency_code || txn.unofficial_currency_code,
+  };
+};
+
+export class PlaidProvider implements IBankProvider {
+  readonly provider = 'plaid' as const;
+
+  async createLinkToken(userId: string): Promise<LinkTokenResponse> {
+    const response = await createLinkToken(userId);
+    return {
+      link_token: response.link_token,
+      provider: 'plaid',
+    };
+  }
+
+  async exchangePublicToken(publicToken: string): Promise<AccessTokenResponse> {
+    const response = await exchangePublicToken(publicToken);
+    return {
+      access_token: response.access_token,
+      item_id: response.item_id,
+      provider: 'plaid',
+    };
+  }
+
+  async syncTransactions(params: {
+    accessToken: string;
+    cursor?: string | null;
+  }): Promise<TransactionSyncResponse> {
+    const response = await syncTransactions(params);
+    return {
+      added: response.added.map(mapPlaidToBankTransaction),
+      modified: response.modified.map(mapPlaidToBankTransaction),
+      removed: response.removed,
+      has_more: response.has_more,
+      next_cursor: response.next_cursor,
+    };
+  }
+
+  async getAccounts(_accessToken: string): Promise<BankAccount[]> {
+    // Plaid accounts are typically fetched differently
+    // For now, return empty array - can be implemented later if needed
+    return [];
+  }
+}
+
+// Export singleton instance
+export const plaidProvider = new PlaidProvider();
