@@ -6,6 +6,7 @@ import { UploadComponentProps } from "@/app/types/types";
 import { useRouter } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "./firebaseConfig";
+import BankConnection from "./BankConnection";
 import "../styles/loading-animations.css";
 
 type LinkSuccessMetadata = {
@@ -46,13 +47,7 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
   const [files, setFiles] = useState<FileList | null>(null);
   const [month, setMonth] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
-  // PLAID STATE VARIABLES - TEMPORARILY DISABLED
-  // const [isLinking, setIsLinking] = useState(false);
-  // const [isSyncing, setIsSyncing] = useState(false);
-  // const [linkToken, setLinkToken] = useState<string | null>(null);
-  // const [linkError, setLinkError] = useState<string | null>(null);
-  // const [lastSyncMessage, setLastSyncMessage] = useState<string | null>(null);
-  // const [isPlaidReady, setIsPlaidReady] = useState(false);
+  const [bankProvider, setBankProvider] = useState<'local' | 'teller' | 'plaid'>('local');
   const router = useRouter();
   const [months, setMonths] = useState([]);
 
@@ -275,6 +270,23 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
   //   useremail,
   // ]);
 
+  // Fetch bank provider status
+  useEffect(() => {
+    const fetchProviderStatus = async () => {
+      try {
+        const response = await fetch('/api/bank/provider-status');
+        if (response.ok) {
+          const data = await response.json();
+          setBankProvider(data.active);
+        }
+      } catch (error) {
+        console.error('Failed to fetch provider status:', error);
+      }
+    };
+
+    fetchProviderStatus();
+  }, []);
+
   useEffect(() => {
     const fetchUserFields = async () => {
       try {
@@ -304,40 +316,33 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
 
   return (
     <div className="flex flex-col items-center justify-center space-y-4 p-6">
-      {/* PLALD SIGN-IN TEMPORARILY DISABLED */}
-      {/* <div className="w-full space-y-3 rounded-xl border border-border-primary/50 bg-background-primary/50 p-5 backdrop-blur-sm">
-        <h3 className="text-lg font-semibold text-text-primary">Connect accounts</h3>
-        <p className="text-sm text-text-secondary">
-          Link a bank or card account securely to automatically import
-          transactions.
-        </p>
-        <button
-          onClick={openAggregatorLink}
-          disabled={isLinking || isSyncing || !isPlaidReady}
-          className={`w-full rounded-lg px-4 py-2.5 font-semibold transition-all transform ${
-            isLinking || isSyncing || !isPlaidReady
-              ? "bg-background-tertiary text-text-tertiary cursor-not-allowed"
-              : "bg-gradient-to-r from-accent-500 to-secondary-500 hover:from-accent-600 hover:to-secondary-600 text-text-primary shadow-lg hover:scale-105"
-          }`}
-        >
-          {isLinking
-            ? "Launching secure link..."
-            : isSyncing
-            ? "Syncing transactions..."
-            : "Connect financial account"}
-        </button>
-        {linkError && <p className="text-sm text-red-400">{linkError}</p>}
-        {lastSyncMessage && (
-          <p className="text-sm text-accent-500">{lastSyncMessage}</p>
-        )}
-      </div> */}
+      {/* Bank Connection (Teller/Plaid) */}
+      {(bankProvider === 'teller' || bankProvider === 'plaid') && (
+        <BankConnection
+          useremail={useremail}
+          onConnectionSuccess={onUploadSuccess}
+        />
+      )}
+
+      {/* Divider - only show if bank connection is visible */}
+      {(bankProvider === 'teller' || bankProvider === 'plaid') && (
+        <div className="w-full flex items-center gap-4">
+          <div className="flex-1 h-px bg-border-secondary"></div>
+          <span className="text-sm text-text-tertiary">OR</span>
+          <div className="flex-1 h-px bg-border-secondary"></div>
+        </div>
+      )}
 
       <label className="flex flex-col items-center w-full">
         <span className="mb-2 font-semibold text-text-primary">
-          Upload Multiple CSV Files
+          {(bankProvider === 'teller' || bankProvider === 'plaid')
+            ? 'Manual Upload (CSV Files)'
+            : 'Upload Multiple CSV Files'}
         </span>
         <p className="text-xs text-text-tertiary mb-2">
-          Select CSV files - they will be combined with AI-detected bank names
+          {(bankProvider === 'teller' || bankProvider === 'plaid')
+            ? 'Or manually upload CSV files from your bank'
+            : 'Select CSV files - they will be combined with AI-detected bank names'}
         </p>
         <input
           type="file"
