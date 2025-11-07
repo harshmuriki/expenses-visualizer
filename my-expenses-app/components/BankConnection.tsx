@@ -33,9 +33,10 @@ export default function BankConnection({
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [connectedAccounts, setConnectedAccounts] = useState<ConnectedAccount[]>([]);
 
-  // Fetch provider status on mount
+  // Fetch provider status and connected accounts on mount
   useEffect(() => {
     fetchProviderStatus();
+    fetchConnectedAccounts();
   }, []);
 
   const fetchProviderStatus = async () => {
@@ -47,6 +48,26 @@ export default function BankConnection({
       }
     } catch (err) {
       console.error('Failed to fetch provider status:', err);
+    }
+  };
+
+  const fetchConnectedAccounts = async () => {
+    try {
+      const response = await fetch(`/api/plaid/get-accounts?userId=${encodeURIComponent(useremail)}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && Array.isArray(data.accounts)) {
+          setConnectedAccounts(
+            data.accounts.map((acc: any) => ({
+              itemId: acc.itemId,
+              institution: acc.institution,
+              provider: 'plaid' as ProviderType,
+            }))
+          );
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch connected accounts:', err);
     }
   };
 
@@ -95,14 +116,8 @@ export default function BankConnection({
               throw new Error(exchangeData.error || 'Failed to exchange token');
             }
 
-            setConnectedAccounts((prev) => [
-              ...prev,
-              {
-                itemId: exchangeData.itemId,
-                institution: metadata?.institution?.name,
-                provider: 'plaid',
-              },
-            ]);
+            // Refresh connected accounts list
+            await fetchConnectedAccounts();
 
             setSuccessMessage('Bank account connected successfully!');
             onConnectionSuccess();
@@ -165,9 +180,25 @@ export default function BankConnection({
       const script = document.createElement('script');
       script.src = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js';
       script.async = true;
-      document.body.appendChild(script);
+      script.onerror = () => {
+        setError('Failed to load Plaid SDK. Please refresh the page.');
+      };
+      
+      const existingScript = document.querySelector('script[src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"]');
+      if (!existingScript) {
+        document.body.appendChild(script);
+      }
+      
       return () => {
-        document.body.removeChild(script);
+        // Only remove if we added it and it's not being used
+        const scriptToRemove = document.querySelector('script[src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"]');
+        if (scriptToRemove && scriptToRemove === script) {
+          try {
+            document.body.removeChild(script);
+          } catch (e) {
+            // Script may have already been removed
+          }
+        }
       };
     }
   }, [provider]);
