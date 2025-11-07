@@ -29,6 +29,14 @@ The `UploadComponent` renders a new "Connect accounts" card that launches the ag
 | `TOKEN_STORE_KEY` | 32 byte key used to encrypt the secure token store |
 | `AWS_LAMBDA_ENDPOINT` | Existing PDF processing Lambda endpoint |
 
+## Testing Plaid Integration
+
+For testing in **sandbox mode**, use these test credentials:
+- **Username**: `user_good`
+- **Password**: `pass_good`
+
+See [PLAID_TEST_CREDENTIALS.md](./PLAID_TEST_CREDENTIALS.md) for complete test credentials and scenarios.
+
 ## Local development
 
 ```bash
