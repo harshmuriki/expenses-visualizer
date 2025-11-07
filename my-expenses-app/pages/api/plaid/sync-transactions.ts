@@ -16,7 +16,13 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     }
 
     const result = await syncTransactionsForItem({ userId, itemId, month });
-    return res.status(result.success ? 200 : 400).json(result);
+    return res.status(result.success ? 200 : 400).json({
+      success: result.success,
+      itemId: result.itemId,
+      month: result.month,
+      synced: result.syncedTransactions,
+      message: result.message,
+    });
   } catch (error) {
     console.error("Failed to sync transactions", error);
     return res.status(500).json({ error: "Unable to sync transactions" });
