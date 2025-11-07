@@ -33,9 +33,10 @@ export default function BankConnection({
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [connectedAccounts, setConnectedAccounts] = useState<ConnectedAccount[]>([]);
 
-  // Fetch provider status on mount
+  // Fetch provider status and connected accounts on mount
   useEffect(() => {
     fetchProviderStatus();
+    fetchConnectedAccounts();
   }, []);
 
   const fetchProviderStatus = async () => {
@@ -50,6 +51,26 @@ export default function BankConnection({
     }
   };
 
+  const fetchConnectedAccounts = async () => {
+    try {
+      const response = await fetch('/api/plaid/list-accounts');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.accounts && Array.isArray(data.accounts)) {
+          setConnectedAccounts(
+            data.accounts.map((acc: any) => ({
+              itemId: acc.itemId,
+              institution: acc.institution,
+              provider: 'plaid' as ProviderType,
+            }))
+          );
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch connected accounts:', err);
+    }
+  };
+
   // Plaid Link Integration
   const connectPlaid = async () => {
     setError(null);
@@ -60,7 +81,6 @@ export default function BankConnection({
       const tokenResponse = await fetch('/api/plaid/create-link-token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: useremail }),
       });
 
       if (!tokenResponse.ok) {
@@ -85,7 +105,6 @@ export default function BankConnection({
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 public_token,
-                userId: useremail,
                 institution: metadata?.institution?.name,
               }),
             });
@@ -95,14 +114,8 @@ export default function BankConnection({
               throw new Error(exchangeData.error || 'Failed to exchange token');
             }
 
-            setConnectedAccounts((prev) => [
-              ...prev,
-              {
-                itemId: exchangeData.itemId,
-                institution: metadata?.institution?.name,
-                provider: 'plaid',
-              },
-            ]);
+            // Refresh connected accounts list
+            await fetchConnectedAccounts();
 
             setSuccessMessage('Bank account connected successfully!');
             onConnectionSuccess();
@@ -135,7 +148,6 @@ export default function BankConnection({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: useremail,
           itemId: account.itemId,
         }),
       });
@@ -161,13 +173,30 @@ export default function BankConnection({
 
   // Load Plaid SDK
   useEffect(() => {
-    if (provider === 'plaid' && !(window as any).Plaid) {
+    if (provider === 'plaid' && typeof window !== 'undefined') {
+      // Check if Plaid is already loaded
+      if ((window as any).Plaid) {
+        return;
+      }
+
       const script = document.createElement('script');
       script.src = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js';
       script.async = true;
+      script.onload = () => {
+        console.log('Plaid SDK loaded successfully');
+      };
+      script.onerror = () => {
+        console.error('Failed to load Plaid SDK');
+        setError('Failed to load Plaid SDK. Please refresh the page.');
+      };
+      
       document.body.appendChild(script);
+      
       return () => {
-        document.body.removeChild(script);
+        // Only remove if it's still in the DOM
+        if (script.parentNode) {
+          document.body.removeChild(script);
+        }
       };
     }
   }, [provider]);
