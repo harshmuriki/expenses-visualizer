@@ -1,4 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../auth/[...nextauth]";
 import { createLinkToken } from "@/lib/plaidClient";
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -7,11 +9,13 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   }
 
   try {
-    const { userId } = req.body ?? {};
-    if (!userId || typeof userId !== "string") {
-      return res.status(400).json({ error: "userId is required" });
+    // Authenticate user
+    const session = await getServerSession(req, res, authOptions);
+    if (!session?.user?.email) {
+      return res.status(401).json({ error: "Unauthorized" });
     }
 
+    const userId = session.user.email;
     const linkToken = await createLinkToken(userId);
     return res.status(200).json(linkToken);
   } catch (error) {
