@@ -146,7 +146,7 @@ export default function BankConnection({
       }
 
       setSuccessMessage(
-        `Synced ${data.synced || 0} transactions for ${data.month || 'current month'}`
+        `Synced ${data.syncedTransactions || 0} transactions for ${data.month || 'current month'}`
       );
 
       // Redirect to chart page
@@ -165,9 +165,18 @@ export default function BankConnection({
       const script = document.createElement('script');
       script.src = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js';
       script.async = true;
-      document.body.appendChild(script);
+      script.id = 'plaid-link-script';
+      
+      // Check if script already exists
+      if (!document.getElementById('plaid-link-script')) {
+        document.body.appendChild(script);
+      }
+      
       return () => {
-        document.body.removeChild(script);
+        const existingScript = document.getElementById('plaid-link-script');
+        if (existingScript && existingScript.parentNode) {
+          existingScript.parentNode.removeChild(existingScript);
+        }
       };
     }
   }, [provider]);

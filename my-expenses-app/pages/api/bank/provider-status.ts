@@ -18,7 +18,6 @@ interface ProviderStatusResponse {
   config: {
     provider: BankProviderType;
     hasPlaid: boolean;
-    hasTeller: boolean;
   };
 }
 
@@ -40,7 +39,6 @@ export default async function handler(
       config: {
         provider: config.provider,
         hasPlaid: !!(config.plaidClientId && config.plaidSecret),
-        hasTeller: !!config.tellerAppId,
       },
     };
 
