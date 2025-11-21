@@ -3,6 +3,15 @@ import { createPortal } from "react-dom";
 import { InputModalProps } from "@/app/types/types";
 import { useTheme } from "@/lib/theme-context";
 
+// Import Material Web Components
+if (typeof window !== 'undefined') {
+  import('@material/web/button/filled-button.js');
+  import('@material/web/button/outlined-button.js');
+  import('@material/web/button/text-button.js');
+  import('@material/web/textfield/filled-text-field.js');
+  import('@material/web/textfield/outlined-text-field.js');
+}
+
 const InputModal: React.FC<InputModalProps> = ({
   clickedNode,
   initialParentName,
@@ -66,10 +75,13 @@ const InputModal: React.FC<InputModalProps> = ({
 
   const modalContent = (
     <>
-      {/* Glass Backdrop */}
+      {/* Material 3 Scrim/Backdrop */}
       <div
-        className="glass-backdrop fixed inset-0"
-        style={{ zIndex: 9998 }}
+        className="fixed inset-0"
+        style={{
+          zIndex: 9998,
+          backgroundColor: 'rgba(0, 0, 0, 0.6)'
+        }}
         onClick={onClose}
       />
 
@@ -78,17 +90,22 @@ const InputModal: React.FC<InputModalProps> = ({
         className="fixed inset-0 overflow-y-auto flex items-center justify-center p-4 pointer-events-none"
         style={{ zIndex: 9999 }}
       >
-        {/* Glass Modal */}
+        {/* Material 3 Modal */}
         <div
-          className="glass-modal p-10 max-w-[500px] w-full pointer-events-auto my-8"
+          className="p-10 max-w-[500px] w-full pointer-events-auto my-8 rounded-3xl"
+          style={{
+            backgroundColor: 'var(--md-sys-color-surface-container-high)',
+            border: '1px solid var(--md-sys-color-outline-variant)',
+            boxShadow: 'var(--md-sys-elevation-level5)'
+          }}
           onClick={(e) => e.stopPropagation()}
         >
-        <h3 className="text-3xl font-bold text-center mb-4 bg-gradient-to-r from-sky-400 to-cyan-400 bg-clip-text text-transparent">
+        <h3 className="md-typescale-headline-large font-bold text-center mb-4" style={{ color: 'var(--md-sys-color-primary)' }}>
           {clickedNode.isleaf ? "Update Transaction" : "Update Category"}
         </h3>
-        <h2 className="text-lg text-center mb-6 text-text-secondary">
+        <h2 className="md-typescale-body-large text-center mb-6" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
           {clickedNode.isleaf ? "Transaction" : "Category"}:{" "}
-        <span style={{ fontWeight: "600", color: theme.primary[500] }}>
+        <span className="font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>
           {clickedNode.name}
         </span>
       </h2>
@@ -97,25 +114,26 @@ const InputModal: React.FC<InputModalProps> = ({
       {clickedNode.isleaf && clickedNode.raw_str && (
         <div style={{ marginBottom: "20px" }}>
           <label
+            className="md-typescale-label-large"
             style={{
               display: "block",
               marginBottom: "8px",
               fontWeight: "600",
-              color: theme.text.secondary,
+              color: 'var(--md-sys-color-on-surface-variant)',
             }}
           >
             Original Transaction Text:
           </label>
           <div
+            className="md-typescale-body-small"
             style={{
               width: "100%",
               padding: "12px",
-              borderRadius: "20px",
-              border: `1px solid ${theme.border.primary}`,
-              backgroundColor: theme.background.primary,
-              color: theme.text.primary,
+              borderRadius: "12px",
+              border: '1px solid var(--md-sys-color-outline-variant)',
+              backgroundColor: 'var(--md-sys-color-surface-container-lowest)',
+              color: 'var(--md-sys-color-on-surface)',
               boxSizing: "border-box",
-              fontSize: "0.9rem",
               fontFamily: "monospace",
               maxHeight: "100px",
               overflowY: "auto",
@@ -129,7 +147,7 @@ const InputModal: React.FC<InputModalProps> = ({
 
       {/* Name Edit Field */}
       <div className="mb-5">
-        <label className="glass-label">
+        <label className="md-typescale-label-large block mb-2 font-medium" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
           {clickedNode.isleaf ? "Transaction Name:" : "Category Name:"}
         </label>
         <input
@@ -141,20 +159,32 @@ const InputModal: React.FC<InputModalProps> = ({
               ? "Enter transaction name"
               : "Enter category name"
           }
-          className="glass-input"
+          className="w-full px-4 py-3 rounded-xl md-typescale-body-large"
+          style={{
+            backgroundColor: 'var(--md-sys-color-surface-container)',
+            border: '1px solid var(--md-sys-color-outline)',
+            color: 'var(--md-sys-color-on-surface)',
+            outline: 'none'
+          }}
         />
       </div>
 
       {/* Category Selection - only for transactions */}
       {clickedNode.isleaf && (
         <div className="mb-5">
-          <label className="glass-label">
+          <label className="md-typescale-label-large block mb-2 font-medium" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
             New Category:
           </label>
           <select
             value={isCreatingNewParent ? "createNew" : newParentName}
             onChange={handleParentChange}
-            className="glass-select"
+            className="w-full px-4 py-3 rounded-xl md-typescale-body-large"
+            style={{
+              backgroundColor: 'var(--md-sys-color-surface-container)',
+              border: '1px solid var(--md-sys-color-outline)',
+              color: 'var(--md-sys-color-on-surface)',
+              outline: 'none'
+            }}
           >
             {parentOptions.map((parent) => (
               <option key={parent} value={parent}>
@@ -171,7 +201,13 @@ const InputModal: React.FC<InputModalProps> = ({
               value={newParentName}
               onChange={(e) => setNewParentName(e.target.value)}
               placeholder="Enter new category name"
-              className="glass-input mt-3"
+              className="w-full px-4 py-3 rounded-xl mt-3 md-typescale-body-large"
+              style={{
+                backgroundColor: 'var(--md-sys-color-surface-container)',
+                border: '1px solid var(--md-sys-color-outline)',
+                color: 'var(--md-sys-color-on-surface)',
+                outline: 'none'
+              }}
             />
           )}
         </div>
@@ -180,7 +216,7 @@ const InputModal: React.FC<InputModalProps> = ({
       {/* Price Edit Field */}
       {clickedNode.isleaf && (
         <div className="mb-6">
-          <label className="glass-label">
+          <label className="md-typescale-label-large block mb-2 font-medium" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
             New Price:
           </label>
           <input
@@ -189,25 +225,34 @@ const InputModal: React.FC<InputModalProps> = ({
             value={newPrice}
             onChange={(e) => setNewPrice(e.target.value)}
             placeholder="Enter new price"
-            className="glass-input text-xl font-semibold"
-            style={{ color: theme.accent[500] }}
+            className="w-full px-4 py-3 rounded-xl md-typescale-headline-small font-semibold"
+            style={{
+              backgroundColor: 'var(--md-sys-color-surface-container)',
+              border: '1px solid var(--md-sys-color-outline)',
+              color: 'var(--md-sys-color-tertiary)',
+              outline: 'none'
+            }}
           />
         </div>
       )}
 
       {/* Buttons */}
       <div className="flex gap-3">
-        <button onClick={handleSubmit} className="glass-button-primary flex-1">
+        <md-filled-button onClick={handleSubmit} className="flex-1">
           Update
-        </button>
+        </md-filled-button>
         {clickedNode.isleaf && (
-          <button onClick={onDelete} className="glass-button-secondary flex-1">
+          <md-outlined-button
+            onClick={onDelete}
+            className="flex-1"
+            style={{ '--md-outlined-button-label-text-color': 'var(--md-sys-color-error)' } as any}
+          >
             Delete
-          </button>
+          </md-outlined-button>
         )}
-        <button onClick={onClose} className="glass-button flex-1">
+        <md-text-button onClick={onClose} className="flex-1">
           Cancel
-        </button>
+        </md-text-button>
       </div>
         </div>
       </div>
