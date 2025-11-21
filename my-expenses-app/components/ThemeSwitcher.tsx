@@ -25,9 +25,9 @@ const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
   };
 
   const themeLabels: Record<ThemeName, string> = {
-    ocean: "🌊 Ocean",
-    cherryBlossom: "🌸 Cherry Blossom",
-    nordic: "❄️ Nordic",
+    materialLight: "🌞 Material Light",
+    materialDark: "🌙 Material Dark",
+    materialDynamic: "🌈 Material Dynamic",
   };
 
   const handleThemeChange = (newTheme: ThemeName) => {

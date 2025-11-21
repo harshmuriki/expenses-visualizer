@@ -148,9 +148,24 @@ export const LLMSettings: React.FC<LLMSettingsProps> = ({
   };
 
   const themes = [
-    { name: "ocean", label: "Ocean", description: "Cool blues and purples", colors: ["#0ea5e9", "#06b6d4", "#8b5cf6"] },
-    { name: "cherryBlossom", label: "Cherry Blossom", description: "Soft pinks", colors: ["#f472b6", "#ec4899", "#db2777"] },
-    { name: "nordic", label: "Nordic", description: "Minimal grays", colors: ["#64748b", "#475569", "#334155"] },
+    {
+      name: "materialLight",
+      label: "Material Light",
+      description: "Tonal surfaces with violet highlights",
+      colors: ["#6750a4", "#67a991", "#403954"],
+    },
+    {
+      name: "materialDark",
+      label: "Material Dark",
+      description: "Rich contrast with softly glowing accents",
+      colors: ["#d0bcff", "#4f776c", "#181420"],
+    },
+    {
+      name: "materialDynamic",
+      label: "Material Dynamic",
+      description: "Wallpaper-inspired green and amber",
+      colors: ["#3d9f55", "#f1a02e", "#3e90f5"],
+    },
   ];
 
   const InputField = ({ label, type = "text", value, onChange, placeholder, info }: any) => (

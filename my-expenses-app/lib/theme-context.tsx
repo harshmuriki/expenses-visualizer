@@ -68,7 +68,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
       if (savedUseSystemTheme && systemTheme) {
         // Use system theme
-        const autoTheme = systemTheme === 'dark' ? 'ocean' : 'cherryBlossom';
+        const autoTheme = systemTheme === 'dark' ? 'materialDark' : 'materialLight';
         setThemeName(autoTheme);
         setThemeState(themes[autoTheme]);
       } else if (savedTheme && themes[savedTheme]) {
@@ -144,7 +144,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         localStorage.setItem('useSystemTheme', String(use));
       }
       if (use && systemTheme) {
-        const autoTheme = systemTheme === 'dark' ? 'ocean' : 'cherryBlossom';
+        const autoTheme = systemTheme === 'dark' ? 'materialDark' : 'materialLight';
         setTheme(autoTheme);
       }
     },

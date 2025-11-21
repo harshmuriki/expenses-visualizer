@@ -21,8 +21,8 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
   insights,
   predictions,
 }) => {
-  const { themeName } = useTheme();
-  const isLightTheme = themeName === 'cherryBlossom' || themeName === 'nordic';
+  const { theme } = useTheme();
+  const isLightTheme = theme.mode === 'light';
 
   const getIcon = (type: SpendingInsight["type"]) => {
     switch (type) {
