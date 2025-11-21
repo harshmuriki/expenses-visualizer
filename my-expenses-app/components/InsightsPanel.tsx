@@ -87,18 +87,32 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
   return (
     <div className="space-y-6">
       {/* AI Insights Section */}
-      <section className="glass-card rounded-2xl p-6 shadow-xl border border-glass-border-strong overflow-hidden relative">
-        {/* Subtle gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 via-transparent to-secondary-500/5 pointer-events-none" />
-        
+      <section
+        className="rounded-2xl p-6 overflow-hidden relative"
+        style={{
+          backgroundColor: 'var(--md-sys-color-surface-container-low)',
+          border: '1px solid var(--md-sys-color-outline-variant)',
+          boxShadow: 'var(--md-sys-elevation-level2)'
+        }}
+      >
         <div className="relative mb-4 flex items-center gap-3">
-          <div className="relative p-2.5 rounded-xl bg-gradient-to-br from-primary-500/25 to-secondary-500/25 backdrop-blur-md border border-primary-500/40 shadow-lg">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-xl" />
-            <FiZap className="h-5 w-5 text-primary-300 relative z-10" />
+          <div
+            className="relative p-2.5 rounded-xl"
+            style={{
+              backgroundColor: 'var(--md-sys-color-primary-container)',
+              border: '1px solid var(--md-sys-color-primary)',
+              boxShadow: 'var(--md-sys-elevation-level1)'
+            }}
+          >
+            <FiZap className="h-5 w-5" style={{ color: 'var(--md-sys-color-on-primary-container)' }} />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-text-primary tracking-tight">AI Insights</h3>
-            <p className="text-[10px] text-text-tertiary/80 font-medium uppercase tracking-wider">Powered by intelligent analysis</p>
+            <h3 className="md-typescale-title-large font-bold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+              AI Insights
+            </h3>
+            <p className="md-typescale-label-small font-medium uppercase tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+              Powered by intelligent analysis
+            </p>
           </div>
         </div>
 
@@ -109,25 +123,29 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
               return (
                 <div
                   key={index}
-                  className={`group relative glass-card rounded-xl border ${colors.border} ${colors.bg} p-4 transition-all duration-300 hover:scale-[1.01] hover:shadow-xl hover:border-opacity-60 overflow-hidden`}
+                  className={`group relative rounded-xl border ${colors.border} ${colors.bg} p-4 transition-all duration-300 hover:scale-[1.01] overflow-hidden`}
+                  style={{
+                    backgroundColor: 'var(--md-sys-color-surface-container-high)',
+                    borderColor: 'var(--md-sys-color-outline-variant)',
+                    boxShadow: 'var(--md-sys-elevation-level1)'
+                  }}
                 >
-                  {/* Animated gradient overlay on hover */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 -translate-x-full group-hover:translate-x-full" />
-                  
                   <div className="relative flex items-start gap-4">
-                    <div className={`flex-shrink-0 p-2.5 rounded-lg ${colors.iconBg} border ${colors.border} transition-all duration-300 group-hover:scale-105 group-hover:rotate-3`}>
+                    <div
+                      className={`flex-shrink-0 p-2.5 rounded-lg ${colors.iconBg} border ${colors.border} transition-all duration-300 group-hover:scale-105 group-hover:rotate-3`}
+                    >
                       <div className={colors.icon}>{getIcon(insight.type)}</div>
                     </div>
                     <div className="flex-1 space-y-1.5">
-                      <h4 className={`font-bold text-base ${colors.text} tracking-tight leading-tight`}>
+                      <h4 className={`font-bold md-typescale-title-medium ${colors.text} tracking-tight leading-tight`}>
                         {insight.title}
                       </h4>
-                      <p className={`text-sm leading-relaxed ${colors.text} opacity-80`}>
+                      <p className={`md-typescale-body-medium leading-relaxed ${colors.text} opacity-80`}>
                         {insight.description}
                       </p>
                       {insight.amount && (
                         <div className="mt-2 pt-2 border-t border-current/15">
-                          <p className={`text-base font-bold ${colors.text} tracking-tight`}>
+                          <p className={`md-typescale-title-large font-bold ${colors.text} tracking-tight`}>
                             ${insight.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </p>
                         </div>
@@ -139,11 +157,23 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
             })}
           </div>
         ) : (
-          <div className="relative glass-card rounded-xl border border-border-secondary/40 p-8 text-center">
-            <div className="inline-flex p-3 rounded-xl bg-background-tertiary/20 mb-3 border border-border-secondary/30 backdrop-blur-sm">
-              <FiInfo className="h-6 w-6 text-text-tertiary" />
+          <div
+            className="relative rounded-xl p-8 text-center"
+            style={{
+              backgroundColor: 'var(--md-sys-color-surface-container)',
+              border: '1px solid var(--md-sys-color-outline-variant)'
+            }}
+          >
+            <div
+              className="inline-flex p-3 rounded-xl mb-3"
+              style={{
+                backgroundColor: 'var(--md-sys-color-secondary-container)',
+                border: '1px solid var(--md-sys-color-outline-variant)'
+              }}
+            >
+              <FiInfo className="h-6 w-6" style={{ color: 'var(--md-sys-color-on-secondary-container)' }} />
             </div>
-            <p className="text-sm text-text-secondary leading-relaxed max-w-sm mx-auto">
+            <p className="md-typescale-body-medium leading-relaxed max-w-sm mx-auto" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
               No insights available yet. Upload more transaction data to get
               personalized AI-powered recommendations.
             </p>
@@ -153,16 +183,31 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
 
       {/* Predictions Section */}
       {predictions && predictions.length > 0 && (
-        <section className="glass-card rounded-3xl p-8 shadow-xl">
+        <section
+          className="rounded-3xl p-8"
+          style={{
+            backgroundColor: 'var(--md-sys-color-surface-container-low)',
+            border: '1px solid var(--md-sys-color-outline-variant)',
+            boxShadow: 'var(--md-sys-elevation-level2)'
+          }}
+        >
           <div className="mb-6 flex items-center gap-4">
-            <div className="p-3 rounded-2xl bg-gradient-to-br from-secondary-500/20 to-accent-500/20 backdrop-blur-sm border border-secondary-500/30">
-              <FiTrendingUp className="h-6 w-6 text-secondary-400" />
+            <div
+              className="p-3 rounded-2xl"
+              style={{
+                backgroundColor: 'var(--md-sys-color-secondary-container)',
+                border: '1px solid var(--md-sys-color-secondary)'
+              }}
+            >
+              <FiTrendingUp className="h-6 w-6" style={{ color: 'var(--md-sys-color-on-secondary-container)' }} />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-text-primary tracking-tight">
+              <h3 className="md-typescale-headline-small font-bold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                 Spending Predictions
               </h3>
-              <p className="text-xs text-text-tertiary mt-0.5">Forecasted trends</p>
+              <p className="md-typescale-label-small" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                Forecasted trends
+              </p>
             </div>
           </div>
 
@@ -170,7 +215,12 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
             {predictions.slice(0, 5).map((prediction, index) => (
               <div
                 key={index}
-                className="group glass-card flex items-center justify-between rounded-2xl border border-border-secondary/50 p-6 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:border-border-focus/50"
+                className="group flex items-center justify-between rounded-2xl p-6 transition-all duration-300 hover:scale-[1.02]"
+                style={{
+                  backgroundColor: 'var(--md-sys-color-surface-container-high)',
+                  border: '1px solid var(--md-sys-color-outline-variant)',
+                  boxShadow: 'var(--md-sys-elevation-level1)'
+                }}
               >
                 <div className="flex items-center gap-5">
                   <div className={`p-3 rounded-xl transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 ${
@@ -189,19 +239,19 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
                     )}
                   </div>
                   <div>
-                    <p className="font-bold text-text-primary text-base tracking-tight">
+                    <p className="font-bold md-typescale-title-medium tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                       {prediction.category}
                     </p>
-                    <p className="text-xs text-text-tertiary mt-1">
+                    <p className="md-typescale-body-small mt-1" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                       {prediction.confidence.toFixed(0)}% confidence
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-text-primary text-xl">
+                  <p className="font-bold md-typescale-headline-small" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                     ${prediction.predictedAmount.toFixed(2)}
                   </p>
-                  <p className="text-xs font-medium capitalize text-text-tertiary mt-1">
+                  <p className="md-typescale-body-small font-medium capitalize mt-1" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                     {prediction.trend}
                   </p>
                 </div>
@@ -209,8 +259,14 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
             ))}
           </div>
 
-          <div className="mt-6 glass-card rounded-2xl border border-border-secondary/50 p-5">
-            <p className="text-xs text-text-secondary leading-relaxed">
+          <div
+            className="mt-6 rounded-2xl p-5"
+            style={{
+              backgroundColor: 'var(--md-sys-color-surface-container)',
+              border: '1px solid var(--md-sys-color-outline-variant)'
+            }}
+          >
+            <p className="md-typescale-body-small leading-relaxed" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
               💡 <span className="font-semibold">Note:</span> Predictions are based on your current spending patterns and
               historical trends. Actual spending may vary.
             </p>
