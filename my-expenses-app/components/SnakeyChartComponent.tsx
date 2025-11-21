@@ -21,7 +21,8 @@ import { useSession } from "next-auth/react";
 import UploadedFilesPanel from "./UploadedFilesPanel";
 import TransactionTable from "./TransactionTable";
 import SwipeableTransactionEditor from "./SwipeableTransactionEditor";
-import { FiBarChart2, FiGrid, FiEdit3, FiPlus, FiSettings } from "react-icons/fi";
+import CalendarView from "./CalendarView";
+import { FiBarChart2, FiGrid, FiEdit3, FiPlus, FiSettings, FiCalendar } from "react-icons/fi";
 import { useTheme } from "@/lib/theme-context";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import StatsCards from "./StatsCards";
@@ -73,7 +74,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
 
   // Use theme-aware colors for categories
   const parentColors = useMemo(() => theme.categories, [theme]);
-  const [viewMode, setViewMode] = useState<"treemap" | "table" | "editor">(
+  const [viewMode, setViewMode] = useState<"treemap" | "table" | "editor" | "calendar">(
     "treemap"
   );
 
@@ -1247,6 +1248,18 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
               </button>
               <button
                 type="button"
+                onClick={() => setViewMode("calendar")}
+                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition ${
+                  viewMode === "calendar"
+                    ? "bg-primary-500 text-text-inverse"
+                    : "text-text-secondary hover:text-text-primary hover:bg-background-tertiary"
+                }`}
+              >
+                <FiCalendar size={16} />
+                Calendar
+              </button>
+              <button
+                type="button"
                 onClick={() => setViewMode("table")}
                 className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition ${
                   viewMode === "table"
@@ -1379,6 +1392,26 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
                   returnToCategory={returnToCategory}
                   insights={insights}
                   excludedCategories={EXCLUDED_CATEGORIES}
+                />
+              </>
+            )}
+
+            {viewMode === "calendar" && (
+              <>
+                {/* Helper Text */}
+                <div className="rounded-xl border border-border-secondary bg-background-card p-4 text-sm text-text-secondary">
+                  <p className="text-sm text-text-secondary leading-relaxed">
+                    📅 <strong>Calendar View:</strong> See your expenses organized
+                    by date. Click on any day to view all transactions for that date.
+                    Perfect for tracking daily spending patterns.
+                  </p>
+                </div>
+
+                <CalendarView
+                  nodes={dataValue.nodes}
+                  links={dataValue.links}
+                  month={month}
+                  onEditTransaction={handleEditTransaction}
                 />
               </>
             )}
