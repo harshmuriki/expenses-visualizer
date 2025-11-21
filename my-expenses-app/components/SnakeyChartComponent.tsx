@@ -13,7 +13,7 @@ import {
   SnakeyChartComponentProps,
   SankeyLink,
 } from "@/app/types/types";
-import "@/lib/material-imports";
+import { loadMaterialComponents } from "@/lib/material-imports";
 
 type Map = Record<number, number[]>;
 import { uploadTransactionsInBatch } from "@/components/sendDataFirebase";
@@ -83,6 +83,11 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
     "treemap"
   );
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Load Material Web components on client side
+  useEffect(() => {
+    loadMaterialComponents();
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

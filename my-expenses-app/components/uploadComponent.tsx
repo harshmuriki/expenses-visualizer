@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "./firebaseConfig";
 import "../styles/loading-animations.css";
-import "@/lib/material-imports";
+import { loadMaterialComponents } from "@/lib/material-imports";
 
 type LinkSuccessMetadata = {
   institution?: {
@@ -56,6 +56,11 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
   // const [isPlaidReady, setIsPlaidReady] = useState(false);
   const router = useRouter();
   const [months, setMonths] = useState([]);
+
+  // Load Material Web components on client side
+  useEffect(() => {
+    loadMaterialComponents();
+  }, []);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -360,18 +365,18 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
           value={month}
           onInput={(e: any) => setMonth(e.target.value)}
           placeholder="e.g. January, or 2023-01"
-          supporting-text={month ? `✓ New month: ${month}` : ''}
-        >
-        </md-outlined-text-field>
+          supporting-text={month ? `✓ New month: ${month}` : ""}
+        ></md-outlined-text-field>
       </div>
 
-      <md-filled-button
-        onClick={handleUpload as any}
-        disabled={isUploading}
-      >
+      <md-filled-button onClick={handleUpload as any} disabled={isUploading}>
         {isUploading ? (
           <>
-            <md-circular-progress indeterminate slot="icon" style={{ width: '20px', height: '20px' }}></md-circular-progress>
+            <md-circular-progress
+              indeterminate
+              slot="icon"
+              style={{ width: "20px", height: "20px" }}
+            ></md-circular-progress>
             Uploading...
           </>
         ) : (
@@ -410,7 +415,7 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
                 type="button"
                 onClick={() => {
                   router.push(`/chart?month=${encodeURIComponent(eachMonth)}`);
-                } as any}
+                }}
               >
                 <div slot="headline">{eachMonth}</div>
                 <div slot="supporting-text">View expenses for this month</div>

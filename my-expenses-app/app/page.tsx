@@ -11,7 +11,7 @@ import { FiTrendingUp, FiUpload, FiUser, FiZap } from "react-icons/fi";
 import "../styles/homepage.css";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import ThemeTest from "@/components/ThemeTest";
-import "@/lib/material-imports";
+import { loadMaterialComponents } from "@/lib/material-imports";
 
 interface UserProfileProps {
   user: string;
@@ -64,6 +64,11 @@ const UserProfile: React.FC<UserProfileProps> = ({
 // Main Home Page
 const HomePage: React.FC = () => {
   const { data: session, status } = useSession();
+
+  // Load Material Web components on client side
+  useEffect(() => {
+    loadMaterialComponents();
+  }, []);
 
   // Loading state
   if (status === "loading") {

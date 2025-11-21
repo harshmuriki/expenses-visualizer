@@ -1,83 +1,88 @@
 /**
  * Material Web Component Imports
  *
- * This file centralizes all Material Web component imports.
- * Import this file in components that use Material Web elements.
+ * This file loads Material Web components dynamically for client-side use.
+ * Import this file in client components that use Material Web elements.
  */
 
-// Buttons
-import '@material/web/button/filled-button';
-import '@material/web/button/outlined-button';
-import '@material/web/button/text-button';
-import '@material/web/button/elevated-button';
-import '@material/web/button/filled-tonal-button';
+// This function loads all Material Web components
+export function loadMaterialComponents() {
+  if (typeof window === 'undefined') return;
 
-// Icon Buttons
-import '@material/web/iconbutton/icon-button';
-import '@material/web/iconbutton/filled-icon-button';
-import '@material/web/iconbutton/filled-tonal-icon-button';
-import '@material/web/iconbutton/outlined-icon-button';
+  // Buttons
+  import('@material/web/button/filled-button.js');
+  import('@material/web/button/outlined-button.js');
+  import('@material/web/button/text-button.js');
+  import('@material/web/button/elevated-button.js');
+  import('@material/web/button/filled-tonal-button.js');
 
-// FAB (Floating Action Button)
-import '@material/web/fab/fab';
-import '@material/web/fab/branded-fab';
+  // Icon Buttons
+  import('@material/web/iconbutton/icon-button.js');
+  import('@material/web/iconbutton/filled-icon-button.js');
+  import('@material/web/iconbutton/filled-tonal-icon-button.js');
+  import('@material/web/iconbutton/outlined-icon-button.js');
 
-// Text Fields
-import '@material/web/textfield/filled-text-field';
-import '@material/web/textfield/outlined-text-field';
+  // FAB (Floating Action Button)
+  import('@material/web/fab/fab.js');
+  import('@material/web/fab/branded-fab.js');
 
-// Select
-import '@material/web/select/filled-select';
-import '@material/web/select/outlined-select';
-import '@material/web/select/select-option';
+  // Text Fields
+  import('@material/web/textfield/filled-text-field.js');
+  import('@material/web/textfield/outlined-text-field.js');
 
-// Checkbox
-import '@material/web/checkbox/checkbox';
+  // Select
+  import('@material/web/select/filled-select.js');
+  import('@material/web/select/outlined-select.js');
+  import('@material/web/select/select-option.js');
 
-// Radio
-import '@material/web/radio/radio';
+  // Checkbox
+  import('@material/web/checkbox/checkbox.js');
 
-// Switch
-import '@material/web/switch/switch';
+  // Radio
+  import('@material/web/radio/radio.js');
 
-// Chips
-import '@material/web/chips/chip-set';
-import '@material/web/chips/assist-chip';
-import '@material/web/chips/filter-chip';
-import '@material/web/chips/input-chip';
-import '@material/web/chips/suggestion-chip';
+  // Switch
+  import('@material/web/switch/switch.js');
 
-// Dialog
-import '@material/web/dialog/dialog';
+  // Chips
+  import('@material/web/chips/chip-set.js');
+  import('@material/web/chips/assist-chip.js');
+  import('@material/web/chips/filter-chip.js');
+  import('@material/web/chips/input-chip.js');
+  import('@material/web/chips/suggestion-chip.js');
 
-// Menu
-import '@material/web/menu/menu';
-import '@material/web/menu/menu-item';
-import '@material/web/menu/sub-menu';
+  // Dialog
+  import('@material/web/dialog/dialog.js');
 
-// List
-import '@material/web/list/list';
-import '@material/web/list/list-item';
+  // Menu
+  import('@material/web/menu/menu.js');
+  import('@material/web/menu/menu-item.js');
+  import('@material/web/menu/sub-menu.js');
 
-// Divider
-import '@material/web/divider/divider';
+  // List
+  import('@material/web/list/list.js');
+  import('@material/web/list/list-item.js');
 
-// Progress indicators
-import '@material/web/progress/circular-progress';
-import '@material/web/progress/linear-progress';
+  // Divider
+  import('@material/web/divider/divider.js');
 
-// Slider
-import '@material/web/slider/slider';
+  // Progress indicators
+  import('@material/web/progress/circular-progress.js');
+  import('@material/web/progress/linear-progress.js');
 
-// Tabs
-import '@material/web/tabs/tabs';
-import '@material/web/tabs/primary-tab';
-import '@material/web/tabs/secondary-tab';
+  // Slider
+  import('@material/web/slider/slider.js');
 
-// Ripple (for interactive effects)
-import '@material/web/ripple/ripple';
+  // Tabs
+  import('@material/web/tabs/tabs.js');
+  import('@material/web/tabs/primary-tab.js');
+  import('@material/web/tabs/secondary-tab.js');
 
-// Icon
-import '@material/web/icon/icon';
+  // Ripple (for interactive effects)
+  import('@material/web/ripple/ripple.js');
+
+  // Icon
+  import('@material/web/icon/icon.js');
+}
 
 export default {};
