@@ -12,6 +12,14 @@ import { FiX, FiEdit2, FiCheckCircle } from "react-icons/fi";
 import { useTheme } from "@/lib/theme-context";
 import InsightsPanel from "./InsightsPanel";
 
+// Import Material Web Components
+if (typeof window !== 'undefined') {
+  import('@material/web/button/filled-button.js');
+  import('@material/web/button/outlined-button.js');
+  import('@material/web/button/text-button.js');
+  import('@material/web/iconbutton/icon-button.js');
+}
+
 interface TreeMapChartProps {
   nodes: SankeyNode[];
   links: SankeyLink[];
@@ -280,22 +288,24 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
 
     return (
       <div
-        className="rounded-lg p-3 shadow-xl"
+        className="rounded-xl p-3 md-typescale-body-medium"
         style={{
-          backgroundColor: "#374151",
-          border: "1px solid rgba(255, 255, 255, 0.1)",
+          backgroundColor: 'var(--md-sys-color-surface-container-high)',
+          border: '1px solid var(--md-sys-color-outline-variant)',
+          boxShadow: 'var(--md-sys-elevation-level3)',
+          color: 'var(--md-sys-color-on-surface)'
         }}
       >
-        <p className="font-semibold text-white">{data.name}</p>
-        <p className="mt-1 text-lg font-bold text-white">
+        <p className="font-semibold md-typescale-title-medium">{data.name}</p>
+        <p className="mt-1 md-typescale-headline-small font-bold" style={{ color: 'var(--md-sys-color-primary)' }}>
           ${data.size?.toFixed(2) || 0}
         </p>
         {data.transactionCount && (
-          <p className="mt-1 text-xs text-gray-300">
+          <p className="mt-1 md-typescale-body-small" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
             {data.transactionCount} transactions
           </p>
         )}
-        <p className="mt-2 text-xs text-gray-400">Click to view transactions</p>
+        <p className="mt-2 md-typescale-label-small" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Click to view transactions</p>
       </div>
     );
   };
@@ -311,13 +321,19 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
       <div
         className="rounded-2xl overflow-hidden"
         style={{
-          backgroundColor: "#1F2937", // dark gray background
-          border: "1px solid rgba(255, 255, 255, 0.1)",
+          backgroundColor: 'var(--md-sys-color-surface-container-low)',
+          border: '1px solid var(--md-sys-color-outline-variant)',
+          boxShadow: 'var(--md-sys-elevation-level2)'
         }}
       >
-        <div className="px-6 pt-6 pb-4 flex items-center justify-between border-b border-white/10">
-          <h3 className="text-xl font-bold text-white">CATEGORY HEATMAP</h3>
-          <p className="text-sm text-gray-400">
+        <div
+          className="px-6 pt-6 pb-4 flex items-center justify-between border-b"
+          style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}
+        >
+          <h3 className="md-typescale-headline-small font-bold" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+            CATEGORY HEATMAP
+          </h3>
+          <p className="md-typescale-body-small" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
             Click any category to view transactions
           </p>
         </div>
@@ -327,7 +343,7 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
             width: "100%",
             height: 500,
             position: "relative",
-            backgroundColor: "#111827", // darker background for the chart area
+            backgroundColor: 'var(--md-sys-color-surface-container-lowest)',
             padding: "16px",
           }}
         >
@@ -355,30 +371,39 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
       {/* Transaction Detail Panel */}
       {selectedCategory !== null && (
         <div
-          className="glass-backdrop fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}
           onClick={() => setSelectedCategory(null)}
         >
           <div
-            className="glass-modal w-full max-w-4xl max-h-[90vh] overflow-hidden"
+            className="w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-3xl"
+            style={{
+              backgroundColor: 'var(--md-sys-color-surface-container)',
+              border: '1px solid var(--md-sys-color-outline-variant)',
+              boxShadow: 'var(--md-sys-elevation-level5)'
+            }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/20 bg-gradient-to-r from-primary-500/80 to-secondary-500/80 backdrop-blur-sm p-6">
+            <div
+              className="flex items-center justify-between border-b p-6"
+              style={{
+                backgroundColor: 'var(--md-sys-color-primary-container)',
+                borderColor: 'var(--md-sys-color-outline-variant)'
+              }}
+            >
               <div>
-                <h2 className="text-2xl font-bold text-gray-100">
+                <h2 className="md-typescale-headline-medium font-bold" style={{ color: 'var(--md-sys-color-on-primary-container)' }}>
                   {selectedCategoryNode?.name || "Category"}
                 </h2>
-                <p className="mt-1 text-sm text-gray-300">
+                <p className="mt-1 md-typescale-body-medium" style={{ color: 'var(--md-sys-color-on-primary-container)' }}>
                   {selectedTransactions.length} transactions · $
                   {totalCategoryAmount.toFixed(2)}
                 </p>
               </div>
-              <button
-                onClick={() => setSelectedCategory(null)}
-                className="rounded-lg p-2 text-gray-100 transition hover:bg-white/20"
-              >
-                <FiX size={24} />
-              </button>
+              <md-icon-button onClick={() => setSelectedCategory(null)}>
+                <FiX size={24} style={{ color: 'var(--md-sys-color-on-primary-container)' }} />
+              </md-icon-button>
             </div>
 
             {/* Transactions List */}
@@ -392,7 +417,12 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
                     return (
                       <div
                         key={transaction.index}
-                        className="group relative glass-card p-4 transition-all hover:scale-[1.02] cursor-pointer text-white"
+                        className="group relative p-4 rounded-xl transition-all hover:scale-[1.02] cursor-pointer"
+                        style={{
+                          backgroundColor: 'var(--md-sys-color-surface-container-high)',
+                          border: '1px solid var(--md-sys-color-outline-variant)',
+                          color: 'var(--md-sys-color-on-surface)'
+                        }}
                         onClick={(e) => {
                           e.stopPropagation(); // Prevent closing the category panel
                           if (onEditFromCategory && selectedCategory !== null) {
@@ -416,29 +446,35 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white">
+                              <span
+                                className="flex h-6 w-6 items-center justify-center rounded-full md-typescale-label-small font-bold"
+                                style={{
+                                  backgroundColor: 'var(--md-sys-color-primary)',
+                                  color: 'var(--md-sys-color-on-primary)'
+                                }}
+                              >
                                 {idx + 1}
                               </span>
                               <div className="flex-1">
-                                <h3 className="font-semibold text-gray-100">
+                                <h3 className="font-semibold md-typescale-title-medium" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                                   {transaction.name}
                                 </h3>
-                                <div className="mt-1 flex flex-wrap gap-3 text-xs text-gray-400">
+                                <div className="mt-1 flex flex-wrap gap-3 md-typescale-body-small" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                                   {transaction.node?.date && (
                                     <span className="flex items-center gap-1">
-                                      <span className="text-gray-400">📅</span>
+                                      <span>📅</span>
                                       {transaction.node.date}
                                     </span>
                                   )}
                                   {transaction.node?.location && (
                                     <span className="flex items-center gap-1">
-                                      <span className="text-gray-400">📍</span>
+                                      <span>📍</span>
                                       {transaction.node.location}
                                     </span>
                                   )}
                                   {transaction.node?.bank && (
                                     <span className="flex items-center gap-1">
-                                      <span className="text-gray-400">🏦</span>
+                                      <span>🏦</span>
                                       {transaction.node.bank}
                                     </span>
                                   )}
@@ -449,10 +485,10 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
 
                           <div className="flex flex-col items-end gap-2">
                             <div className="text-right">
-                              <p className="text-2xl font-bold text-emerald-400">
+                              <p className="md-typescale-headline-small font-bold" style={{ color: 'var(--md-sys-color-tertiary)' }}>
                                 ${transaction.amount.toFixed(2)}
                               </p>
-                              <p className="text-xs text-gray-400">
+                              <p className="md-typescale-body-small" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                                 {(
                                   (transaction.amount / totalCategoryAmount) *
                                   100
@@ -460,8 +496,8 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
                                 % of category
                               </p>
                             </div>
-                            <button
-                              onClick={(e) => {
+                            <md-filled-button
+                              onClick={(e: any) => {
                                 e.stopPropagation(); // Prevent row click
                                 if (
                                   onEditFromCategory &&
@@ -483,11 +519,10 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
                                   );
                                 }
                               }}
-                              className="flex items-center gap-2 rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-text-primary transition hover:bg-primary-600 group-hover:shadow-lg"
                             >
-                              <FiEdit2 size={14} />
+                              <FiEdit2 slot="icon" size={14} />
                               Edit
-                            </button>
+                            </md-filled-button>
                           </div>
                         </div>
                       </div>
@@ -495,23 +530,31 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
                   })}
                 </div>
               ) : (
-                <div className="flex h-40 items-center justify-center text-text-tertiary">
+                <div className="flex h-40 items-center justify-center">
                   <div className="text-center">
-                    <FiCheckCircle className="mx-auto mb-2 h-12 w-12" />
-                    <p>No transactions in this category</p>
+                    <FiCheckCircle className="mx-auto mb-2 h-12 w-12" style={{ color: 'var(--md-sys-color-on-surface-variant)' }} />
+                    <p className="md-typescale-body-medium" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                      No transactions in this category
+                    </p>
                   </div>
                 </div>
               )}
             </div>
 
             {/* Footer Summary */}
-            <div className="border-t border-border-secondary bg-background-secondary/50 p-4">
+            <div
+              className="border-t p-4"
+              style={{
+                backgroundColor: 'var(--md-sys-color-surface-container-low)',
+                borderColor: 'var(--md-sys-color-outline-variant)'
+              }}
+            >
               <div className="flex items-center justify-between">
-                <p className="text-sm text-text-tertiary">
+                <p className="md-typescale-body-medium" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                   Showing {selectedTransactions.length} transaction
                   {selectedTransactions.length !== 1 ? "s" : ""}
                 </p>
-                <p className="text-sm font-semibold text-text-primary">
+                <p className="md-typescale-title-medium font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                   Total: ${totalCategoryAmount.toFixed(2)}
                 </p>
               </div>
