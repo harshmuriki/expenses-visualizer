@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
-import { collection, getDocs, doc, getDoc } from "firebase/firestore";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import { collection, getDocs, doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "./firebaseConfig";
 import { useSession } from "next-auth/react";
 import {
@@ -45,6 +45,8 @@ interface TransactionDetail {
   amount: number;
   category: string;
   date?: string;
+  monthKey?: string;
+  docId?: string | number;
 }
 
 interface Insight {
@@ -68,6 +70,21 @@ const SpendingTrendsComponent: React.FC = () => {
     Record<string, TransactionDetail[]>
   >({});
   const [calendarMonth, setCalendarMonth] = useState<string | null>(null);
+  const [showCalendarPicker, setShowCalendarPicker] = useState(false);
+  const [selectedDay, setSelectedDay] = useState<
+    | {
+        dateLabel: string;
+        transactions: TransactionDetail[];
+        dayNumber: number;
+      }
+    | null
+  >(null);
+  const [editableTransactions, setEditableTransactions] = useState<
+    TransactionDetail[]
+  >([]);
+  const [isSavingDay, setIsSavingDay] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const calendarSectionRef = useRef<HTMLDivElement | null>(null);
 
   // State for available months
   const [availableMonths, setAvailableMonths] = useState<
@@ -220,6 +237,8 @@ const SpendingTrendsComponent: React.FC = () => {
                         amount: childNode.data().cost || 0,
                         category: categoryName,
                         date: childNode.data().date,
+                        monthKey: month.key,
+                        docId: childNode.id || childIndex,
                       });
                     }
                   }
@@ -546,6 +565,102 @@ const SpendingTrendsComponent: React.FC = () => {
     };
   }, [calendarMonth, monthlyTransactions]);
 
+  const formatDateLabel = (dateString?: string, fallback?: string) => {
+    if (!dateString) return fallback || "";
+    const parsed = new Date(dateString);
+    if (isNaN(parsed.getTime())) return fallback || dateString;
+    return parsed.toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
+  const formatDateForInput = (dateString?: string) => {
+    if (!dateString) return "";
+    const parsed = new Date(dateString);
+    if (isNaN(parsed.getTime())) return "";
+    return parsed.toISOString().split("T")[0];
+  };
+
+  const handleDayClick = (day: { day: number; items: TransactionDetail[] }) => {
+    if (!calendarData) return;
+    const referenceDate = day.items[0]?.date;
+    const label = formatDateLabel(
+      referenceDate,
+      `${calendarData.monthName} ${day.day}`
+    );
+    setSelectedDay({
+      dateLabel: label,
+      transactions: day.items,
+      dayNumber: day.day,
+    });
+    setEditableTransactions(day.items.map((item) => ({ ...item })));
+    setShowCalendarPicker(false);
+  };
+
+  useEffect(() => {
+    if (selectedDay && calendarSectionRef.current) {
+      calendarSectionRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [selectedDay]);
+
+  const updateEditableTransaction = (
+    index: number,
+    field: keyof TransactionDetail,
+    value: string
+  ) => {
+    setEditableTransactions((prev) =>
+      prev.map((txn, i) => {
+        if (i !== index) return txn;
+        if (field === "amount") {
+          const parsed = parseFloat(value);
+          return { ...txn, amount: isNaN(parsed) ? txn.amount : parsed };
+        }
+        return { ...txn, [field]: value } as TransactionDetail;
+      })
+    );
+  };
+
+  const handleSaveDayChanges = async () => {
+    if (!session?.user?.email || !selectedDay || !calendarMonth) return;
+    setIsSavingDay(true);
+    setSaveError(null);
+    try {
+      const userDocRef = doc(db, "users", session.user.email);
+      await Promise.all(
+        editableTransactions.map(async (txn) => {
+          if (!txn.monthKey || !txn.docId) return;
+          const txnRef = doc(userDocRef, txn.monthKey, String(txn.docId));
+          await updateDoc(txnRef, {
+            transaction: txn.name,
+            cost: txn.amount,
+            date: txn.date,
+          });
+        })
+      );
+
+      setMonthlyTransactions((prev) => {
+        const currentMonthTransactions = prev[calendarMonth || ""] || [];
+        const updated = currentMonthTransactions.map((existing) => {
+          const updatedTxn = editableTransactions.find(
+            (txn) => txn.id === existing.id
+          );
+          return updatedTxn ? { ...existing, ...updatedTxn } : existing;
+        });
+        return { ...prev, [calendarMonth || ""]: updated };
+      });
+
+      fetchSpendingData();
+      setSelectedDay(null);
+    } catch (err) {
+      console.error("Failed to update transactions", err);
+      setSaveError("Failed to save updates. Please try again.");
+    } finally {
+      setIsSavingDay(false);
+    }
+  };
+
   if (showMonthSelector) {
     return (
       <div className="space-y-6">
@@ -756,6 +871,53 @@ const SpendingTrendsComponent: React.FC = () => {
           </div>
         </div>
         <div className="flex gap-2">
+          <div className="relative">
+            <button
+              onClick={() => setShowCalendarPicker((prev) => !prev)}
+              className="px-4 py-2 bg-background-tertiary text-text-primary rounded-lg hover:bg-background-secondary transition border border-border-secondary flex items-center gap-2"
+            >
+              <FiCalendar className="w-4 h-4" />
+              Calendar Month
+            </button>
+            {showCalendarPicker && (
+              <div className="absolute right-0 mt-2 w-56 rounded-xl border border-border-secondary bg-background-card shadow-lg z-10">
+                <div className="p-3 border-b border-border-secondary text-sm font-semibold text-text-secondary">
+                  Jump to month
+                </div>
+                <div className="max-h-60 overflow-y-auto p-2 space-y-1">
+                  {selectedMonths.length === 0 && (
+                    <div className="text-xs text-text-tertiary px-2 py-1">
+                      Select months first to enable calendar view.
+                    </div>
+                  )}
+                  {selectedMonths.map((monthKey) => {
+                    const month = availableMonths.find((m) => m.key === monthKey);
+                    return (
+                      <button
+                        key={monthKey}
+                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition ${
+                          calendarMonth === monthKey
+                            ? "bg-primary-500/10 text-primary-500"
+                            : "hover:bg-background-tertiary text-text-primary"
+                        }`}
+                        onClick={() => {
+                          setCalendarMonth(monthKey);
+                          setShowCalendarPicker(false);
+                          setTimeout(() => {
+                            calendarSectionRef.current?.scrollIntoView({
+                              behavior: "smooth",
+                            });
+                          }, 50);
+                        }}
+                      >
+                        {month?.name || monthKey}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
           <button
             onClick={() => setShowMonthSelector(true)}
             className="px-4 py-2 bg-background-tertiary text-text-primary rounded-lg hover:bg-background-secondary transition border border-border-secondary flex items-center gap-2"
@@ -893,7 +1055,10 @@ const SpendingTrendsComponent: React.FC = () => {
 
       {/* Calendar View */}
       {calendarData && (
-        <div className="bg-gradient-to-br from-background-card via-background-card to-background-secondary/30 rounded-2xl p-6 border border-border-secondary shadow-xl space-y-4">
+        <div
+          ref={calendarSectionRef}
+          className="bg-gradient-to-br from-background-card via-background-card to-background-secondary/30 rounded-2xl p-6 border border-border-secondary shadow-xl space-y-4"
+        >
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <h3 className="text-xl font-bold text-text-primary flex items-center gap-2">
@@ -944,7 +1109,8 @@ const SpendingTrendsComponent: React.FC = () => {
                   day ? (
                     <div
                       key={`${calendarData.monthName}-${day.day}-${index}`}
-                      className={`rounded-xl border p-3 min-h-[110px] flex flex-col gap-2 transition-all duration-200 ${
+                      onClick={() => handleDayClick(day)}
+                      className={`rounded-xl border p-3 min-h-[110px] flex flex-col gap-2 transition-all duration-200 cursor-pointer ${
                         day.total > 0
                           ? "bg-primary-500/10 border-primary-500/40"
                           : "bg-background-tertiary/30 border-border-secondary"
@@ -1029,9 +1195,9 @@ const SpendingTrendsComponent: React.FC = () => {
                   },
                 },
                 hovertemplate: "<b>%{x}</b><br>Total: %{y:$,.0f}<extra></extra>",
-              },
-            ]}
-            layout={{
+          },
+        ]}
+        layout={{
               xaxis: {
                 title: "Month",
                 color: theme.text.secondary,
@@ -1056,8 +1222,130 @@ const SpendingTrendsComponent: React.FC = () => {
               responsive: true,
             }}
             style={{ width: "100%", height: "100%" }}
-          />
+      />
+    </div>
+
+      {selectedDay && (
+        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-2xl bg-background-card rounded-2xl border border-border-secondary shadow-2xl">
+            <div className="flex items-start justify-between p-6 border-b border-border-secondary">
+              <div>
+                <p className="text-sm text-text-tertiary">Daily details</p>
+                <h3 className="text-2xl font-bold text-text-primary">
+                  {selectedDay.dateLabel}
+                </h3>
+                <p className="text-text-secondary text-sm">
+                  {selectedDay.transactions.length} transaction
+                  {selectedDay.transactions.length !== 1 ? "s" : ""}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setSelectedDay(null);
+                  setSaveError(null);
+                }}
+                className="text-text-tertiary hover:text-text-primary"
+              >
+                ✕
+              </button>
+            </div>
+
+            {saveError && (
+              <div className="mx-6 mt-4 rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-500">
+                {saveError}
+              </div>
+            )}
+
+            <div className="max-h-[60vh] overflow-y-auto p-6 space-y-4">
+              {editableTransactions.length === 0 ? (
+                <p className="text-text-tertiary text-sm">
+                  No transactions recorded for this day.
+                </p>
+              ) : (
+                editableTransactions.map((txn, index) => (
+                  <div
+                    key={txn.id}
+                    className="rounded-xl border border-border-secondary bg-background-tertiary/40 p-4 space-y-3"
+                  >
+                    <div className="flex flex-col gap-3 md:grid md:grid-cols-2 md:gap-4">
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs uppercase tracking-wide text-text-tertiary">
+                          Name
+                        </label>
+                        <input
+                          type="text"
+                          value={txn.name}
+                          onChange={(e) =>
+                            updateEditableTransaction(index, "name", e.target.value)
+                          }
+                          className="rounded-lg border border-border-secondary bg-background-card px-3 py-2 text-text-primary focus:border-primary-500 focus:outline-none"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs uppercase tracking-wide text-text-tertiary">
+                          Amount
+                        </label>
+                        <input
+                          type="number"
+                          value={txn.amount}
+                          onChange={(e) =>
+                            updateEditableTransaction(index, "amount", e.target.value)
+                          }
+                          className="rounded-lg border border-border-secondary bg-background-card px-3 py-2 text-text-primary focus:border-primary-500 focus:outline-none"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs uppercase tracking-wide text-text-tertiary">
+                          Date
+                        </label>
+                        <input
+                          type="date"
+                          value={formatDateForInput(txn.date)}
+                          onChange={(e) =>
+                            updateEditableTransaction(index, "date", e.target.value)
+                          }
+                          className="rounded-lg border border-border-secondary bg-background-card px-3 py-2 text-text-primary focus:border-primary-500 focus:outline-none"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs uppercase tracking-wide text-text-tertiary">
+                          Category
+                        </label>
+                        <div className="rounded-lg border border-border-secondary bg-background-tertiary px-3 py-2 text-text-primary">
+                          {txn.category}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="flex items-center justify-between gap-3 p-6 border-t border-border-secondary">
+              <button
+                onClick={() => {
+                  setSelectedDay(null);
+                  setSaveError(null);
+                }}
+                className="px-4 py-2 rounded-lg border border-border-secondary text-text-primary hover:bg-background-tertiary"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveDayChanges}
+                disabled={isSavingDay}
+                className={`px-4 py-2 rounded-lg text-white font-semibold flex items-center gap-2 ${
+                  isSavingDay
+                    ? "bg-primary-500/70 cursor-wait"
+                    : "bg-gradient-to-r from-primary-500 to-secondary-500 hover:from-primary-600 hover:to-secondary-600"
+                }`}
+              >
+                {isSavingDay ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </div>
         </div>
+      )}
       </div>
 
       {/* Category Breakdown with Pie Chart */}
