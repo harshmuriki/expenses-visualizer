@@ -82,7 +82,17 @@ html {
   }
 
   .btn-secondary {
-    @apply bg-background-card border border-border-secondary hover:border-primary-500/50 text-text-primary font-semibold py-3 px-6 rounded-xl shadow-md transition-all duration-300 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98];
+    @apply bg-background-card border border-border-secondary text-text-primary font-semibold py-3 px-6 rounded-xl shadow-md transition-all duration-300 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98];
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--color-primary-500);
+  }
+
+  @supports (color-mix(in srgb, white, black)) {
+    .btn-secondary:hover {
+      border-color: color-mix(in srgb, var(--color-primary-500) 50%, transparent);
+    }
   }
 
   .card-modern {
