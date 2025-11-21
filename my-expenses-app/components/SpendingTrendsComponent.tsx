@@ -39,6 +39,14 @@ interface TrendData {
   changePercentage: number;
 }
 
+interface TransactionDetail {
+  id: string | number;
+  name: string;
+  amount: number;
+  category: string;
+  date?: string;
+}
+
 interface Insight {
   type: "success" | "warning" | "info" | "alert";
   title: string;
@@ -56,6 +64,10 @@ const SpendingTrendsComponent: React.FC = () => {
   const [loadingStep, setLoadingStep] = useState("Initializing...");
   const [error, setError] = useState<string | null>(null);
   const { data: session } = useSession();
+  const [monthlyTransactions, setMonthlyTransactions] = useState<
+    Record<string, TransactionDetail[]>
+  >({});
+  const [calendarMonth, setCalendarMonth] = useState<string | null>(null);
 
   // State for available months
   const [availableMonths, setAvailableMonths] = useState<
@@ -153,6 +165,7 @@ const SpendingTrendsComponent: React.FC = () => {
 
       const userDocRef = doc(db, "users", session.user.email);
       const monthlyDataArray: MonthlyData[] = [];
+      const transactionMap: Record<string, TransactionDetail[]> = {};
 
       for (const monthKey of selectedMonths) {
         const month = availableMonths.find((m) => m.key === monthKey);
@@ -171,10 +184,11 @@ const SpendingTrendsComponent: React.FC = () => {
             const mapDocRef = doc(monthCollectionRef, "parentChildMap");
             const mapSnapshot = await getDoc(mapDocRef);
 
-            if (mapSnapshot.exists()) {
-              const parentChildMap = mapSnapshot.data();
-              const categorySpending: { [category: string]: number } = {};
-              let transactionCount = 0;
+              if (mapSnapshot.exists()) {
+                const parentChildMap = mapSnapshot.data();
+                const categorySpending: { [category: string]: number } = {};
+                const monthTransactions: TransactionDetail[] = [];
+                let transactionCount = 0;
 
               for (const [parentIndex, childIndices] of Object.entries(
                 parentChildMap
@@ -198,6 +212,15 @@ const SpendingTrendsComponent: React.FC = () => {
                     if (childNode) {
                       categoryTotal += childNode.data().cost || 0;
                       transactionCount++;
+
+                      monthTransactions.push({
+                        id: childNode.id || childIndex,
+                        name:
+                          childNode.data().transaction || "Unnamed Transaction",
+                        amount: childNode.data().cost || 0,
+                        category: categoryName,
+                        date: childNode.data().date,
+                      });
                     }
                   }
 
@@ -223,14 +246,16 @@ const SpendingTrendsComponent: React.FC = () => {
                 }))
                 .sort((a, b) => b.amount - a.amount);
 
-              monthlyDataArray.push({
-                month: month.name,
-                totalSpending,
-                categories,
-                transactionCount,
-              });
+                monthlyDataArray.push({
+                  month: month.name,
+                  totalSpending,
+                  categories,
+                  transactionCount,
+                });
+
+                transactionMap[month.key] = monthTransactions;
+              }
             }
-          }
         } catch (monthError) {
           console.warn(`Could not fetch data for ${month.name}:`, monthError);
         }
@@ -238,6 +263,13 @@ const SpendingTrendsComponent: React.FC = () => {
 
       setLoadingStep("Calculating trends...");
       setMonthlyData(monthlyDataArray);
+      setMonthlyTransactions(transactionMap);
+      setCalendarMonth((current) => {
+        if (current && selectedMonths.includes(current)) {
+          return current;
+        }
+        return selectedMonths[0] || null;
+      });
       calculateTrends(monthlyDataArray);
     } catch (error) {
       console.error("Error fetching spending data:", error);
@@ -460,6 +492,59 @@ const SpendingTrendsComponent: React.FC = () => {
 
     return insightsList;
   }, [summaryStats, monthlyData, trends]);
+
+  const calendarData = useMemo(() => {
+    if (!calendarMonth) return null;
+
+    const transactions = monthlyTransactions[calendarMonth] || [];
+    const datedTransactions = transactions.filter(
+      (txn) => txn.date && !isNaN(new Date(txn.date).getTime())
+    );
+
+    const referenceDate = datedTransactions[0]?.date
+      ? new Date(datedTransactions[0].date as string)
+      : new Date();
+
+    const year = referenceDate.getFullYear();
+    const monthIndex = referenceDate.getMonth();
+    const monthName = referenceDate.toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
+
+    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+    const startDay = new Date(year, monthIndex, 1).getDay();
+
+    const dailySpending: Record<number, { total: number; items: TransactionDetail[] }> = {};
+
+    datedTransactions.forEach((txn) => {
+      const dateObj = txn.date ? new Date(txn.date) : null;
+      if (!dateObj) return;
+      const day = dateObj.getDate();
+      if (!dailySpending[day]) {
+        dailySpending[day] = { total: 0, items: [] };
+      }
+      dailySpending[day].total += txn.amount;
+      dailySpending[day].items.push(txn);
+    });
+
+    const days = Array.from({ length: daysInMonth }, (_, i) => i + 1).map(
+      (day) => ({
+        day,
+        total: dailySpending[day]?.total || 0,
+        items: dailySpending[day]?.items || [],
+      })
+    );
+
+    const padding = Array.from({ length: startDay }, () => null);
+
+    return {
+      monthName,
+      days: [...padding, ...days],
+      hasData: transactions.length > 0,
+      totalSpent: transactions.reduce((sum, txn) => sum + txn.amount, 0),
+    };
+  }, [calendarMonth, monthlyTransactions]);
 
   if (showMonthSelector) {
     return (
@@ -803,6 +888,112 @@ const SpendingTrendsComponent: React.FC = () => {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Calendar View */}
+      {calendarData && (
+        <div className="bg-gradient-to-br from-background-card via-background-card to-background-secondary/30 rounded-2xl p-6 border border-border-secondary shadow-xl space-y-4">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h3 className="text-xl font-bold text-text-primary flex items-center gap-2">
+                <FiCalendar className="w-5 h-5 text-primary-500" />
+                Monthly Calendar
+              </h3>
+              <p className="text-text-tertiary text-sm">
+                View daily spending across your selected month
+              </p>
+              <p className="text-text-secondary text-sm font-semibold">
+                {calendarData.monthName}
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <select
+                value={calendarMonth || ""}
+                onChange={(e) => setCalendarMonth(e.target.value)}
+                className="rounded-lg border border-border-secondary bg-background-tertiary px-3 py-2 text-sm text-text-primary focus:border-primary-500 focus:outline-none"
+              >
+                {selectedMonths.map((monthKey) => {
+                  const month = availableMonths.find((m) => m.key === monthKey);
+                  return (
+                    <option key={monthKey} value={monthKey}>
+                      {month?.name || monthKey}
+                    </option>
+                  );
+                })}
+              </select>
+              <div className="rounded-lg border border-border-secondary bg-background-tertiary px-3 py-2 text-sm text-text-primary">
+                Total: {formatCurrency(calendarData.totalSpent)}
+              </div>
+            </div>
+          </div>
+
+          {calendarData.hasData ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-xs uppercase tracking-widest text-text-tertiary px-2">
+                <span>Sun</span>
+                <span>Mon</span>
+                <span>Tue</span>
+                <span>Wed</span>
+                <span>Thu</span>
+                <span>Fri</span>
+                <span>Sat</span>
+              </div>
+              <div className="grid grid-cols-7 gap-3">
+                {calendarData.days.map((day, index) =>
+                  day ? (
+                    <div
+                      key={`${calendarData.monthName}-${day.day}-${index}`}
+                      className={`rounded-xl border p-3 min-h-[110px] flex flex-col gap-2 transition-all duration-200 ${
+                        day.total > 0
+                          ? "bg-primary-500/10 border-primary-500/40"
+                          : "bg-background-tertiary/30 border-border-secondary"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between text-sm font-semibold text-text-primary">
+                        <span>{day.day}</span>
+                        {day.total > 0 && (
+                          <span className="text-xs font-bold text-primary-500">
+                            {formatCurrency(day.total)}
+                          </span>
+                        )}
+                      </div>
+                      {day.items.length > 0 ? (
+                        <div className="space-y-1 text-[11px] text-text-tertiary">
+                          {day.items.slice(0, 2).map((item) => (
+                            <div key={item.id} className="flex items-center justify-between gap-2">
+                              <span className="truncate font-medium text-text-primary">
+                                {item.name}
+                              </span>
+                              <span className="font-semibold text-text-primary">
+                                {formatCurrency(item.amount)}
+                              </span>
+                            </div>
+                          ))}
+                          {day.items.length > 2 && (
+                            <div className="text-[11px] text-text-secondary">
+                              +{day.items.length - 2} more
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-[11px] text-text-tertiary italic">No spending</p>
+                      )}
+                    </div>
+                  ) : (
+                    <div
+                      key={`${calendarData.monthName}-pad-${index}`}
+                      className="rounded-xl border border-border-secondary bg-background-tertiary/20"
+                    />
+                  )
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-10 text-text-tertiary">
+              No transactions for this month yet.
+            </div>
+          )}
         </div>
       )}
 
