@@ -3,46 +3,50 @@
 @tailwind utilities;
 
 :root {
-  /* Legacy fallbacks - actual values come from theme context */
-  --background: #03030f;
-  --foreground: #fdfbff;
+  /* Material You fallbacks - actual values come from theme context */
+  --background: #fdf7ff;
+  --foreground: #1c1b1f;
 
-  /* Glass + aura system tokens */
-  --glass-surface: rgba(13, 16, 32, 0.78);
-  --glass-surface-strong: rgba(13, 16, 32, 0.92);
-  --glass-surface-light: rgba(13, 16, 32, 0.55);
-  --glass-border: rgba(255, 255, 255, 0.18);
-  --glass-border-strong: rgba(255, 255, 255, 0.32);
-  --glass-highlight: rgba(255, 255, 255, 0.45);
-  --glass-shadow: 0 25px 80px rgba(3, 4, 18, 0.75);
+  /* Surface and outline tokens */
+  --elevation-1: 0 2px 6px rgba(0, 0, 0, 0.05);
+  --elevation-2: 0 8px 16px rgba(0, 0, 0, 0.08);
+
+  /* Glass + aura system tokens tuned for Material surfaces */
+  --glass-surface: rgba(245, 238, 255, 0.9);
+  --glass-surface-strong: rgba(230, 223, 245, 0.95);
+  --glass-surface-light: rgba(245, 238, 255, 0.75);
+  --glass-border: rgba(98, 91, 113, 0.22);
+  --glass-border-strong: rgba(86, 77, 106, 0.32);
+  --glass-highlight: rgba(255, 255, 255, 0.55);
+  --glass-shadow: 0 18px 55px rgba(31, 19, 61, 0.35);
 }
 
 @supports (color-mix(in srgb, red, blue)) {
   :root {
     --glass-surface: color-mix(
       in srgb,
-      var(--color-background-glass, rgba(13, 16, 32, 0.78)) 85%,
+      var(--color-background-glass, rgba(245, 238, 255, 0.9)) 90%,
       transparent
     );
     --glass-surface-strong: color-mix(
       in srgb,
-      var(--color-background-glass, rgba(13, 16, 32, 0.92)) 95%,
+      var(--color-background-glass, rgba(230, 223, 245, 0.95)) 95%,
       transparent
     );
     --glass-surface-light: color-mix(
       in srgb,
-      var(--color-background-glass, rgba(13, 16, 32, 0.55)) 70%,
+      var(--color-background-glass, rgba(245, 238, 255, 0.75)) 80%,
       transparent
     );
     --glass-border: color-mix(
       in srgb,
-      var(--color-border-glass, rgba(255, 255, 255, 0.18)) 70%,
-      rgba(255, 255, 255, 0.22)
+      var(--color-border-glass, rgba(98, 91, 113, 0.22)) 75%,
+      rgba(98, 91, 113, 0.28)
     );
     --glass-border-strong: color-mix(
       in srgb,
-      var(--color-border-glass, rgba(255, 255, 255, 0.32)) 85%,
-      rgba(255, 255, 255, 0.35)
+      var(--color-border-glass, rgba(86, 77, 106, 0.32)) 85%,
+      rgba(86, 77, 106, 0.38)
     );
   }
 }
@@ -59,25 +63,20 @@ body {
   background-color: var(--color-background-primary, var(--background));
   background-image:
     radial-gradient(
-      circle at 15% 20%,
-      color-mix(in srgb, var(--color-primary-500, #3b82f6) 40%, transparent),
-      transparent 55%
+      circle at 20% 15%,
+      color-mix(in srgb, var(--color-primary-100, #e9ddff) 30%, transparent),
+      transparent 45%
     ),
     radial-gradient(
-      circle at 80% 5%,
-      color-mix(in srgb, var(--color-secondary-500, #06b6d4) 35%, transparent),
-      transparent 50%
-    ),
-    radial-gradient(
-      circle at 60% 80%,
-      color-mix(in srgb, var(--color-accent-500, #6d72ff) 30%, transparent),
-      transparent 60%
+      circle at 80% 10%,
+      color-mix(in srgb, var(--color-accent-100, #dcefe9) 28%, transparent),
+      transparent 40%
     ),
     linear-gradient(
       135deg,
-      var(--color-background-primary, #020617) 0%,
-      var(--color-background-secondary, #030b1f) 45%,
-      var(--color-background-tertiary, #07142e) 100%
+      var(--color-background-primary, #fdf7ff) 0%,
+      var(--color-background-secondary, #f4edf7) 45%,
+      var(--color-background-tertiary, #e9e1f1) 100%
     );
   background-attachment: fixed;
   position: relative;
@@ -112,41 +111,27 @@ body::after {
 
 body::before {
   background: radial-gradient(
-      circle at 20% 30%,
-      color-mix(in srgb, var(--color-primary-500, #3b82f6) 55%, transparent),
-      transparent 60%
-    ),
-    radial-gradient(
-      circle at 80% 15%,
-      color-mix(in srgb, var(--color-accent-400, #8b90ff) 45%, transparent),
+      circle at 25% 25%,
+      color-mix(in srgb, var(--color-primary-300, #c2b0ff) 40%, transparent),
       transparent 55%
     ),
     radial-gradient(
-      circle at 60% 75%,
-      color-mix(in srgb, var(--color-secondary-400, #22d3ee) 40%, transparent),
-      transparent 60%
+      circle at 70% 70%,
+      color-mix(in srgb, var(--color-accent-300, #a0cdbf) 35%, transparent),
+      transparent 55%
     );
-  filter: blur(80px);
-  opacity: 0.9;
-  animation: aurora-wave 18s ease-in-out infinite alternate;
+  filter: blur(95px);
+  opacity: 0.65;
+  animation: aurora-wave 16s ease-in-out infinite alternate;
 }
 
 body::after {
   z-index: -1;
-  background: linear-gradient(
-      120deg,
-      rgba(255, 255, 255, 0.08),
-      rgba(255, 255, 255, 0.02)
-    ),
-    repeating-linear-gradient(
-      0deg,
-      rgba(255, 255, 255, 0.02),
-      rgba(255, 255, 255, 0.02) 1px,
-      transparent 1px,
-      transparent 12px
-    );
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04)),
+    radial-gradient(circle at 10% 80%, color-mix(in srgb, var(--color-secondary-200, #cfc8dd) 15%, transparent), transparent 50%);
   mix-blend-mode: screen;
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
 /* Smooth theme transitions */

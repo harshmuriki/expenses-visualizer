@@ -24,7 +24,7 @@ Edit `/lib/colors.ts` and modify the `currentTheme` variable:
 
 ```typescript
 // Change this line to switch themes
-export const currentTheme: ThemeName = 'dark'; // 'light' | 'ocean'
+export const currentTheme: ThemeName = 'materialDark'; // 'materialLight' | 'materialDark' | 'materialDynamic'
 ```
 
 ### 2. Create Custom Themes
@@ -42,9 +42,9 @@ export const customTheme: ColorTheme = {
 
 // Add to themes object
 export const themes = {
-  dark: darkTheme,
-  light: lightTheme,
-  ocean: oceanTheme,
+  materialLight: materialLightTheme,
+  materialDark: materialDarkTheme,
+  materialDynamic: materialDynamicTheme,
   custom: customTheme, // Add your custom theme
 } as const;
 ```

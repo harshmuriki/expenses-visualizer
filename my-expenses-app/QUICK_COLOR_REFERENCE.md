@@ -7,7 +7,7 @@
 Edit `/lib/colors.ts`:
 
 ```typescript
-export const currentTheme: ThemeName = "ocean"; // 'dark' | 'light' | 'ocean'
+export const currentTheme: ThemeName = "materialDark"; // 'materialLight' | 'materialDark' | 'materialDynamic'
 ```
 
 ### 2. **Create Custom Theme**

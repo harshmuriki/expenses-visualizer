@@ -2,6 +2,9 @@
 // Change colors here to update the entire project
 
 export interface ColorTheme {
+  // Alignment to Material You system
+  mode: "light" | "dark";
+
   // Primary Colors
   primary: {
     50: string;
@@ -30,7 +33,7 @@ export interface ColorTheme {
     900: string;
   };
 
-  // Accent Colors
+  // Accent/Tertiary Colors
   accent: {
     50: string;
     100: string;
@@ -104,339 +107,344 @@ export interface ColorTheme {
   categories: string[];
 }
 
-// Ocean Theme - Cool blue glassmorphism palette
-export const oceanTheme: ColorTheme = {
+// Material You light scheme derived from purple seed
+export const materialLightTheme: ColorTheme = {
+  mode: "light",
   primary: {
-    50: "#eef7ff",
-    100: "#d9ecff",
-    200: "#b5d9ff",
-    300: "#8ec4ff",
-    400: "#63a8ff",
-    500: "#3b82f6",
-    600: "#2563eb",
-    700: "#1d4ed8",
-    800: "#1e40af",
-    900: "#172b72",
+    50: "#f5edff",
+    100: "#e9ddff",
+    200: "#d7c7ff",
+    300: "#c2b0ff",
+    400: "#aa95fa",
+    500: "#8f79ec",
+    600: "#7b63d4",
+    700: "#6750a4",
+    800: "#533d82",
+    900: "#3f2c63",
   },
 
   secondary: {
-    50: "#ecfeff",
-    100: "#cffafe",
-    200: "#a5f3fc",
-    300: "#67e8f9",
-    400: "#22d3ee",
-    500: "#06b6d4",
-    600: "#0891b2",
-    700: "#0e7490",
-    800: "#155e75",
-    900: "#164e63",
+    50: "#f5f2f9",
+    100: "#e7e1f1",
+    200: "#cfc8dd",
+    300: "#b7b0c9",
+    400: "#9e95b2",
+    500: "#857b9a",
+    600: "#6d6382",
+    700: "#564d6a",
+    800: "#403954",
+    900: "#2b263c",
   },
 
   accent: {
-    50: "#f4f4ff",
-    100: "#e4e4ff",
-    200: "#c7c9ff",
-    300: "#a5a8ff",
-    400: "#8b90ff",
-    500: "#6d72ff",
-    600: "#585ae6",
-    700: "#4546bf",
-    800: "#333495",
-    900: "#232466",
+    50: "#f1faf7",
+    100: "#dcefe9",
+    200: "#beded5",
+    300: "#a0cdbf",
+    400: "#82bca9",
+    500: "#67a991",
+    600: "#4f9077",
+    700: "#3a7560",
+    800: "#2d5c4b",
+    900: "#1f4336",
   },
 
   neutral: {
-    50: "#f5f7fb",
-    100: "#e4e8f2",
-    200: "#c5ccdc",
-    300: "#a5aec6",
-    400: "#828cab",
-    500: "#626c8a",
-    600: "#4b536d",
-    700: "#353c4f",
-    800: "#1d2232",
-    900: "#0d111e",
-    950: "#05060d",
+    50: "#fdf7ff",
+    100: "#f4edf7",
+    200: "#e6dee9",
+    300: "#d8d0dc",
+    400: "#c0b6c2",
+    500: "#a69cac",
+    600: "#8b8292",
+    700: "#706878",
+    800: "#554e5d",
+    900: "#3c3543",
+    950: "#241f29",
   },
 
   semantic: {
-    success: "#22d3a6",
-    warning: "#fbbf24",
-    error: "#fb7185",
-    info: "#38bdf8",
+    success: "#4caf50",
+    warning: "#f9a825",
+    error: "#b3261e",
+    info: "#1e88e5",
   },
 
   background: {
-    primary: "#020617",
-    secondary: "#030b1f",
-    tertiary: "#07142e",
-    glass: "rgba(5, 12, 31, 0.78)",
-    card: "rgba(7, 18, 40, 0.65)",
+    primary: "#fdf7ff",
+    secondary: "#f4edf7",
+    tertiary: "#e9e1f1",
+    glass: "rgba(245, 238, 255, 0.85)",
+    card: "rgba(255, 255, 255, 0.95)",
   },
 
   text: {
-    primary: "#f8fbff",
-    secondary: "#c7d7ff",
-    tertiary: "#95a4cc",
-    inverse: "#040713",
+    primary: "#1c1b1f",
+    secondary: "#4a4458",
+    tertiary: "#625b71",
+    inverse: "#ffffff",
   },
 
   border: {
-    primary: "rgba(99, 178, 255, 0.35)",
-    secondary: "rgba(255, 255, 255, 0.08)",
-    focus: "#38bdf8",
-    glass: "rgba(120, 180, 255, 0.4)",
+    primary: "rgba(86, 77, 106, 0.28)",
+    secondary: "rgba(98, 91, 113, 0.16)",
+    focus: "#6750a4",
+    glass: "rgba(203, 189, 226, 0.55)",
   },
 
   gradients: {
-    primary: "linear-gradient(130deg, #3b82f6 0%, #06b6d4 45%, #22d3ee 100%)",
-    secondary: "linear-gradient(140deg, #2563eb 0%, #6d72ff 100%)",
-    accent: "linear-gradient(125deg, #0ea5e9, #22d3ee, #34d399)",
+    primary: "linear-gradient(135deg, #6750a4 0%, #8f79ec 40%, #67a991 100%)",
+    secondary: "linear-gradient(120deg, #2b263c 0%, #6d6382 50%, #e7e1f1 100%)",
+    accent: "linear-gradient(135deg, #3a7560 0%, #67a991 50%, #8f79ec 100%)",
     background:
-      "radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.25), transparent 55%), radial-gradient(circle at 80% 0%, rgba(6, 182, 212, 0.25), transparent 45%)",
+      "radial-gradient(circle at 20% 20%, rgba(143, 121, 236, 0.18), transparent 40%), radial-gradient(circle at 80% 0%, rgba(103, 169, 145, 0.18), transparent 35%)",
   },
 
   categories: [
-    "#60a5fa",
-    "#38bdf8",
-    "#0ea5e9",
-    "#22d3ee",
-    "#34d399",
-    "#2dd4bf",
-    "#7dd3fc",
-    "#93c5fd",
-    "#818cf8",
-    "#a5b4fc",
-    "#c084fc",
-    "#67e8f9",
+    "#6750a4",
+    "#3a7560",
+    "#8f79ec",
+    "#4f9077",
+    "#564d6a",
+    "#82bca9",
+    "#6d6382",
+    "#aa95fa",
+    "#403954",
+    "#c2b0ff",
+    "#1f4336",
+    "#b7b0c9",
   ],
 };
 
-// Cherry Blossom Theme - Elegant light theme with soft, warm colors
-export const cherryBlossomTheme: ColorTheme = {
+// Material You dark scheme derived from the same seed
+export const materialDarkTheme: ColorTheme = {
+  mode: "dark",
   primary: {
-    50: "#fdf2f8",
-    100: "#fce7f3",
-    200: "#fbcfe8",
-    300: "#f9a8d4",
-    400: "#f472b6",
-    500: "#ec4899", // pink-500
-    600: "#db2777",
-    700: "#be185d",
-    800: "#9d174d",
-    900: "#831843",
+    50: "#e8ddff",
+    100: "#d0bcff",
+    200: "#b69cf4",
+    300: "#9d82db",
+    400: "#8a6cc8",
+    500: "#7356b0",
+    600: "#5c4198",
+    700: "#46307b",
+    800: "#311f5c",
+    900: "#1f133d",
   },
 
   secondary: {
-    50: "#fff1f2",
-    100: "#ffe4e6",
-    200: "#fecdd3",
-    300: "#fda4af",
-    400: "#fb7185",
-    500: "#f43f5e", // rose-500
-    600: "#e11d48",
-    700: "#be123c",
-    800: "#9f1239",
-    900: "#881337",
+    50: "#e7def0",
+    100: "#cbc2d5",
+    200: "#b1a8ba",
+    300: "#988fa2",
+    400: "#81778a",
+    500: "#6a6173",
+    600: "#544b5c",
+    700: "#3f3746",
+    800: "#2b2531",
+    900: "#181420",
   },
 
   accent: {
-    50: "#fef2f2",
-    100: "#fee2e2",
-    200: "#fecaca",
-    300: "#fca5a5",
-    400: "#f87171",
-    500: "#ef4444", // red-500
-    600: "#dc2626",
-    700: "#b91c1c",
-    800: "#991b1b",
-    900: "#7f1d1d",
+    50: "#d4efe5",
+    100: "#b7d6cb",
+    200: "#9bbeb3",
+    300: "#80a69b",
+    400: "#668e84",
+    500: "#4f776c",
+    600: "#3a6155",
+    700: "#284b40",
+    800: "#19362e",
+    900: "#0c221d",
   },
 
   neutral: {
-    50: "#fafaf9",
-    100: "#f5f5f4",
-    200: "#e7e5e4",
-    300: "#d6d3d1",
-    400: "#a8a29e",
-    500: "#78716c",
-    600: "#57534e",
-    700: "#44403c",
-    800: "#292524",
-    900: "#1c1917",
-    950: "#0c0a09",
+    50: "#e6e0e9",
+    100: "#cbc5d0",
+    200: "#b0a9b7",
+    300: "#958ea0",
+    400: "#7b7488",
+    500: "#625b70",
+    600: "#4b4558",
+    700: "#363142",
+    800: "#221f2c",
+    900: "#120d1a",
+    950: "#0c0812",
   },
 
   semantic: {
-    success: "#059669", // Deeper green for better contrast on light
-    warning: "#d97706", // Darker orange for accessibility
-    error: "#dc2626", // Deeper red
-    info: "#db2777", // Pink info for theme consistency
+    success: "#81c995",
+    warning: "#f6c445",
+    error: "#f2b8b5",
+    info: "#82c5ff",
   },
 
   background: {
-    primary: "#fefcfd", // Almost white with hint of pink
-    secondary: "#fff1f2",
-    tertiary: "#ffe4e6",
-    glass: "rgba(255, 252, 253, 0.8)",
-    card: "rgba(255, 255, 255, 0.9)",
+    primary: "#141218",
+    secondary: "#1d1b20",
+    tertiary: "#221f26",
+    glass: "rgba(32, 28, 38, 0.75)",
+    card: "rgba(33, 30, 38, 0.85)",
   },
 
   text: {
-    primary: "#1c1917", // Near black for maximum readability
-    secondary: "#57534e",
-    tertiary: "#78716c",
+    primary: "#e6e0e9",
+    secondary: "#c9c3d5",
+    tertiary: "#aea8ba",
+    inverse: "#1c1b1f",
+  },
+
+  border: {
+    primary: "rgba(230, 224, 233, 0.12)",
+    secondary: "rgba(158, 149, 168, 0.18)",
+    focus: "#d0bcff",
+    glass: "rgba(126, 117, 144, 0.4)",
+  },
+
+  gradients: {
+    primary: "linear-gradient(135deg, #311f5c 0%, #7356b0 50%, #4f776c 100%)",
+    secondary: "linear-gradient(120deg, #181420 0%, #3f3746 50%, #cbc2d5 100%)",
+    accent: "linear-gradient(135deg, #19362e 0%, #4f776c 50%, #d0bcff 100%)",
+    background:
+      "radial-gradient(circle at 15% 20%, rgba(208, 188, 255, 0.12), transparent 45%), radial-gradient(circle at 80% 5%, rgba(79, 119, 108, 0.16), transparent 40%)",
+  },
+
+  categories: [
+    "#d0bcff",
+    "#4f776c",
+    "#9d82db",
+    "#b7b0c9",
+    "#cbc2d5",
+    "#80a69b",
+    "#6a6173",
+    "#311f5c",
+    "#988fa2",
+    "#3a6155",
+    "#544b5c",
+    "#e8ddff",
+  ],
+};
+
+// Material You dynamic-inspired light scheme (fresh green/amber seed)
+export const materialDynamicTheme: ColorTheme = {
+  mode: "light",
+  primary: {
+    50: "#f6fff7",
+    100: "#dffbe3",
+    200: "#c2f3cb",
+    300: "#a6e9b4",
+    400: "#8adf9d",
+    500: "#6fd487",
+    600: "#55b96d",
+    700: "#3d9f55",
+    800: "#2a8340",
+    900: "#1b642e",
+  },
+
+  secondary: {
+    50: "#fff7e7",
+    100: "#feebc7",
+    200: "#fcdba1",
+    300: "#f9c97a",
+    400: "#f6b754",
+    500: "#f1a02e",
+    600: "#d28219",
+    700: "#ad660f",
+    800: "#874c09",
+    900: "#603506",
+  },
+
+  accent: {
+    50: "#e8f5ff",
+    100: "#d5ecff",
+    200: "#b7dbff",
+    300: "#92c6ff",
+    400: "#6aacff",
+    500: "#3e90f5",
+    600: "#2f75d8",
+    700: "#235db7",
+    800: "#194a95",
+    900: "#103671",
+  },
+
+  neutral: {
+    50: "#f6fbf7",
+    100: "#e7f1e8",
+    200: "#d6e3d8",
+    300: "#c4d5c7",
+    400: "#a9bbaa",
+    500: "#8fa18f",
+    600: "#748772",
+    700: "#5a6e58",
+    800: "#43543f",
+    900: "#2c3b29",
+    950: "#1c261b",
+  },
+
+  semantic: {
+    success: "#2e7d32",
+    warning: "#f57f17",
+    error: "#c62828",
+    info: "#1565c0",
+  },
+
+  background: {
+    primary: "#f6fbf7",
+    secondary: "#e7f1e8",
+    tertiary: "#d6e3d8",
+    glass: "rgba(230, 242, 235, 0.82)",
+    card: "rgba(255, 255, 255, 0.95)",
+  },
+
+  text: {
+    primary: "#1b1f18",
+    secondary: "#36412e",
+    tertiary: "#4a5d40",
     inverse: "#ffffff",
   },
 
   border: {
-    primary: "#e7e5e4",
-    secondary: "#fecdd3",
-    focus: "#ec4899",
-    glass: "rgba(231, 229, 228, 0.6)",
+    primary: "rgba(58, 110, 88, 0.22)",
+    secondary: "rgba(58, 110, 88, 0.14)",
+    focus: "#3d9f55",
+    glass: "rgba(144, 177, 152, 0.5)",
   },
 
   gradients: {
-    primary: "from-pink-500 to-rose-500",
-    secondary: "from-rose-500 to-red-400",
-    accent: "from-red-400 to-pink-400",
-    background: "from-white via-rose-50 to-pink-50",
+    primary: "linear-gradient(140deg, #3d9f55 0%, #f1a02e 55%, #3e90f5 100%)",
+    secondary: "linear-gradient(120deg, #1b642e 0%, #6fd487 45%, #fcdba1 100%)",
+    accent: "linear-gradient(135deg, #3e90f5 0%, #6fd487 45%, #f6b754 100%)",
+    background:
+      "radial-gradient(circle at 70% 10%, rgba(61, 159, 85, 0.14), transparent 45%), radial-gradient(circle at 20% 60%, rgba(62, 144, 245, 0.12), transparent 40%)",
   },
 
   categories: [
-    "#ec4899", // Pink
-    "#f43f5e", // Rose
-    "#ef4444", // Red
-    "#f97316", // Orange
-    "#f59e0b", // Amber
-    "#eab308", // Yellow
-    "#84cc16", // Lime
-    "#10b981", // Emerald
-    "#14b8a6", // Teal
-    "#06b6d4", // Cyan
-    "#8b5cf6", // Purple
-    "#a855f7", // Violet
-  ],
-};
-
-// Nordic Theme - Clean, minimal light theme with cool colors
-export const nordicTheme: ColorTheme = {
-  primary: {
-    50: "#f0f9ff",
-    100: "#e0f2fe",
-    200: "#bae6fd",
-    300: "#7dd3fc",
-    400: "#38bdf8",
-    500: "#0ea5e9", // sky-500
-    600: "#0284c7",
-    700: "#0369a1",
-    800: "#075985",
-    900: "#0c4a6e",
-  },
-
-  secondary: {
-    50: "#f8fafc",
-    100: "#f1f5f9",
-    200: "#e2e8f0",
-    300: "#cbd5e1",
-    400: "#94a3b8",
-    500: "#64748b", // slate-500
-    600: "#475569",
-    700: "#334155",
-    800: "#1e293b",
-    900: "#0f172a",
-  },
-
-  accent: {
-    50: "#eff6ff",
-    100: "#dbeafe",
-    200: "#bfdbfe",
-    300: "#93c5fd",
-    400: "#60a5fa",
-    500: "#3b82f6", // blue-500
-    600: "#2563eb",
-    700: "#1d4ed8",
-    800: "#1e40af",
-    900: "#1e3a8a",
-  },
-
-  neutral: {
-    50: "#f8fafc",
-    100: "#f1f5f9",
-    200: "#e2e8f0",
-    300: "#cbd5e1",
-    400: "#94a3b8",
-    500: "#64748b",
-    600: "#475569",
-    700: "#334155",
-    800: "#1e293b",
-    900: "#0f172a",
-    950: "#020617",
-  },
-
-  semantic: {
-    success: "#059669", // Deeper for better contrast
-    warning: "#d97706", // Darker for accessibility
-    error: "#dc2626", // Deeper red
-    info: "#0284c7", // Sky blue for theme consistency
-  },
-
-  background: {
-    primary: "#f8fafc", // Pure, clean slate
-    secondary: "#f1f5f9",
-    tertiary: "#e2e8f0",
-    glass: "rgba(248, 250, 252, 0.8)",
-    card: "rgba(255, 255, 255, 0.9)",
-  },
-
-  text: {
-    primary: "#0f172a", // Deep slate for excellent readability
-    secondary: "#334155",
-    tertiary: "#64748b",
-    inverse: "#ffffff",
-  },
-
-  border: {
-    primary: "#e2e8f0",
-    secondary: "#cbd5e1",
-    focus: "#0ea5e9",
-    glass: "rgba(226, 232, 240, 0.6)",
-  },
-
-  gradients: {
-    primary: "from-sky-500 to-blue-500",
-    secondary: "from-slate-400 to-slate-600",
-    accent: "from-blue-500 to-cyan-500",
-    background: "from-white via-slate-50 to-sky-50",
-  },
-
-  categories: [
-    "#3b82f6", // Blue
-    "#8b5cf6", // Purple
-    "#06b6d4", // Cyan
-    "#64748b", // Slate
-    "#0ea5e9", // Sky
-    "#14b8a6", // Teal
-    "#6366f1", // Indigo
-    "#a855f7", // Violet
-    "#0284c7", // Light blue
-    "#475569", // Dark slate
-    "#2563eb", // Royal blue
-    "#0891b2", // Dark cyan
+    "#3d9f55",
+    "#f1a02e",
+    "#3e90f5",
+    "#6fd487",
+    "#8fa18f",
+    "#2a8340",
+    "#f6b754",
+    "#235db7",
+    "#874c09",
+    "#92c6ff",
+    "#1c261b",
+    "#c2f3cb",
   ],
 };
 
 // Available themes
 export const themes = {
-  ocean: oceanTheme,
-  cherryBlossom: cherryBlossomTheme,
-  nordic: nordicTheme,
+  materialLight: materialLightTheme,
+  materialDark: materialDarkTheme,
+  materialDynamic: materialDynamicTheme,
 } as const;
 
 export type ThemeName = keyof typeof themes;
 
 // Current active theme (change this to switch themes)
-export const currentTheme: ThemeName = "ocean";
+export const currentTheme: ThemeName = "materialDark";
 
 // Get current theme colors
 export const colors = themes[currentTheme];

@@ -48,13 +48,13 @@ const UserProfile: React.FC<UserProfileProps> = ({
 
       <button
         onClick={onSignOut}
-        className="group relative bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-3.5 px-8 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-[1.02] hover:shadow-2xl active:scale-[0.98]"
+        className="group relative bg-primary-600 text-white font-semibold py-3.5 px-8 rounded-2xl shadow-md transition-all duration-300 transform hover:scale-[1.01] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-border-focus"
       >
         <span className="relative z-10 flex items-center justify-center gap-2">
           <FiUser className="w-4 h-4" />
           <span>Sign Out</span>
         </span>
-        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-red-600 to-red-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div className="absolute inset-0 rounded-2xl bg-primary-700 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
       </button>
     </div>
   );
@@ -111,11 +111,11 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-background-primary relative overflow-hidden">
-      {/* Animated Background Elements - More vibrant */}
+      {/* Material You soft spotlight background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-primary-400/30 to-secondary-400/30 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-br from-accent-400/30 to-secondary-400/30 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute top-1/3 right-1/4 w-64 h-64 bg-gradient-to-br from-primary-300/20 to-accent-300/20 rounded-full blur-2xl"></div>
+        <div className="absolute -top-32 -right-24 w-80 h-80 bg-gradient-to-br from-primary-200/35 to-secondary-200/30 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-28 -left-24 w-80 h-80 bg-gradient-to-br from-accent-200/35 to-primary-100/40 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/3 right-1/4 w-64 h-64 bg-gradient-to-br from-primary-100/30 to-accent-100/25 rounded-full blur-3xl"></div>
       </div>
 
       {/* Enhanced Header */}
@@ -124,8 +124,8 @@ const HomePage: React.FC = () => {
         <div className="mb-6 flex justify-center">
           <div className="relative inline-flex items-center gap-3 rounded-full px-6 py-3 shadow-xl border-2 transition-all duration-300 hover:scale-105"
             style={{
-              backgroundColor: 'rgba(var(--color-primary-rgb, 59, 130, 246), 0.1)',
-              borderColor: 'rgba(var(--color-primary-rgb, 59, 130, 246), 0.3)'
+              backgroundColor: 'var(--color-background-card)',
+              borderColor: 'var(--color-border-primary)'
             }}>
             <div className="relative">
               <div className="w-2 h-2 bg-emerald-400 rounded-full shadow-lg animate-pulse"></div>
@@ -232,7 +232,7 @@ const HomePage: React.FC = () => {
           }}>
           <Link
             href="/trends"
-            className="group relative flex items-center gap-2.5 px-6 py-3 bg-gradient-to-r from-secondary-500 to-accent-500 hover:from-secondary-600 hover:to-accent-600 text-white rounded-xl font-semibold shadow-lg transform hover:scale-[1.02] transition-all duration-300 active:scale-[0.98]"
+            className="group relative flex items-center gap-2.5 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-2xl font-semibold shadow-lg transform hover:scale-[1.01] transition-all duration-300 active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-border-focus"
           >
             <FiTrendingUp className="w-5 h-5 transition-transform group-hover:scale-110" />
             <span>View Trends</span>

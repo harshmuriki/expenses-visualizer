@@ -68,16 +68,16 @@ const ThemeTest: React.FC = () => {
       <div className="pt-4 border-t border-border-secondary">
         <div className="flex space-x-2">
           <button
-            onClick={() => setTheme("ocean")}
+            onClick={() => setTheme("materialDark")}
             className="px-3 py-1 text-xs bg-secondary-500 text-white rounded hover:bg-secondary-600 transition"
           >
-            Reset to Ocean
+            Reset to Material Dark
           </button>
           <button
-            onClick={() => setTheme("cherryBlossom")}
+            onClick={() => setTheme("materialLight")}
             className="px-3 py-1 text-xs bg-accent-500 text-white rounded hover:bg-accent-600 transition"
           >
-            Test Light Theme
+            Test Material Light
           </button>
         </div>
       </div>

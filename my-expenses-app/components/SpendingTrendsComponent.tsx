@@ -48,8 +48,8 @@ interface Insight {
 }
 
 const SpendingTrendsComponent: React.FC = () => {
-  const { theme, themeName } = useTheme();
-  const isLightTheme = themeName === "cherryBlossom" || themeName === "nordic";
+  const { theme } = useTheme();
+  const isLightTheme = theme.mode === "light";
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
   const [trends, setTrends] = useState<TrendData[]>([]);
   const [isLoading, setIsLoading] = useState(true);

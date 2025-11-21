@@ -36,7 +36,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   links,
   onEditTransaction,
 }) => {
-  const { themeName, theme } = useTheme();
+  const { theme } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<SortField>("cost");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
@@ -55,33 +55,24 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
 
   // Get background colors based on theme
   const getHeaderBackground = () => {
-    if (themeName === "nordic") {
-      return "bg-gradient-to-br from-slate-100 to-slate-200";
+    if (theme.mode === "light") {
+      return "bg-gradient-to-br from-primary-50/70 to-secondary-50/70";
     }
-    if (themeName === "cherryBlossom") {
-      return "bg-gradient-to-br from-pink-50 to-rose-100";
-    }
-    return "bg-gradient-to-br from-slate-900/80 to-slate-800/60";
+    return "bg-gradient-to-br from-primary-900/50 to-secondary-900/40";
   };
 
   const getTableBackground = () => {
-    if (themeName === "nordic") {
-      return "bg-white/90";
+    if (theme.mode === "light") {
+      return "bg-background-card";
     }
-    if (themeName === "cherryBlossom") {
-      return "bg-white/95";
-    }
-    return "bg-white/5";
+    return "bg-background-card/60";
   };
 
   const getTableHeaderBackground = () => {
-    if (themeName === "nordic") {
-      return "bg-gradient-to-r from-slate-200 to-slate-300";
+    if (theme.mode === "light") {
+      return "bg-gradient-to-r from-primary-100/80 to-secondary-100/70";
     }
-    if (themeName === "cherryBlossom") {
-      return "bg-gradient-to-r from-pink-100 to-rose-200";
-    }
-    return "bg-gradient-to-r from-slate-800 to-slate-700";
+    return "bg-gradient-to-r from-primary-900/60 to-secondary-800/50";
   };
 
   // Get category name for each transaction
