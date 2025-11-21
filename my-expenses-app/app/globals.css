@@ -727,3 +727,230 @@ body::after {
   margin-bottom: 0.5rem;
   display: block;
 }
+
+/* ========================================
+   MATERIAL WEB INTEGRATION
+   ======================================== */
+
+/* Integrate Material Design colors with existing theme system */
+body {
+  --md-sys-color-primary: var(--color-primary-500, #3ed4fa);
+  --md-sys-color-secondary: var(--color-secondary-500, #b9c9d9);
+  --md-sys-color-tertiary: var(--color-accent-500, #cebfe4);
+  --md-sys-color-surface: var(--color-background-card, #1d2022);
+  --md-sys-color-background: var(--color-background-primary, #191c1e);
+  --md-sys-color-on-surface: var(--color-text-primary, #e0e2e5);
+  --md-sys-color-on-background: var(--color-text-primary, #e0e2e5);
+}
+
+/* Material Web component base styles */
+md-filled-button,
+md-outlined-button,
+md-text-button,
+md-elevated-button,
+md-filled-tonal-button {
+  --md-filled-button-container-color: var(--color-primary-500);
+  --md-filled-button-label-text-color: #ffffff;
+  --md-outlined-button-outline-color: var(--color-border-primary);
+  --md-outlined-button-label-text-color: var(--color-text-primary);
+  --md-text-button-label-text-color: var(--color-text-primary);
+  --md-filled-tonal-button-container-color: var(--color-primary-500);
+  --md-elevated-button-container-color: var(--color-background-card);
+
+  /* Rounded corners for modern look */
+  --md-filled-button-container-shape: 12px;
+  --md-outlined-button-container-shape: 12px;
+  --md-text-button-container-shape: 12px;
+  --md-elevated-button-container-shape: 12px;
+  --md-filled-tonal-button-container-shape: 12px;
+
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+md-filled-button:hover,
+md-outlined-button:hover,
+md-elevated-button:hover,
+md-filled-tonal-button:hover {
+  transform: translateY(-1px);
+}
+
+md-filled-button:active,
+md-outlined-button:active,
+md-elevated-button:active,
+md-filled-tonal-button:active {
+  transform: translateY(0);
+}
+
+md-filled-text-field,
+md-outlined-text-field {
+  --md-filled-text-field-container-color: var(--glass-surface-light);
+  --md-filled-text-field-label-text-color: var(--color-text-secondary);
+  --md-filled-text-field-input-text-color: var(--color-text-primary);
+  --md-outlined-text-field-outline-color: var(--color-border-primary);
+  --md-outlined-text-field-label-text-color: var(--color-text-secondary);
+  --md-outlined-text-field-input-text-color: var(--color-text-primary);
+  --md-outlined-text-field-focus-outline-color: var(--color-border-focus);
+
+  /* Rounded corners */
+  --md-filled-text-field-container-shape: 12px;
+  --md-outlined-text-field-container-shape: 12px;
+
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  width: 100%;
+}
+
+md-dialog {
+  --md-dialog-container-color: var(--glass-surface-strong);
+  --md-dialog-headline-color: var(--color-text-primary);
+  --md-dialog-supporting-text-color: var(--color-text-secondary);
+
+  /* Rounded corners for dialogs */
+  --md-dialog-container-shape: 28px;
+
+  backdrop-filter: blur(45px) saturate(200%);
+  -webkit-backdrop-filter: blur(45px) saturate(200%);
+}
+
+md-list {
+  --md-list-container-color: transparent;
+  --md-list-item-label-text-color: var(--color-text-primary);
+  --md-list-item-supporting-text-color: var(--color-text-secondary);
+}
+
+md-list-item {
+  --md-list-item-container-color: transparent;
+  --md-list-item-hover-state-layer-color: var(--color-primary-500);
+  --md-list-item-hover-state-layer-opacity: 0.08;
+  border-radius: 12px;
+}
+
+md-menu {
+  --md-menu-container-color: var(--glass-surface-strong);
+  --md-menu-container-shape: 16px;
+  backdrop-filter: blur(35px) saturate(190%);
+  -webkit-backdrop-filter: blur(35px) saturate(190%);
+  box-shadow: var(--md-sys-elevation-level3);
+}
+
+md-menu-item {
+  --md-menu-item-label-text-color: var(--color-text-primary);
+  --md-menu-item-hover-state-layer-color: var(--color-primary-500);
+  --md-menu-item-hover-state-layer-opacity: 0.08;
+}
+
+md-chip-set {
+  --md-chip-set-container-shape: 8px;
+}
+
+md-assist-chip,
+md-filter-chip,
+md-input-chip,
+md-suggestion-chip {
+  --md-assist-chip-container-color: var(--glass-surface);
+  --md-assist-chip-label-text-color: var(--color-text-primary);
+  --md-assist-chip-outline-color: var(--color-border-primary);
+  --md-filter-chip-selected-container-color: var(--color-primary-500);
+  --md-filter-chip-label-text-color: var(--color-text-primary);
+
+  /* Rounded shape */
+  --md-assist-chip-container-shape: 8px;
+  --md-filter-chip-container-shape: 8px;
+  --md-input-chip-container-shape: 8px;
+  --md-suggestion-chip-container-shape: 8px;
+}
+
+md-fab {
+  --md-fab-container-color: var(--color-primary-500);
+  --md-fab-label-text-color: #ffffff;
+  --md-fab-container-shape: 16px;
+  box-shadow: var(--md-sys-elevation-level3);
+}
+
+md-fab:hover {
+  box-shadow: var(--md-sys-elevation-level4);
+  transform: translateY(-2px);
+}
+
+md-circular-progress,
+md-linear-progress {
+  --md-circular-progress-active-indicator-color: var(--color-primary-500);
+  --md-linear-progress-active-indicator-color: var(--color-primary-500);
+  --md-linear-progress-track-color: var(--color-border-primary);
+}
+
+md-slider {
+  --md-slider-handle-color: var(--color-primary-500);
+  --md-slider-active-track-color: var(--color-primary-500);
+  --md-slider-inactive-track-color: var(--color-border-primary);
+}
+
+md-tabs {
+  --md-tabs-container-color: transparent;
+  --md-primary-tab-active-indicator-color: var(--color-primary-500);
+  --md-primary-tab-label-text-color: var(--color-text-secondary);
+  --md-primary-tab-active-label-text-color: var(--color-primary-500);
+  --md-secondary-tab-active-indicator-color: var(--color-secondary-500);
+}
+
+md-checkbox {
+  --md-checkbox-selected-container-color: var(--color-primary-500);
+  --md-checkbox-selected-icon-color: #ffffff;
+  --md-checkbox-outline-color: var(--color-border-primary);
+}
+
+md-radio {
+  --md-radio-selected-icon-color: var(--color-primary-500);
+  --md-radio-icon-color: var(--color-border-primary);
+}
+
+md-switch {
+  --md-switch-selected-track-color: var(--color-primary-500);
+  --md-switch-selected-handle-color: #ffffff;
+  --md-switch-track-color: var(--color-border-primary);
+}
+
+md-icon-button {
+  --md-icon-button-icon-color: var(--color-text-primary);
+  --md-icon-button-hover-state-layer-color: var(--color-primary-500);
+  --md-icon-button-pressed-state-layer-color: var(--color-primary-500);
+}
+
+md-filled-icon-button {
+  --md-filled-icon-button-container-color: var(--color-primary-500);
+  --md-filled-icon-button-icon-color: #ffffff;
+}
+
+/* Material Design elevation with glassmorphism */
+.md-surface-elevated {
+  background: var(--glass-surface);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--md-sys-elevation-level2);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border-radius: var(--md-sys-shape-corner-large);
+}
+
+.md-surface-elevated-high {
+  background: var(--glass-surface-strong);
+  border: 1px solid var(--glass-border-strong);
+  box-shadow: var(--md-sys-elevation-level3);
+  backdrop-filter: blur(35px) saturate(190%);
+  -webkit-backdrop-filter: blur(35px) saturate(190%);
+  border-radius: var(--md-sys-shape-corner-extra-large);
+}
+
+/* Material container styles with existing theme */
+.md-container {
+  padding: 24px;
+  border-radius: var(--md-sys-shape-corner-large);
+  background-color: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface);
+}
+
+.md-container-high {
+  padding: 24px;
+  border-radius: var(--md-sys-shape-corner-extra-large);
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
+}

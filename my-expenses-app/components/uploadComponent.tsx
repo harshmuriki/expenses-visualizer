@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "./firebaseConfig";
 import "../styles/loading-animations.css";
+import "@/lib/material-imports";
 
 type LinkSuccessMetadata = {
   institution?: {
@@ -354,57 +355,29 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
       </label>
 
       <div className="flex flex-col w-full">
-        <label htmlFor="month" className="mb-2 font-semibold text-text-primary">
-          Enter New Month
-        </label>
-        <div className="relative">
-          <input
-            id="month"
-            type="text"
-            value={month}
-            onChange={(e) => setMonth(e.target.value)}
-            placeholder="e.g. January, or 2023-01"
-            className="glass-input"
-          />
-          {month && (
-            <button
-              type="button"
-              onClick={() => setMonth("")}
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-text-tertiary hover:text-text-primary transition"
-            >
-              ✕
-            </button>
-          )}
-        </div>
-        {month && (
-          <p className="text-xs text-green-400 mt-1">✓ New month: {month}</p>
-        )}
+        <md-outlined-text-field
+          label="Enter New Month"
+          value={month}
+          onInput={(e: any) => setMonth(e.target.value)}
+          placeholder="e.g. January, or 2023-01"
+          supporting-text={month ? `✓ New month: ${month}` : ''}
+        >
+        </md-outlined-text-field>
       </div>
 
-      <button
-        onClick={handleUpload}
+      <md-filled-button
+        onClick={handleUpload as any}
         disabled={isUploading}
-        className={`px-6 py-3 rounded-lg transition duration-300 font-semibold transform ${
-          isUploading
-            ? "glass-button opacity-50 cursor-not-allowed"
-            : "glass-button-primary hover:scale-105"
-        }`}
       >
-        {/* Enhanced loading state */}
         {isUploading ? (
-          <div className="flex items-center justify-center">
-            <div className="relative mr-3">
-              <div className="w-5 h-5 border-2 border-text-tertiary border-t-primary-500 rounded-full animate-spin"></div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-2 h-2 bg-secondary-500 rounded-full animate-pulse"></div>
-              </div>
-            </div>
-            <span>Uploading...</span>
-          </div>
+          <>
+            <md-circular-progress indeterminate slot="icon" style={{ width: '20px', height: '20px' }}></md-circular-progress>
+            Uploading...
+          </>
         ) : (
           "Upload Files"
         )}
-      </button>
+      </md-filled-button>
 
       {/* Enhanced Previous Months Section */}
       <div className="flex flex-col w-full">
@@ -430,28 +403,20 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800">
+          <md-list className="max-h-64 overflow-y-auto">
             {months.map((eachMonth) => (
-              <button
+              <md-list-item
                 key={eachMonth}
+                type="button"
                 onClick={() => {
-                  // Navigate directly to the chart page for this month
                   router.push(`/chart?month=${encodeURIComponent(eachMonth)}`);
-                }}
-                className="glass-card p-3 transition-all duration-200 text-left text-text-secondary hover:text-text-primary group cursor-pointer"
+                } as any}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 rounded-full bg-text-tertiary group-hover:bg-text-primary transition-colors"></div>
-                    <span className="font-medium">{eachMonth}</span>
-                  </div>
-                  <div className="text-text-tertiary group-hover:text-text-primary transition-colors">
-                    →
-                  </div>
-                </div>
-              </button>
+                <div slot="headline">{eachMonth}</div>
+                <div slot="supporting-text">View expenses for this month</div>
+              </md-list-item>
             ))}
-          </div>
+          </md-list>
         )}
       </div>
     </div>

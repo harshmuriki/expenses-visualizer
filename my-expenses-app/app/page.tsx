@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { signOut, useSession } from "next-auth/react";
 import UploadComponent from "@/components/uploadComponent";
 import WelcomeComponent from "@/components/welcomeComponent";
@@ -11,6 +11,7 @@ import { FiTrendingUp, FiUpload, FiUser, FiZap } from "react-icons/fi";
 import "../styles/homepage.css";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import ThemeTest from "@/components/ThemeTest";
+import "@/lib/material-imports";
 
 interface UserProfileProps {
   user: string;
@@ -46,16 +47,16 @@ const UserProfile: React.FC<UserProfileProps> = ({
         <p className="font-medium text-xl" style={{ color: 'var(--color-secondary-500)' }}>{user}</p>
       </div>
 
-      <button
-        onClick={onSignOut}
-        className="group relative bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-3.5 px-8 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-[1.02] hover:shadow-2xl active:scale-[0.98]"
+      <md-filled-tonal-button
+        onClick={onSignOut as any}
+        style={{
+          '--md-filled-tonal-button-container-color': '#dc2626',
+          '--md-filled-tonal-button-label-text-color': '#ffffff'
+        } as React.CSSProperties}
       >
-        <span className="relative z-10 flex items-center justify-center gap-2">
-          <FiUser className="w-4 h-4" />
-          <span>Sign Out</span>
-        </span>
-        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-red-600 to-red-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-      </button>
+        <FiUser slot="icon" className="w-4 h-4" />
+        Sign Out
+      </md-filled-tonal-button>
     </div>
   );
 };
@@ -141,7 +142,7 @@ const HomePage: React.FC = () => {
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-full max-w-4xl h-1 bg-gradient-to-r from-transparent via-primary-500/30 to-transparent blur-sm"></div>
           </div>
-          <h1 className="relative text-6xl md:text-8xl font-black mb-4 leading-[0.9] tracking-tight">
+          <h1 className="relative md-display-large md:md-display-large mb-4 font-black tracking-tight">
             <span className="block" style={{ color: 'var(--color-text-primary)' }}>Expense</span>
             <span className="block gradient-text-animated">
               Intelligence
@@ -156,7 +157,7 @@ const HomePage: React.FC = () => {
 
         {/* Unique description with split layout */}
         <div className="max-w-3xl mx-auto mb-12">
-          <p className="text-xl md:text-2xl font-medium leading-relaxed mb-4" style={{ color: 'var(--color-text-primary)' }}>
+          <p className="md-headline-small md:md-headline-medium font-medium leading-relaxed mb-4" style={{ color: 'var(--color-text-primary)' }}>
             Transform your financial data into
             <span className="relative inline-block mx-2">
               <span className="relative z-10 font-bold" style={{ color: 'var(--color-primary-500)' }}>
@@ -169,7 +170,7 @@ const HomePage: React.FC = () => {
             </span>
             with AI-powered analysis
           </p>
-          <p className="text-base md:text-lg leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
+          <p className="md-body-large leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
             Upload, analyze, visualize. Your spending patterns decoded in seconds.
           </p>
         </div>
@@ -230,12 +231,11 @@ const HomePage: React.FC = () => {
             backgroundColor: 'var(--color-background-card)',
             borderColor: 'var(--color-border-secondary)'
           }}>
-          <Link
-            href="/trends"
-            className="group relative flex items-center gap-2.5 px-6 py-3 bg-gradient-to-r from-secondary-500 to-accent-500 hover:from-secondary-600 hover:to-accent-600 text-white rounded-xl font-semibold shadow-lg transform hover:scale-[1.02] transition-all duration-300 active:scale-[0.98]"
-          >
-            <FiTrendingUp className="w-5 h-5 transition-transform group-hover:scale-110" />
-            <span>View Trends</span>
+          <Link href="/trends">
+            <md-filled-button>
+              <FiTrendingUp slot="icon" className="w-5 h-5" />
+              View Trends
+            </md-filled-button>
           </Link>
         </div>
       </nav>
@@ -260,10 +260,10 @@ const HomePage: React.FC = () => {
                     <FiUpload className="w-8 h-8 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
+                    <h2 className="md-title-large" style={{ color: 'var(--color-text-primary)' }}>
                       Upload & Analyze
                     </h2>
-                    <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
+                    <p className="md-body-medium" style={{ color: 'var(--color-text-secondary)' }}>
                       CSV files with AI categorization
                     </p>
                   </div>
@@ -290,10 +290,10 @@ const HomePage: React.FC = () => {
                     <FiUser className="w-8 h-8 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
+                    <h2 className="md-title-large" style={{ color: 'var(--color-text-primary)' }}>
                       Your Profile
                     </h2>
-                    <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
+                    <p className="md-body-medium" style={{ color: 'var(--color-text-secondary)' }}>
                       Manage your account
                     </p>
                   </div>
@@ -318,10 +318,10 @@ const HomePage: React.FC = () => {
                 borderColor: 'var(--color-border-secondary)'
               }}>
               <div className="text-center mb-8">
-                <h2 className="text-3xl font-bold mb-3" style={{ color: 'var(--color-text-primary)' }}>
+                <h2 className="md-headline-large mb-3" style={{ color: 'var(--color-text-primary)' }}>
                   Powerful Features
                 </h2>
-                <p className="text-lg" style={{ color: 'var(--color-text-secondary)' }}>
+                <p className="md-body-large" style={{ color: 'var(--color-text-secondary)' }}>
                   Everything you need to understand your spending habits
                 </p>
               </div>
@@ -336,10 +336,10 @@ const HomePage: React.FC = () => {
                   <div className="w-12 h-12 bg-gradient-to-r from-secondary-500 to-accent-500 rounded-xl flex items-center justify-center flex-shrink-0 mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
                     <FiTrendingUp className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="font-bold mb-2 text-lg" style={{ color: 'var(--color-text-primary)' }}>
+                  <h3 className="md-title-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
                     Spending Trends
                   </h3>
-                  <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
+                  <p className="md-body-small leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
                     Multi-month analysis with AI-powered insights and predictions
                   </p>
                 </div>
@@ -353,10 +353,10 @@ const HomePage: React.FC = () => {
                   <div className="w-12 h-12 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-xl flex items-center justify-center flex-shrink-0 mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
                     <FiUpload className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="font-bold mb-2 text-lg" style={{ color: 'var(--color-text-primary)' }}>
+                  <h3 className="md-title-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
                     Smart Upload
                   </h3>
-                  <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
+                  <p className="md-body-small leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
                     Upload CSV files and let AI automatically categorize your transactions
                   </p>
                 </div>
@@ -370,10 +370,10 @@ const HomePage: React.FC = () => {
                   <div className="w-12 h-12 bg-gradient-to-r from-accent-500 to-primary-500 rounded-xl flex items-center justify-center flex-shrink-0 mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
                     <FiZap className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="font-bold mb-2 text-lg" style={{ color: 'var(--color-text-primary)' }}>
+                  <h3 className="md-title-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
                     AI Analytics
                   </h3>
-                  <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
+                  <p className="md-body-small leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
                     Get intelligent insights and personalized spending recommendations
                   </p>
                 </div>

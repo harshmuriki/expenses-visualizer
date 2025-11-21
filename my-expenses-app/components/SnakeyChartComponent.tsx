@@ -13,6 +13,7 @@ import {
   SnakeyChartComponentProps,
   SankeyLink,
 } from "@/app/types/types";
+import "@/lib/material-imports";
 
 type Map = Record<number, number[]>;
 import { uploadTransactionsInBatch } from "@/components/sendDataFirebase";
@@ -1366,14 +1367,13 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
           {/* Bottom Section */}
           <div className="flex flex-col gap-1.5 pt-3 border-t" style={{ borderColor: theme.border.secondary }}>
             {/* Settings */}
-            <button
-              onClick={() => setIsLLMSettingsOpen(true)}
-              className="flex items-center gap-2.5 px-2 py-2 rounded-lg transition hover:bg-opacity-10"
-              style={{ color: theme.text.secondary }}
+            <md-text-button
+              onClick={() => setIsLLMSettingsOpen(true) as any}
+              style={{ justifyContent: 'flex-start', width: '100%' }}
             >
-              <FiSettings className="h-4 w-4 flex-shrink-0" />
-              {sidebarOpen && <span className="text-sm font-medium">Settings</span>}
-            </button>
+              <FiSettings slot="icon" className="h-4 w-4 flex-shrink-0" />
+              {sidebarOpen && <span>Settings</span>}
+            </md-text-button>
 
             {/* User Profile */}
             {user && (
@@ -1641,42 +1641,30 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
 
         {/* Floating Action Buttons - Bottom Right */}
         <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-40">
-          <button
-            type="button"
-            onClick={() => setIsAddModalOpen(true)}
-            className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold shadow-lg transition-transform hover:scale-95 active:scale-90"
-            style={{ backgroundColor: theme.primary[500], color: theme.text.inverse }}
+          <md-filled-button
+            onClick={() => setIsAddModalOpen(true) as any}
           >
-            <FiPlus size={18} />
+            <FiPlus slot="icon" size={18} />
             Add Transaction
-          </button>
-          <button
-            type="button"
-            onClick={sendDataToFirebase}
+          </md-filled-button>
+          <md-filled-tonal-button
+            onClick={sendDataToFirebase as any}
             disabled={syncDisabled}
-            className={`inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold shadow-lg transition-transform hover:scale-95 active:scale-90 disabled:cursor-not-allowed disabled:opacity-50`}
             style={{
-              backgroundColor: hasUnsavedChanges ? "#ef4444" : theme.accent[500],
-              color: theme.text.inverse,
-            }}
+              '--md-filled-tonal-button-container-color': hasUnsavedChanges ? '#ef4444' : theme.accent[500]
+            } as React.CSSProperties}
           >
             {syncDisabled && isLoading ? (
               <>
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-transparent" />
+                <md-circular-progress indeterminate slot="icon" style={{ width: '16px', height: '16px' }}></md-circular-progress>
                 Loading…
               </>
             ) : (
               <>
-                {hasUnsavedChanges && (
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-                  </span>
-                )}
                 Sync to Cloud
               </>
             )}
-          </button>
+          </md-filled-tonal-button>
         </div>
       </div>
 
