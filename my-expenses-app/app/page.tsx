@@ -40,10 +40,10 @@ const UserProfile: React.FC<UserProfileProps> = ({
       </div>
 
       <div className="text-center space-y-2">
-        <h4 className="text-xl font-semibold text-text-primary">
+        <h4 className="text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
           Welcome back!
         </h4>
-        <p className="text-secondary-500 font-medium text-xl">{user}</p>
+        <p className="font-medium text-xl" style={{ color: 'var(--color-secondary-500)' }}>{user}</p>
       </div>
 
       <button
@@ -72,14 +72,14 @@ const HomePage: React.FC = () => {
           <div className="relative">
             <div className="w-16 h-16 border-4 border-border-primary border-t-primary-500 rounded-full animate-spin"></div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-8 h-8 border-2 border-slate-400 border-t-secondary-500 rounded-full animate-spin"></div>
+              <div className="w-8 h-8 border-2 border-text-tertiary border-t-secondary-500 rounded-full animate-spin"></div>
             </div>
           </div>
           <div className="text-center">
-            <h2 className="text-xl font-semibold text-text-primary mb-2">
+            <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--color-text-primary)' }}>
               Loading Dashboard
             </h2>
-            <p className="text-text-tertiary text-sm">
+            <p className="text-sm" style={{ color: 'var(--color-text-tertiary)' }}>
               Preparing your expense tracker...
             </p>
             <div className="mt-3 flex space-x-1">
@@ -111,127 +111,134 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-background-primary relative overflow-hidden">
-      {/* Animated Background Elements */}
+      {/* Animated Background Elements - More vibrant */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-primary-500/20 to-secondary-500/20 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-accent-500/20 to-secondary-500/20 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-primary-500/10 to-accent-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-primary-400/30 to-secondary-400/30 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-br from-accent-400/30 to-secondary-400/30 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute top-1/3 right-1/4 w-64 h-64 bg-gradient-to-br from-primary-300/20 to-accent-300/20 rounded-full blur-2xl"></div>
       </div>
 
       {/* Enhanced Header */}
-      <header className="relative z-10 py-8 text-center px-4">
-        <div className="mb-6">
-          <div className="inline-flex items-center gap-2.5 bg-background-card backdrop-blur-sm border border-border-secondary rounded-full px-6 py-3 mb-8 shadow-lg hover:shadow-xl transition-shadow duration-300">
-            <div className="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse shadow-lg shadow-emerald-400/50"></div>
-            <span className="text-sm font-semibold text-text-secondary">
-              AI-Powered Expense Tracking
+      <header className="relative z-10 py-8 md:py-12 text-center px-4">
+        {/* Unique floating badge */}
+        <div className="mb-6 flex justify-center">
+          <div className="relative inline-flex items-center gap-3 rounded-full px-6 py-3 shadow-xl border-2 transition-all duration-300 hover:scale-105"
+            style={{
+              backgroundColor: 'rgba(var(--color-primary-rgb, 59, 130, 246), 0.1)',
+              borderColor: 'rgba(var(--color-primary-rgb, 59, 130, 246), 0.3)'
+            }}>
+            <div className="relative">
+              <div className="w-2 h-2 bg-emerald-400 rounded-full shadow-lg animate-pulse"></div>
+            </div>
+            <span className="text-sm font-bold tracking-wide" style={{ color: 'var(--color-text-primary)' }}>
+              ✨ AI-Powered Intelligence
             </span>
           </div>
         </div>
-        <h1 className="text-5xl md:text-7xl font-extrabold gradient-text-animated drop-shadow-2xl mb-6 animate-fade-in leading-tight">
-          Smart Expense Tracker
-        </h1>
-        <p className="text-lg md:text-xl text-text-secondary max-w-2xl mx-auto leading-relaxed animate-fade-in-delay mb-10">
-          Upload your transactions and let AI categorize your spending
-          automatically. Get powerful insights and beautiful visualizations.
-        </p>
 
-        {/* Quick Stats */}
-        <div className="flex flex-wrap justify-center gap-6 md:gap-8 mt-8">
-          <div className="group text-center px-4 py-2 rounded-xl hover:bg-background-card/50 transition-all duration-300">
-            <div className="text-2xl md:text-3xl font-bold text-primary-500 mb-1 group-hover:scale-110 transition-transform duration-300">
-              AI-Powered
-            </div>
-            <div className="text-xs md:text-sm text-text-tertiary font-medium">Smart Categorization</div>
+        {/* Unique title with creative layout */}
+        <div className="relative mb-8">
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-full max-w-4xl h-1 bg-gradient-to-r from-transparent via-primary-500/30 to-transparent blur-sm"></div>
           </div>
-          <div className="hidden md:block w-px h-16 bg-border-secondary self-center"></div>
-          <div className="group text-center px-4 py-2 rounded-xl hover:bg-background-card/50 transition-all duration-300">
-            <div className="text-2xl md:text-3xl font-bold text-secondary-500 mb-1 group-hover:scale-110 transition-transform duration-300">
-              Multi-Month
-            </div>
-            <div className="text-xs md:text-sm text-text-tertiary font-medium">Trend Analysis</div>
+          <h1 className="relative text-6xl md:text-8xl font-black mb-4 leading-[0.9] tracking-tight">
+            <span className="block" style={{ color: 'var(--color-text-primary)' }}>Expense</span>
+            <span className="block gradient-text-animated">
+              Intelligence
+            </span>
+          </h1>
+          <div className="mt-4 flex items-center justify-center gap-3">
+            <div className="h-px w-16 bg-gradient-to-r from-transparent to-primary-500"></div>
+            <div className="w-2 h-2 rounded-full bg-primary-500 animate-pulse"></div>
+            <div className="h-px w-16 bg-gradient-to-l from-transparent to-secondary-500"></div>
           </div>
-          <div className="hidden md:block w-px h-16 bg-border-secondary self-center"></div>
-          <div className="group text-center px-4 py-2 rounded-xl hover:bg-background-card/50 transition-all duration-300">
-            <div className="text-2xl md:text-3xl font-bold text-accent-500 mb-1 group-hover:scale-110 transition-transform duration-300">
-              Beautiful
+        </div>
+
+        {/* Unique description with split layout */}
+        <div className="max-w-3xl mx-auto mb-12">
+          <p className="text-xl md:text-2xl font-medium leading-relaxed mb-4" style={{ color: 'var(--color-text-primary)' }}>
+            Transform your financial data into
+            <span className="relative inline-block mx-2">
+              <span className="relative z-10 font-bold" style={{ color: 'var(--color-primary-500)' }}>
+                actionable insights
+              </span>
+              <span className="absolute bottom-0 left-0 right-0 h-2 rounded-full" style={{
+                background: `linear-gradient(to right, var(--color-primary-500), var(--color-secondary-500))`,
+                opacity: 0.3
+              }}></span>
+            </span>
+            with AI-powered analysis
+          </p>
+          <p className="text-base md:text-lg leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
+            Upload, analyze, visualize. Your spending patterns decoded in seconds.
+          </p>
+        </div>
+
+        {/* Unique stats with modern cards */}
+        <div className="flex flex-wrap justify-center gap-4 md:gap-6 mt-8">
+          <div className="group relative rounded-2xl px-6 py-5 min-w-[150px] hover:scale-105 transition-all duration-300 border-2 shadow-lg"
+            style={{
+              backgroundColor: 'var(--color-background-card)',
+              borderColor: 'var(--color-primary-500)'
+            }}>
+            <div className="relative">
+              <div className="text-4xl md:text-5xl font-black mb-3 group-hover:scale-110 transition-transform duration-300"
+                style={{ color: 'var(--color-primary-500)' }}>
+                ∞
+              </div>
+              <div className="text-sm font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-primary)' }}>Smart AI</div>
+              <div className="text-xs mt-1.5 font-medium" style={{ color: 'var(--color-text-secondary)' }}>Auto-categorize</div>
             </div>
-            <div className="text-xs md:text-sm text-text-tertiary font-medium">Visualizations</div>
+          </div>
+
+          <div className="group relative rounded-2xl px-6 py-5 min-w-[150px] hover:scale-105 transition-all duration-300 border-2 shadow-lg"
+            style={{
+              backgroundColor: 'var(--color-background-card)',
+              borderColor: 'var(--color-secondary-500)'
+            }}>
+            <div className="relative">
+              <div className="text-4xl md:text-5xl font-black mb-3 group-hover:scale-110 transition-transform duration-300"
+                style={{ color: 'var(--color-secondary-500)' }}>
+                📊
+              </div>
+              <div className="text-sm font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-primary)' }}>Multi-View</div>
+              <div className="text-xs mt-1.5 font-medium" style={{ color: 'var(--color-text-secondary)' }}>Rich analytics</div>
+            </div>
+          </div>
+
+          <div className="group relative rounded-2xl px-6 py-5 min-w-[150px] hover:scale-105 transition-all duration-300 border-2 shadow-lg"
+            style={{
+              backgroundColor: 'var(--color-background-card)',
+              borderColor: 'var(--color-accent-500)'
+            }}>
+            <div className="relative">
+              <div className="text-4xl md:text-5xl font-black mb-3 group-hover:scale-110 transition-transform duration-300"
+                style={{ color: 'var(--color-accent-500)' }}>
+                ✨
+              </div>
+              <div className="text-sm font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-primary)' }}>Beautiful</div>
+              <div className="text-xs mt-1.5 font-medium" style={{ color: 'var(--color-text-secondary)' }}>Visualizations</div>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Enhanced Navigation */}
-      <nav className="relative z-20 flex justify-center mb-8 px-4">
-        <div className="flex items-center gap-3 bg-background-card backdrop-blur-sm border border-border-secondary rounded-2xl p-2.5 shadow-xl">
+      <nav className="relative z-20 flex justify-center mb-6 px-4">
+        <div className="flex items-center gap-3 rounded-2xl p-3 border-2 shadow-lg"
+          style={{
+            backgroundColor: 'var(--color-background-card)',
+            borderColor: 'var(--color-border-secondary)'
+          }}>
           <Link
             href="/trends"
-            className="group relative flex items-center gap-2.5 px-6 py-3.5 bg-gradient-to-r from-secondary-500 to-accent-500 hover:from-secondary-600 hover:to-accent-600 text-white rounded-xl font-semibold shadow-lg transform hover:scale-[1.02] transition-all duration-300 hover:shadow-2xl active:scale-[0.98] overflow-hidden"
+            className="group relative flex items-center gap-2.5 px-6 py-3 bg-gradient-to-r from-secondary-500 to-accent-500 hover:from-secondary-600 hover:to-accent-600 text-white rounded-xl font-semibold shadow-lg transform hover:scale-[1.02] transition-all duration-300 active:scale-[0.98]"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-            <FiTrendingUp className="w-5 h-5 transition-transform group-hover:scale-110 relative z-10" />
-            <span className="relative z-10">Spending Trends</span>
+            <FiTrendingUp className="w-5 h-5 transition-transform group-hover:scale-110" />
+            <span>View Trends</span>
           </Link>
-          <div className="relative z-30">
-            <ThemeSwitcher showLabel={false} size="sm" />
-          </div>
         </div>
       </nav>
-
-      {/* Features Overview */}
-      <div className="relative z-10 flex justify-center mb-8 px-4">
-        <div className="w-full max-w-5xl bg-background-card backdrop-blur-sm border border-border-secondary rounded-2xl p-8 shadow-xl">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-text-primary mb-3">
-              Powerful Features
-            </h2>
-            <p className="text-text-secondary text-lg">
-              Everything you need to understand your spending habits
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {/* Spending Trends Feature */}
-            <div className="group relative flex flex-col items-start p-5 bg-gradient-to-br from-secondary-500/10 to-accent-500/5 rounded-xl border border-border-secondary hover:border-secondary-500/50 transition-all duration-300 hover:shadow-lg hover:scale-[1.02]">
-              <div className="w-12 h-12 bg-gradient-to-r from-secondary-500 to-accent-500 rounded-xl flex items-center justify-center flex-shrink-0 mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <FiTrendingUp className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="font-bold text-text-primary mb-2 text-lg">
-                Spending Trends
-              </h3>
-              <p className="text-text-secondary text-sm leading-relaxed">
-                Multi-month analysis with AI-powered insights and predictions
-              </p>
-            </div>
-
-            {/* Upload Feature */}
-            <div className="group relative flex flex-col items-start p-5 bg-gradient-to-br from-primary-500/10 to-secondary-500/5 rounded-xl border border-border-secondary hover:border-primary-500/50 transition-all duration-300 hover:shadow-lg hover:scale-[1.02]">
-              <div className="w-12 h-12 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-xl flex items-center justify-center flex-shrink-0 mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <FiUpload className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="font-bold text-text-primary mb-2 text-lg">
-                Smart Upload
-              </h3>
-              <p className="text-text-secondary text-sm leading-relaxed">
-                Upload CSV files and let AI automatically categorize your transactions
-              </p>
-            </div>
-
-            {/* Analytics Feature */}
-            <div className="group relative flex flex-col items-start p-5 bg-gradient-to-br from-accent-500/10 to-primary-500/5 rounded-xl border border-border-secondary hover:border-accent-500/50 transition-all duration-300 hover:shadow-lg hover:scale-[1.02]">
-              <div className="w-12 h-12 bg-gradient-to-r from-accent-500 to-primary-500 rounded-xl flex items-center justify-center flex-shrink-0 mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <FiZap className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="font-bold text-text-primary mb-2 text-lg">
-                AI Analytics
-              </h3>
-              <p className="text-text-secondary text-sm leading-relaxed">
-                Get intelligent insights and personalized spending recommendations
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Enhanced Main Content */}
       <main className="relative z-10 flex-grow flex items-center justify-center px-4 pb-12">
@@ -239,20 +246,24 @@ const HomePage: React.FC = () => {
           {/* Primary Action Cards */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {/* Enhanced Upload Card */}
-            <div className="group relative overflow-hidden bg-background-card backdrop-blur-sm border border-border-secondary text-text-primary p-8 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 hover:scale-[1.01] hover:border-primary-500/50">
+            <div className="group relative overflow-hidden rounded-3xl p-8 hover:scale-[1.01] transition-all duration-300 border-2 shadow-xl"
+              style={{
+                backgroundColor: 'var(--color-background-card)',
+                borderColor: 'var(--color-border-secondary)'
+              }}>
               {/* Decorative gradient */}
-              <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-primary-500/10 to-transparent rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-primary-400/20 to-transparent rounded-full blur-2xl"></div>
 
               <div className="relative z-10">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-14 h-14 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                    <FiUpload className="w-7 h-7 text-white" />
+                  <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <FiUpload className="w-8 h-8 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-text-primary">
+                    <h2 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
                       Upload & Analyze
                     </h2>
-                    <p className="text-text-secondary text-sm font-medium">
+                    <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
                       CSV files with AI categorization
                     </p>
                   </div>
@@ -265,20 +276,24 @@ const HomePage: React.FC = () => {
             </div>
 
             {/* Enhanced User Profile Card */}
-            <div className="group relative overflow-hidden bg-background-card backdrop-blur-sm border border-border-secondary text-text-primary p-8 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 hover:scale-[1.01] hover:border-secondary-500/50">
+            <div className="group relative overflow-hidden rounded-3xl p-8 hover:scale-[1.01] transition-all duration-300 border-2 shadow-xl"
+              style={{
+                backgroundColor: 'var(--color-background-card)',
+                borderColor: 'var(--color-border-secondary)'
+              }}>
               {/* Decorative gradient */}
-              <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-secondary-500/10 to-transparent rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-secondary-400/20 to-transparent rounded-full blur-2xl"></div>
 
               <div className="relative z-10">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-14 h-14 bg-gradient-to-br from-secondary-500 to-accent-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                    <FiUser className="w-7 h-7 text-white" />
+                  <div className="w-16 h-16 bg-gradient-to-br from-secondary-500 to-accent-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <FiUser className="w-8 h-8 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-text-primary">
+                    <h2 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
                       Your Profile
                     </h2>
-                    <p className="text-text-secondary text-sm font-medium">
+                    <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
                       Manage your account
                     </p>
                   </div>
@@ -295,18 +310,93 @@ const HomePage: React.FC = () => {
             </div>
           </div>
 
+          {/* Features Overview */}
+          <div className="relative z-10 flex justify-center">
+            <div className="w-full max-w-5xl rounded-3xl p-8 border-2 shadow-xl"
+              style={{
+                backgroundColor: 'var(--color-background-card)',
+                borderColor: 'var(--color-border-secondary)'
+              }}>
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold mb-3" style={{ color: 'var(--color-text-primary)' }}>
+                  Powerful Features
+                </h2>
+                <p className="text-lg" style={{ color: 'var(--color-text-secondary)' }}>
+                  Everything you need to understand your spending habits
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {/* Spending Trends Feature */}
+                <div className="group relative flex flex-col items-start p-5 rounded-xl border-2 transition-all duration-300 hover:shadow-lg hover:scale-[1.02]"
+                  style={{
+                    backgroundColor: 'var(--color-background-secondary)',
+                    borderColor: 'var(--color-secondary-500)'
+                  }}>
+                  <div className="w-12 h-12 bg-gradient-to-r from-secondary-500 to-accent-500 rounded-xl flex items-center justify-center flex-shrink-0 mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <FiTrendingUp className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="font-bold mb-2 text-lg" style={{ color: 'var(--color-text-primary)' }}>
+                    Spending Trends
+                  </h3>
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
+                    Multi-month analysis with AI-powered insights and predictions
+                  </p>
+                </div>
+
+                {/* Upload Feature */}
+                <div className="group relative flex flex-col items-start p-5 rounded-xl border-2 transition-all duration-300 hover:shadow-lg hover:scale-[1.02]"
+                  style={{
+                    backgroundColor: 'var(--color-background-secondary)',
+                    borderColor: 'var(--color-primary-500)'
+                  }}>
+                  <div className="w-12 h-12 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-xl flex items-center justify-center flex-shrink-0 mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <FiUpload className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="font-bold mb-2 text-lg" style={{ color: 'var(--color-text-primary)' }}>
+                    Smart Upload
+                  </h3>
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
+                    Upload CSV files and let AI automatically categorize your transactions
+                  </p>
+                </div>
+
+                {/* Analytics Feature */}
+                <div className="group relative flex flex-col items-start p-5 rounded-xl border-2 transition-all duration-300 hover:shadow-lg hover:scale-[1.02]"
+                  style={{
+                    backgroundColor: 'var(--color-background-secondary)',
+                    borderColor: 'var(--color-accent-500)'
+                  }}>
+                  <div className="w-12 h-12 bg-gradient-to-r from-accent-500 to-primary-500 rounded-xl flex items-center justify-center flex-shrink-0 mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <FiZap className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="font-bold mb-2 text-lg" style={{ color: 'var(--color-text-primary)' }}>
+                    AI Analytics
+                  </h3>
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
+                    Get intelligent insights and personalized spending recommendations
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Admin-only Theme Test Component */}
           {session?.user?.email === "harshsuhith@gmail.com" && (
-            <div className="bg-background-card backdrop-blur-sm border border-border-secondary rounded-2xl p-6 shadow-xl">
+            <div className="rounded-2xl p-6 shadow-xl border-2"
+              style={{
+                backgroundColor: 'var(--color-background-card)',
+                borderColor: 'var(--color-border-secondary)'
+              }}>
               <div className="flex items-center space-x-3 mb-4">
                 <div className="w-8 h-8 bg-gradient-to-r from-accent-500 to-primary-500 rounded-lg flex items-center justify-center">
                   <span className="text-white text-sm font-bold">⚙️</span>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-text-primary">
+                  <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>
                     Admin Tools
                   </h3>
-                  <p className="text-text-tertiary text-sm">
+                  <p className="text-sm" style={{ color: 'var(--color-text-tertiary)' }}>
                     Theme testing and development tools
                   </p>
                 </div>

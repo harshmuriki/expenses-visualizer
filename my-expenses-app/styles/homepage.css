@@ -34,10 +34,12 @@
 @keyframes glow {
   0%,
   100% {
-    box-shadow: 0 0 20px rgba(128, 161, 186, 0.3);
+    box-shadow: 0 0 25px rgba(255, 122, 195, 0.25),
+      0 0 45px rgba(147, 197, 253, 0.2);
   }
   50% {
-    box-shadow: 0 0 40px rgba(128, 161, 186, 0.6);
+    box-shadow: 0 0 45px rgba(255, 122, 195, 0.45),
+      0 0 60px rgba(147, 197, 253, 0.35);
   }
 }
 
@@ -84,14 +86,21 @@
 
 /* Glass morphism effect */
 .glass-morphism {
-  background: rgba(30, 41, 59, 0.3);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--glass-surface, rgba(13, 16, 32, 0.78));
+  backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.18));
+  box-shadow: var(--glass-shadow, 0 25px 80px rgba(3, 4, 18, 0.75));
 }
 
 /* Gradient text animation */
 .gradient-text-animated {
-  background: linear-gradient(45deg, #91c4c3, #b4debd, #80a1ba, #91c4c3);
+  background: linear-gradient(
+    120deg,
+    var(--color-primary-500, #3b82f6),
+    var(--color-secondary-500, #06b6d4),
+    var(--color-accent-500, #6d72ff),
+    var(--color-secondary-300, #67e8f9)
+  );
   background-size: 300% 300%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -156,7 +165,7 @@
 .particle:nth-child(1) {
   width: 4px;
   height: 4px;
-  background: #80a1ba;
+  background: color-mix(in srgb, var(--color-primary-400, #63a8ff) 75%, transparent);
   top: 20%;
   left: 10%;
   animation-delay: 0s;
@@ -165,7 +174,7 @@
 .particle:nth-child(2) {
   width: 6px;
   height: 6px;
-  background: #91c4c3;
+  background: color-mix(in srgb, var(--color-secondary-400, #22d3ee) 80%, transparent);
   top: 60%;
   left: 80%;
   animation-delay: 2s;
@@ -174,7 +183,7 @@
 .particle:nth-child(3) {
   width: 3px;
   height: 3px;
-  background: #b4debd;
+  background: color-mix(in srgb, var(--color-accent-400, #8b90ff) 75%, transparent);
   top: 80%;
   left: 20%;
   animation-delay: 4s;

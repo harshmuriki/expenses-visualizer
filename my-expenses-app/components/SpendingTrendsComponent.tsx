@@ -17,6 +17,7 @@ import {
   FiBarChart2,
 } from "react-icons/fi";
 import Plot from "react-plotly.js";
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { useTheme } from "@/lib/theme-context";
 
 interface CategorySpending {
@@ -869,87 +870,103 @@ const SpendingTrendsComponent: React.FC = () => {
         </div>
       </div>
 
-      {/* Category Breakdown with Pie Chart */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Category Pie Chart */}
-        <div className="bg-gradient-to-br from-background-card via-background-card to-background-secondary/30 rounded-2xl p-6 border border-border-secondary shadow-xl">
-          <h3 className="text-xl font-bold text-text-primary mb-4">
-            Spending by Category
-          </h3>
-          <div className="h-96">
-            {summaryStats && (
-              <Plot
-                data={[
-                  {
-                    labels: monthlyData[0]?.categories.map((c) => c.category) || [],
-                    values: monthlyData[0]?.categories.map((c) => c.amount) || [],
-                    type: "pie",
-                    marker: {
-                      colors: theme.categories,
-                    },
-                    textinfo: "label+percent",
-                    textposition: "auto",
-                    hovertemplate: "<b>%{label}</b><br>%{value:$,.0f}<br>%{percent}<extra></extra>",
-                  },
-                ]}
-                layout={{
-                  plot_bgcolor: "rgba(0,0,0,0)",
-                  paper_bgcolor: "rgba(0,0,0,0)",
-                  font: { color: theme.text.primary },
-                  margin: { t: 20, b: 20, l: 20, r: 20 },
-                  showlegend: true,
-                  legend: {
-                    bgcolor: "rgba(0,0,0,0)",
-                    font: { color: theme.text.primary, size: 10 },
-                  },
-                }}
-                config={{
-                  displayModeBar: false,
-                  responsive: true,
-                }}
-                style={{ width: "100%", height: "100%" }}
-              />
-            )}
-          </div>
-        </div>
+      {/* Category Breakdown */}
+      <div className="rounded-[32px] border border-border-secondary bg-background-card/80 shadow-2xl p-6 lg:p-8">
+        {/* Title */}
+        <h3 className="text-xl font-bold text-text-primary mb-8">
+          BUDGET ALLOCATION
+        </h3>
 
-        {/* Top Categories List */}
-        <div className="bg-gradient-to-br from-background-card via-background-card to-background-secondary/30 rounded-2xl p-6 border border-border-secondary shadow-xl">
-          <h3 className="text-xl font-bold text-text-primary mb-4">
-            Top Spending Categories
-          </h3>
-          <div className="space-y-4">
-            {monthlyData[0]?.categories.slice(0, 8).map((category, index) => (
-              <div key={category.category} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl font-bold text-text-tertiary">
-                      #{index + 1}
-                    </span>
-                    <span className="font-semibold text-text-primary truncate">
-                      {category.category}
-                    </span>
+        <div className="flex flex-col gap-8">
+          {/* Donut Chart */}
+          <div className="flex justify-center">
+            <div className="relative w-full max-w-md h-80">
+              {monthlyData[0] && (
+                <>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={monthlyData[0].categories.map((cat, idx) => ({
+                          name: cat.category,
+                          value: cat.amount,
+                          color: theme.categories[idx % theme.categories.length] || theme.primary[500],
+                          percentage: cat.percentage,
+                        }))}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={80}
+                        outerRadius={120}
+                        paddingAngle={4}
+                        cornerRadius={8}
+                        dataKey="value"
+                        startAngle={90}
+                        endAngle={-270}
+                      >
+                        {monthlyData[0].categories.map((cat, idx) => {
+                          const color = theme.categories[idx % theme.categories.length] || theme.primary[500];
+                          return <Cell key={`cell-${idx}`} fill={color} />;
+                        })}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  {/* Center text */}
+                  <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                    <p className="text-3xl font-bold text-white">
+                      {formatCurrency(monthlyData[0].totalSpending)}
+                    </p>
+                    <p className="text-xs uppercase tracking-[0.2em] text-gray-300 mt-1">
+                      TOTAL
+                    </p>
                   </div>
-                  <span className="font-bold text-text-primary">
-                    {formatCurrency(category.amount)}
-                  </span>
-                </div>
-                <div className="relative">
-                  <div className="w-full bg-background-tertiary rounded-full h-3 overflow-hidden">
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Category List */}
+          <div className="space-y-2">
+            {monthlyData[0]?.categories.slice(0, 6).map((category, index) => {
+              const color =
+                theme.categories[index % theme.categories.length] || theme.primary[500];
+              return (
+                <div
+                  key={category.category}
+                  className="flex items-center gap-3 rounded-lg border border-border-secondary/40 bg-background-secondary/20 px-4 py-3"
+                >
+                  {/* Colored icon circle */}
+                  <div
+                    className="h-2.5 w-2.5 rounded-full flex-shrink-0"
+                    style={{ background: color }}
+                  />
+                  
+                  {/* Category name */}
+                  <p className="font-medium text-text-primary text-sm flex-shrink-0">
+                    {category.category}
+                  </p>
+                  
+                  {/* Colored bar/line */}
+                  <div className="flex-1 h-0.5 rounded-full overflow-hidden bg-background-tertiary/30">
                     <div
-                      className="h-3 rounded-full transition-all duration-500"
+                      className="h-full rounded-full"
                       style={{
                         width: `${category.percentage}%`,
-                        background: theme.categories[index % theme.categories.length],
+                        background: color,
                       }}
                     />
                   </div>
-                  <span className="absolute right-2 top-0 text-xs font-bold text-text-primary">
-                    {category.percentage.toFixed(1)}%
-                  </span>
+
+                  {/* Amount and percentage */}
+                  <div className="text-right flex-shrink-0 min-w-[90px]">
+                    <p className="text-sm font-bold text-text-primary">
+                      {formatCurrency(category.amount)}
+                    </p>
+                    <p className="text-xs text-text-tertiary mt-0.5">
+                      {category.percentage.toFixed(0)}%
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
@@ -1054,7 +1071,7 @@ const SpendingTrendsComponent: React.FC = () => {
                     ? "bg-red-500/20"
                     : trend.trend === "down"
                     ? "bg-emerald-500/20"
-                    : "bg-slate-500/20"
+                    : "bg-text-tertiary/20"
                 }`}
               >
                 {trend.trend === "up" ? (
@@ -1062,7 +1079,7 @@ const SpendingTrendsComponent: React.FC = () => {
                 ) : trend.trend === "down" ? (
                   <FiTrendingDown className="w-5 h-5 text-emerald-500" />
                 ) : (
-                  <FiDollarSign className="w-5 h-5 text-slate-500" />
+                  <FiDollarSign className="w-5 h-5 text-text-tertiary" />
                 )}
               </div>
             </div>
@@ -1073,7 +1090,7 @@ const SpendingTrendsComponent: React.FC = () => {
                     ? "bg-red-500/10 text-red-500"
                     : trend.trend === "down"
                     ? "bg-emerald-500/10 text-emerald-500"
-                    : "bg-slate-500/10 text-slate-500"
+                    : "bg-text-tertiary/10 text-text-tertiary"
                 }`}
               >
                 {trend.changePercentage > 0 ? "+" : ""}

@@ -6,6 +6,8 @@ import {
   LLMProviderType,
   LLMProviderFactory,
 } from "@/lib/llmProvider";
+import { useTheme } from "@/lib/theme-context";
+import { FiX, FiCheck, FiAlertCircle } from "react-icons/fi";
 
 interface LLMSettingsProps {
   onSave?: (config: LLMConfig) => void;
@@ -16,6 +18,8 @@ export const LLMSettings: React.FC<LLMSettingsProps> = ({
   onSave,
   onClose,
 }) => {
+  const { theme, themeName, setTheme } = useTheme();
+  const [activeTab, setActiveTab] = useState<"llm" | "theme">("theme");
   const [provider, setProvider] = useState<LLMProviderType>("openai");
   const [apiKey, setApiKey] = useState("");
   const [baseUrl, setBaseUrl] = useState("");
@@ -143,354 +147,285 @@ export const LLMSettings: React.FC<LLMSettingsProps> = ({
     }
   };
 
+  const themes = [
+    { name: "ocean", label: "Ocean", description: "Cool blues and purples", colors: ["#0ea5e9", "#06b6d4", "#8b5cf6"] },
+    { name: "cherryBlossom", label: "Cherry Blossom", description: "Soft pinks", colors: ["#f472b6", "#ec4899", "#db2777"] },
+    { name: "nordic", label: "Nordic", description: "Minimal grays", colors: ["#64748b", "#475569", "#334155"] },
+  ];
+
+  const InputField = ({ label, type = "text", value, onChange, placeholder, info }: any) => (
+    <div className="space-y-2">
+      <label className="block text-sm font-medium" style={{ color: theme.text.primary }}>
+        {label}
+      </label>
+      <input
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className="w-full px-4 py-2.5 rounded-lg transition focus:outline-none focus:ring-2"
+        style={{
+          backgroundColor: theme.background.secondary,
+          borderColor: theme.border.primary,
+          color: theme.text.primary,
+          border: `1px solid ${theme.border.primary}`
+        }}
+      />
+      {info && (
+        <p className="text-xs" style={{ color: theme.text.tertiary }}>
+          {info}
+        </p>
+      )}
+    </div>
+  );
+
   return (
-    <div className="llm-settings">
-      <style jsx>{`
-        .llm-settings {
-          max-width: 600px;
-          margin: 0 auto;
-          padding: 24px;
-          background: white;
-          border-radius: 8px;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        h2 {
-          margin: 0 0 24px 0;
-          font-size: 24px;
-          font-weight: 600;
-          color: #1f2937;
-        }
-
-        .form-group {
-          margin-bottom: 20px;
-        }
-
-        label {
-          display: block;
-          margin-bottom: 8px;
-          font-weight: 500;
-          color: #374151;
-        }
-
-        select,
-        input[type="text"],
-        input[type="number"] {
-          width: 100%;
-          padding: 10px 12px;
-          border: 1px solid #d1d5db;
-          border-radius: 6px;
-          font-size: 14px;
-          transition: border-color 0.2s;
-        }
-
-        select:focus,
-        input:focus {
-          outline: none;
-          border-color: #3b82f6;
-        }
-
-        .info-text {
-          margin-top: 4px;
-          font-size: 12px;
-          color: #6b7280;
-        }
-
-        .button-group {
-          display: flex;
-          gap: 12px;
-          margin-top: 24px;
-        }
-
-        button {
-          flex: 1;
-          padding: 10px 16px;
-          border: none;
-          border-radius: 6px;
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .btn-primary {
-          background: #3b82f6;
-          color: white;
-        }
-
-        .btn-primary:hover {
-          background: #2563eb;
-        }
-
-        .btn-secondary {
-          background: #e5e7eb;
-          color: #374151;
-        }
-
-        .btn-secondary:hover {
-          background: #d1d5db;
-        }
-
-        .btn-test {
-          background: #10b981;
-          color: white;
-        }
-
-        .btn-test:hover {
-          background: #059669;
-        }
-
-        button:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        .test-result {
-          margin-top: 12px;
-          padding: 12px;
-          border-radius: 6px;
-          font-size: 14px;
-        }
-
-        .test-result.success {
-          background: #d1fae5;
-          color: #065f46;
-        }
-
-        .test-result.error {
-          background: #fee2e2;
-          color: #991b1b;
-        }
-
-        .provider-info {
-          margin-top: 24px;
-          padding: 16px;
-          background: #f3f4f6;
-          border-radius: 6px;
-          font-size: 13px;
-          color: #4b5563;
-        }
-
-        .provider-info h3 {
-          margin: 0 0 8px 0;
-          font-size: 14px;
-          font-weight: 600;
-          color: #1f2937;
-        }
-
-        .provider-info ul {
-          margin: 8px 0 0 0;
-          padding-left: 20px;
-        }
-
-        .provider-info li {
-          margin: 4px 0;
-        }
-      `}</style>
-
-      <h2>LLM Provider Settings</h2>
-
-      <div className="form-group">
-        <label>Provider</label>
-        <select value={provider} onChange={(e) => setProvider(e.target.value as LLMProviderType)}>
-          <option value="openai">OpenAI</option>
-          <option value="ollama">Ollama (Local)</option>
-          <option value="lmstudio">LM Studio (Local)</option>
-          <option value="anthropic">Anthropic Claude</option>
-          <option value="custom">Custom (OpenAI-compatible)</option>
-        </select>
+    <div
+      className="rounded-3xl shadow-2xl max-w-4xl w-full overflow-hidden"
+      style={{
+        backgroundColor: theme.background.card,
+        border: `1px solid ${theme.border.secondary}`
+      }}
+    >
+      {/* Header */}
+      <div
+        className="px-6 py-4 border-b flex items-center justify-between"
+        style={{
+          backgroundColor: theme.background.secondary,
+          borderColor: theme.border.secondary
+        }}
+      >
+        <h2 className="text-2xl font-bold" style={{ color: theme.text.primary }}>
+          Settings
+        </h2>
+        <button
+          onClick={onClose}
+          className="p-2 rounded-lg transition hover:opacity-70"
+          style={{ color: theme.text.secondary }}
+        >
+          <FiX size={24} />
+        </button>
       </div>
 
-      {(provider === "openai" || provider === "anthropic") && (
-        <div className="form-group">
-          <label>API Key</label>
-          <input
-            type="text"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder="Enter your API key"
-          />
-          <div className="info-text">
-            {provider === "openai"
-              ? "Get your API key from platform.openai.com"
-              : "Get your API key from console.anthropic.com"}
+      {/* Tabs */}
+      <div
+        className="flex border-b"
+        style={{ borderColor: theme.border.secondary }}
+      >
+        <button
+          onClick={() => setActiveTab("theme")}
+          className={`flex-1 px-6 py-3 font-medium transition ${
+            activeTab === "theme" ? "border-b-2" : ""
+          }`}
+          style={{
+            color: activeTab === "theme" ? theme.primary[500] : theme.text.secondary,
+            borderColor: activeTab === "theme" ? theme.primary[500] : "transparent",
+          }}
+        >
+          Theme
+        </button>
+        <button
+          onClick={() => setActiveTab("llm")}
+          className={`flex-1 px-6 py-3 font-medium transition ${
+            activeTab === "llm" ? "border-b-2" : ""
+          }`}
+          style={{
+            color: activeTab === "llm" ? theme.primary[500] : theme.text.secondary,
+            borderColor: activeTab === "llm" ? theme.primary[500] : "transparent",
+          }}
+        >
+          LLM Provider
+        </button>
+      </div>
+
+      {/* Content */}
+      <div className="p-6 max-h-[60vh] overflow-y-auto">
+        {activeTab === "theme" ? (
+          <div className="space-y-4">
+            <p className="text-sm" style={{ color: theme.text.secondary }}>
+              Choose your preferred color theme for the application
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+              {themes.map((t) => (
+                <button
+                  key={t.name}
+                  onClick={() => setTheme(t.name as any)}
+                  className={`relative p-4 rounded-xl border-2 transition-all hover:scale-105 ${
+                    themeName === t.name ? "ring-2" : ""
+                  }`}
+                  style={{
+                    backgroundColor: theme.background.secondary,
+                    borderColor: themeName === t.name ? theme.primary[500] : theme.border.primary,
+                    ringColor: theme.primary[500]
+                  }}
+                >
+                  {themeName === t.name && (
+                    <div
+                      className="absolute top-2 right-2 rounded-full p-1"
+                      style={{ backgroundColor: theme.primary[500] }}
+                    >
+                      <FiCheck className="text-white" size={16} />
+                    </div>
+                  )}
+                  <div className="flex gap-2 mb-3">
+                    {t.colors.map((color, idx) => (
+                      <div
+                        key={idx}
+                        className="w-10 h-10 rounded-lg"
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
+                  </div>
+                  <h3 className="font-semibold text-left" style={{ color: theme.text.primary }}>
+                    {t.label}
+                  </h3>
+                  <p className="text-xs text-left mt-1" style={{ color: theme.text.tertiary }}>
+                    {t.description}
+                  </p>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="space-y-5">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium" style={{ color: theme.text.primary }}>
+                Provider
+              </label>
+              <select
+                value={provider}
+                onChange={(e) => setProvider(e.target.value as LLMProviderType)}
+                className="w-full px-4 py-2.5 rounded-lg transition focus:outline-none focus:ring-2"
+                style={{
+                  backgroundColor: theme.background.secondary,
+                  borderColor: theme.border.primary,
+                  color: theme.text.primary,
+                  border: `1px solid ${theme.border.primary}`
+                }}
+              >
+                <option value="openai">OpenAI</option>
+                <option value="ollama">Ollama (Local)</option>
+                <option value="lmstudio">LM Studio (Local)</option>
+                <option value="anthropic">Anthropic Claude</option>
+                <option value="custom">Custom (OpenAI-compatible)</option>
+              </select>
+            </div>
 
-      {(provider === "ollama" ||
-        provider === "lmstudio" ||
-        provider === "custom") && (
-        <div className="form-group">
-          <label>Base URL</label>
-          <input
-            type="text"
-            value={baseUrl}
-            onChange={(e) => setBaseUrl(e.target.value)}
-            placeholder={
-              provider === "ollama"
-                ? "http://localhost:11434"
-                : provider === "lmstudio"
-                  ? "http://localhost:1234/v1"
-                  : "https://your-api.com/v1"
-            }
-          />
-          <div className="info-text">
-            {provider === "ollama" && "Default: http://localhost:11434"}
-            {provider === "lmstudio" && "Default: http://localhost:1234/v1"}
-            {provider === "custom" && "Your custom API endpoint"}
-          </div>
-        </div>
-      )}
+            {(provider === "openai" || provider === "anthropic") && (
+              <InputField
+                label="API Key"
+                value={apiKey}
+                onChange={(e: any) => setApiKey(e.target.value)}
+                placeholder="Enter your API key"
+                info={
+                  provider === "openai"
+                    ? "Get your API key from platform.openai.com"
+                    : "Get your API key from console.anthropic.com"
+                }
+              />
+            )}
 
-      {provider === "custom" && (
-        <div className="form-group">
-          <label>API Key (Optional)</label>
-          <input
-            type="text"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder="Optional API key"
-          />
-        </div>
-      )}
+            {(provider === "ollama" || provider === "lmstudio" || provider === "custom") && (
+              <InputField
+                label="Base URL"
+                value={baseUrl}
+                onChange={(e: any) => setBaseUrl(e.target.value)}
+                placeholder={
+                  provider === "ollama"
+                    ? "http://localhost:11434"
+                    : provider === "lmstudio"
+                    ? "http://localhost:1234/v1"
+                    : "https://your-api.com/v1"
+                }
+                info={
+                  provider === "ollama"
+                    ? "Default: http://localhost:11434"
+                    : provider === "lmstudio"
+                    ? "Default: http://localhost:1234/v1"
+                    : "Your custom API endpoint"
+                }
+              />
+            )}
 
-      <div className="form-group">
-        <label>Model</label>
-        <input
-          type="text"
-          value={model}
-          onChange={(e) => setModel(e.target.value)}
-          placeholder={
-            provider === "openai"
-              ? "gpt-4o-mini"
-              : provider === "ollama"
-                ? "llama3.2"
-                : provider === "anthropic"
+            {provider === "custom" && (
+              <InputField
+                label="API Key (Optional)"
+                value={apiKey}
+                onChange={(e: any) => setApiKey(e.target.value)}
+                placeholder="Optional API key"
+              />
+            )}
+
+            <InputField
+              label="Model"
+              value={model}
+              onChange={(e: any) => setModel(e.target.value)}
+              placeholder={
+                provider === "openai"
+                  ? "gpt-4o-mini"
+                  : provider === "ollama"
+                  ? "llama3.2"
+                  : provider === "anthropic"
                   ? "claude-3-5-sonnet-20241022"
                   : "model-name"
-          }
-        />
-        <div className="info-text">
-          {provider === "openai" && "Examples: gpt-4o-mini, gpt-4, gpt-3.5-turbo"}
-          {provider === "ollama" &&
-            "Examples: llama3.2, mistral, codellama, gemma2"}
-          {provider === "anthropic" &&
-            "Examples: claude-3-5-sonnet-20241022, claude-3-haiku-20240307"}
-        </div>
-      </div>
+              }
+            />
 
-      <div className="form-group">
-        <label>Temperature ({temperature})</label>
-        <input
-          type="number"
-          min="0"
-          max="2"
-          step="0.1"
-          value={temperature}
-          onChange={(e) => setTemperature(parseFloat(e.target.value))}
-        />
-        <div className="info-text">
-          Lower = more deterministic, Higher = more creative (0-2)
-        </div>
-      </div>
+            <InputField
+              label={`Temperature (${temperature})`}
+              type="number"
+              value={temperature}
+              onChange={(e: any) => setTemperature(parseFloat(e.target.value))}
+              info="Lower = more deterministic, Higher = more creative (0-2)"
+            />
 
-      <div className="form-group">
-        <label>Max Tokens</label>
-        <input
-          type="number"
-          min="100"
-          max="100000"
-          step="100"
-          value={maxTokens}
-          onChange={(e) => setMaxTokens(parseInt(e.target.value, 10))}
-        />
-        <div className="info-text">Maximum tokens for model response</div>
-      </div>
+            <InputField
+              label="Max Tokens"
+              type="number"
+              value={maxTokens}
+              onChange={(e: any) => setMaxTokens(parseInt(e.target.value, 10))}
+              info="Maximum tokens for model response"
+            />
 
-      {testResult && (
-        <div className={`test-result ${testResult.success ? "success" : "error"}`}>
-          {testResult.message}
-        </div>
-      )}
+            {testResult && (
+              <div
+                className={`p-4 rounded-lg flex items-center gap-2 ${
+                  testResult.success ? "bg-green-500/10" : "bg-red-500/10"
+                }`}
+                style={{
+                  color: testResult.success ? "#10b981" : "#ef4444",
+                  border: `1px solid ${testResult.success ? "#10b98133" : "#ef444433"}`
+                }}
+              >
+                {testResult.success ? <FiCheck size={20} /> : <FiAlertCircle size={20} />}
+                <span className="text-sm font-medium">{testResult.message}</span>
+              </div>
+            )}
 
-      <div className="button-group">
-        <button
-          className="btn-test"
-          onClick={handleTest}
-          disabled={testing}
-        >
-          {testing ? "Testing..." : "Test Connection"}
-        </button>
-        <button className="btn-secondary" onClick={onClose}>
-          Cancel
-        </button>
-        <button className="btn-primary" onClick={handleSave}>
-          Save Settings
-        </button>
-      </div>
-
-      <div className="provider-info">
-        <h3>About {provider === "openai" ? "OpenAI" : provider === "ollama" ? "Ollama" : provider === "lmstudio" ? "LM Studio" : provider === "anthropic" ? "Anthropic" : "Custom Provider"}</h3>
-        {provider === "openai" && (
-          <>
-            <p>OpenAI provides cloud-based AI models.</p>
-            <ul>
-              <li>Requires API key and internet connection</li>
-              <li>Costs money per token used</li>
-              <li>gpt-4o-mini: $0.15/1M input, $0.60/1M output tokens</li>
-            </ul>
-          </>
-        )}
-        {provider === "ollama" && (
-          <>
-            <p>
-              Ollama runs AI models locally on your machine.
-            </p>
-            <ul>
-              <li>Free and private - no data sent to external servers</li>
-              <li>Requires Ollama installed: ollama.com</li>
-              <li>Download models: <code>ollama pull llama3.2</code></li>
-            </ul>
-          </>
-        )}
-        {provider === "lmstudio" && (
-          <>
-            <p>LM Studio runs AI models locally with a user-friendly interface.</p>
-            <ul>
-              <li>Free and private - no data sent to external servers</li>
-              <li>Requires LM Studio installed: lmstudio.ai</li>
-              <li>Enable local server in LM Studio settings</li>
-            </ul>
-          </>
-        )}
-        {provider === "anthropic" && (
-          <>
-            <p>Anthropic Claude provides powerful AI models.</p>
-            <ul>
-              <li>Requires API key and internet connection</li>
-              <li>Costs money per token used</li>
-              <li>Claude 3.5 Sonnet: $3/1M input, $15/1M output tokens</li>
-            </ul>
-          </>
-        )}
-        {provider === "custom" && (
-          <>
-            <p>Connect to any OpenAI-compatible API endpoint.</p>
-            <ul>
-              <li>Works with various providers and self-hosted models</li>
-              <li>Requires OpenAI-compatible API format</li>
-            </ul>
-          </>
+            <div className="flex gap-3 pt-4">
+              <button
+                onClick={handleTest}
+                disabled={testing}
+                className="flex-1 px-4 py-2.5 rounded-lg font-medium transition hover:opacity-90 disabled:opacity-50"
+                style={{ backgroundColor: "#10b981", color: "white" }}
+              >
+                {testing ? "Testing..." : "Test Connection"}
+              </button>
+              <button
+                onClick={handleSave}
+                className="flex-1 px-4 py-2.5 rounded-lg font-medium transition hover:opacity-90"
+                style={{ backgroundColor: theme.primary[500], color: theme.text.inverse }}
+              >
+                Save Settings
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>
   );
 };
 
-/**
- * Get current LLM config from localStorage or default
- */
 export function getLLMConfig(): LLMConfig | null {
   if (typeof window === "undefined") {
     return null;
@@ -508,9 +443,6 @@ export function getLLMConfig(): LLMConfig | null {
   return null;
 }
 
-/**
- * Save LLM config to localStorage
- */
 export function saveLLMConfig(config: LLMConfig): void {
   if (typeof window !== "undefined") {
     localStorage.setItem("llm_config", JSON.stringify(config));

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useTheme } from "@/lib/theme-context";
 
 interface AddTransactionModalProps {
@@ -29,6 +30,12 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   );
   const [location, setLocation] = useState("");
   const [bank, setBank] = useState("Manual Entry");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   const handleSubmit = useCallback(() => {
     if (!transactionName.trim()) {
@@ -84,69 +91,34 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
     };
   }, [handleSubmit, onClose]);
 
-  return (
+  if (!mounted) return null;
+
+  const modalContent = (
     <>
       {/* Backdrop */}
       <div
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: "rgba(0, 0, 0, 0.5)",
-          zIndex: 9998,
-        }}
+        className="glass-backdrop fixed inset-0"
+        style={{ zIndex: 9998 }}
         onClick={onClose}
       />
 
-      {/* Modal */}
+      {/* Scrollable Modal Container */}
       <div
-        style={{
-          position: "fixed",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          backgroundColor: theme.background.secondary,
-          padding: "40px",
-          borderRadius: "20px",
-          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.5)",
-          border: `1px solid ${theme.border.primary}`,
-          color: theme.text.primary,
-          maxWidth: "500px",
-          width: "100%",
-          maxHeight: "90vh",
-          overflowY: "auto",
-          boxSizing: "border-box",
-          fontFamily: "Arial, sans-serif",
-          zIndex: 9999,
-        }}
+        className="fixed inset-0 overflow-y-auto flex items-center justify-center p-4 pointer-events-none"
+        style={{ zIndex: 9999 }}
       >
-        <h3
-          style={{
-            margin: "0 0 20px",
-            fontSize: "1.8rem",
-            textAlign: "center",
-            background: `linear-gradient(to right, ${theme.secondary[500]}, ${theme.accent[500]})`,
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-            fontWeight: "bold",
-          }}
+        {/* Modal */}
+        <div
+          className="glass-modal p-10 max-w-[500px] w-full max-h-[90vh] overflow-y-auto pointer-events-auto my-8"
+          onClick={(e) => e.stopPropagation()}
         >
+        <h3 className="text-3xl font-bold text-center mb-6 bg-gradient-to-r from-sky-400 to-cyan-400 bg-clip-text text-transparent">
           Add New Transaction
         </h3>
 
         {/* Transaction Name */}
-        <div style={{ marginBottom: "20px" }}>
-          <label
-            style={{
-              display: "block",
-              marginBottom: "8px",
-              fontWeight: "600",
-              color: theme.text.secondary,
-            }}
-          >
+        <div className="mb-5">
+          <label className="glass-label">
             Transaction Name *
           </label>
           <input
@@ -154,45 +126,13 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
             value={transactionName}
             onChange={(e) => setTransactionName(e.target.value)}
             placeholder="e.g., Grocery Shopping, Netflix Subscription"
-            style={{
-              width: "100%",
-              padding: "12px",
-              borderRadius: "10px",
-              border: `1px solid ${theme.border.primary}`,
-              backgroundColor: theme.background.primary,
-              color: theme.text.primary,
-              boxSizing: "border-box",
-              fontSize: "1rem",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = theme.primary[500];
-              e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = theme.border.primary;
-              e.currentTarget.style.boxShadow = "none";
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.borderColor = theme.primary[500];
-              e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.borderColor = theme.border.primary;
-              e.currentTarget.style.boxShadow = "none";
-            }}
+            className="glass-input"
           />
         </div>
 
         {/* Cost */}
-        <div style={{ marginBottom: "20px" }}>
-          <label
-            style={{
-              display: "block",
-              marginBottom: "8px",
-              fontWeight: "600",
-              color: theme.text.secondary,
-            }}
-          >
+        <div className="mb-5">
+          <label className="glass-label">
             Cost *
           </label>
           <input
@@ -202,90 +142,27 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
             value={cost}
             onChange={(e) => setCost(e.target.value)}
             placeholder="0.00"
-            style={{
-              width: "100%",
-              padding: "12px",
-              borderRadius: "10px",
-              border: `1px solid ${theme.border.primary}`,
-              backgroundColor: theme.background.primary,
-              color: theme.accent[500],
-              boxSizing: "border-box",
-              fontSize: "1.1rem",
-              fontWeight: "600",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = theme.primary[500];
-              e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = theme.border.primary;
-              e.currentTarget.style.boxShadow = "none";
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.borderColor = theme.primary[500];
-              e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.borderColor = theme.border.primary;
-              e.currentTarget.style.boxShadow = "none";
-            }}
+            className="glass-input text-xl font-semibold"
+            style={{ color: theme.accent[500] }}
           />
         </div>
 
         {/* Category Selection */}
-        <div style={{ marginBottom: "20px" }}>
-          <label
-            style={{
-              display: "block",
-              marginBottom: "8px",
-              fontWeight: "600",
-              color: theme.text.secondary,
-            }}
-          >
+        <div className="mb-5">
+          <label className="glass-label">
             Category *
           </label>
           <select
             value={isCreatingNewCategory ? "createNew" : category}
             onChange={handleCategoryChange}
-            style={{
-              width: "100%",
-              padding: "12px",
-              borderRadius: "10px",
-              border: `1px solid ${theme.border.primary}`,
-              backgroundColor: theme.background.primary,
-              color: theme.text.primary,
-              boxSizing: "border-box",
-              fontSize: "1rem",
-              cursor: "pointer",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = theme.primary[500];
-              e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = theme.border.primary;
-              e.currentTarget.style.boxShadow = "none";
-            }}
+            className="glass-select"
           >
             {parentOptions.map((parent) => (
-              <option
-                key={parent}
-                value={parent}
-                style={{
-                  backgroundColor: theme.background.secondary,
-                  color: theme.text.primary,
-                }}
-              >
+              <option key={parent} value={parent}>
                 {parent}
               </option>
             ))}
-            <option
-              value="createNew"
-              style={{
-                backgroundColor: theme.background.secondary,
-                color: theme.text.primary,
-              }}
-            >
+            <option value="createNew">
               + Create New Category
             </option>
           </select>
@@ -295,92 +172,27 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               placeholder="Enter new category name"
-              style={{
-                width: "100%",
-                padding: "12px",
-                marginTop: "12px",
-                borderRadius: "10px",
-                border: `1px solid ${theme.secondary[500]}`,
-                backgroundColor: theme.background.primary,
-                color: theme.text.primary,
-                boxSizing: "border-box",
-                fontSize: "1rem",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = theme.primary[500];
-                e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = theme.secondary[500];
-                e.currentTarget.style.boxShadow = "none";
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = theme.primary[500];
-                e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.borderColor = theme.secondary[500];
-                e.currentTarget.style.boxShadow = "none";
-              }}
+              className="glass-input mt-3"
             />
           )}
         </div>
 
         {/* Date */}
-        <div style={{ marginBottom: "20px" }}>
-          <label
-            style={{
-              display: "block",
-              marginBottom: "8px",
-              fontWeight: "600",
-              color: theme.text.secondary,
-            }}
-          >
+        <div className="mb-5">
+          <label className="glass-label">
             Date
           </label>
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "12px",
-              borderRadius: "10px",
-              border: `1px solid ${theme.border.primary}`,
-              backgroundColor: theme.background.primary,
-              color: theme.text.primary,
-              boxSizing: "border-box",
-              fontSize: "1rem",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = theme.primary[500];
-              e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = theme.border.primary;
-              e.currentTarget.style.boxShadow = "none";
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.borderColor = theme.primary[500];
-              e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.borderColor = theme.border.primary;
-              e.currentTarget.style.boxShadow = "none";
-            }}
+            className="glass-input"
           />
         </div>
 
         {/* Location (Optional) */}
-        <div style={{ marginBottom: "20px" }}>
-          <label
-            style={{
-              display: "block",
-              marginBottom: "8px",
-              fontWeight: "600",
-              color: theme.text.secondary,
-            }}
-          >
+        <div className="mb-5">
+          <label className="glass-label">
             Location (Optional)
           </label>
           <input
@@ -388,45 +200,13 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             placeholder="e.g., Whole Foods, Amazon"
-            style={{
-              width: "100%",
-              padding: "12px",
-              borderRadius: "10px",
-              border: `1px solid ${theme.border.primary}`,
-              backgroundColor: theme.background.primary,
-              color: theme.text.primary,
-              boxSizing: "border-box",
-              fontSize: "1rem",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = theme.primary[500];
-              e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = theme.border.primary;
-              e.currentTarget.style.boxShadow = "none";
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.borderColor = theme.primary[500];
-              e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.borderColor = theme.border.primary;
-              e.currentTarget.style.boxShadow = "none";
-            }}
+            className="glass-input"
           />
         </div>
 
         {/* Bank/Source (Optional) */}
-        <div style={{ marginBottom: "25px" }}>
-          <label
-            style={{
-              display: "block",
-              marginBottom: "8px",
-              fontWeight: "600",
-              color: theme.text.secondary,
-            }}
-          >
+        <div className="mb-6">
+          <label className="glass-label">
             Bank/Source (Optional)
           </label>
           <input
@@ -434,91 +214,31 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
             value={bank}
             onChange={(e) => setBank(e.target.value)}
             placeholder="e.g., Chase, Amex"
-            style={{
-              width: "100%",
-              padding: "12px",
-              borderRadius: "10px",
-              border: `1px solid ${theme.border.primary}`,
-              backgroundColor: theme.background.primary,
-              color: theme.text.primary,
-              boxSizing: "border-box",
-              fontSize: "1rem",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = theme.primary[500];
-              e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = theme.border.primary;
-              e.currentTarget.style.boxShadow = "none";
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.borderColor = theme.primary[500];
-              e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.borderColor = theme.border.primary;
-              e.currentTarget.style.boxShadow = "none";
-            }}
+            className="glass-input"
           />
         </div>
 
         {/* Buttons */}
-        <div
-          style={{
-            display: "flex",
-            gap: "12px",
-            justifyContent: "space-between",
-          }}
-        >
+        <div className="flex gap-3">
           <button
             onClick={handleSubmit}
-            style={{
-              flex: 1,
-              background: `linear-gradient(to right, ${theme.primary[500]}, ${theme.secondary[500]})`,
-              color: "white",
-              border: "none",
-              padding: "14px 24px",
-              borderRadius: "10px",
-              cursor: "pointer",
-              fontSize: "1rem",
-              fontWeight: "600",
-              boxShadow: `0 4px 12px ${theme.primary[500]}30`,
-              transition: "all 0.3s",
-            }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.transform = "scale(1.05)")
-            }
-            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+            className="glass-button-primary flex-1 text-base"
           >
             Add Transaction
           </button>
           <button
             onClick={onClose}
-            style={{
-              flex: 1,
-              background: `linear-gradient(to right, ${theme.semantic.error}, #dc2626)`,
-              color: "white",
-              border: "none",
-              padding: "14px 24px",
-              borderRadius: "10px",
-              cursor: "pointer",
-              fontSize: "1rem",
-              fontWeight: "600",
-              boxShadow: `0 4px 12px ${theme.semantic.error}30`,
-              transition: "all 0.3s",
-            }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.transform = "scale(1.05)")
-            }
-            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+            className="glass-button-secondary flex-1 text-base"
           >
             Cancel
           </button>
         </div>
+        </div>
       </div>
     </>
   );
+
+  return createPortal(modalContent, document.body);
 };
 
 export default AddTransactionModal;

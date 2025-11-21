@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import TreeMapChart from "./TreeMapChart";
 import { calculateLinks } from "@/components/processLinks";
 import InputModal from "./editNodes";
@@ -22,14 +22,17 @@ import UploadedFilesPanel from "./UploadedFilesPanel";
 import TransactionTable from "./TransactionTable";
 import SwipeableTransactionEditor from "./SwipeableTransactionEditor";
 import CalendarView from "./CalendarView";
-import { FiBarChart2, FiGrid, FiEdit3, FiPlus, FiSettings, FiCalendar } from "react-icons/fi";
+import { FiBarChart2, FiGrid, FiEdit3, FiPlus, FiSettings, FiCalendar, FiLoader, FiHome, FiTrendingUp, FiUpload, FiLogOut } from "react-icons/fi";
 import { useTheme } from "@/lib/theme-context";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import StatsCards from "./StatsCards";
 import { LLMSettings } from "./LLMSettings";
+import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
+import { motion } from "framer-motion";
+import { signOut } from "next-auth/react";
 
 const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
-  const { theme } = useTheme();
+  const { theme, themeName } = useTheme();
   const [dataValue, setDataValue] = useState<SankeyData>({
     nodes: [],
     links: [],
@@ -44,6 +47,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
     null
   );
   const [returnToCategory, setReturnToCategory] = useState<number | null>(null);
+  const [isViewTrendsLoading, setIsViewTrendsLoading] = useState(false);
   const router = useRouter();
   const { data: session } = useSession();
   const [user, setUser] = useState<{
@@ -77,6 +81,27 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
   const [viewMode, setViewMode] = useState<"treemap" | "table" | "editor" | "calendar">(
     "treemap"
   );
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const body = document.body;
+
+    if (isModalOpen) {
+      body.classList.add("modal-open");
+    } else {
+      body.classList.remove("modal-open");
+    }
+
+    return () => {
+      body.classList.remove("modal-open");
+    };
+  }, [isModalOpen]);
+
+  // Prefetch trends page for instant navigation
+  useEffect(() => {
+    router.prefetch("/trends");
+  }, [router]);
 
   // Categories to exclude from TreeMap (but keep in Table and Insights)
   const EXCLUDED_CATEGORIES = ["Mobile Phone", "Credit Card Payment", "Others"];
@@ -366,7 +391,10 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
    */
   const handleEditTransaction = (nodeIndex: number) => {
     const clickedNode = dataValue.nodes.find((n) => n.index === nodeIndex);
-    if (!clickedNode) return;
+    if (!clickedNode) {
+      console.warn("Transaction not found for index:", nodeIndex);
+      return;
+    }
 
     setNodeIndex(nodeIndex);
     setNode(clickedNode);
@@ -374,13 +402,36 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
 
     // If it's a leaf node (transaction), find its parent
     if (clickedNode.isleaf) {
-      const parentLink = dataValue.links.find(
+      // First, try to find parent via link
+      let parentLink = dataValue.links.find(
         (link) => link.target === nodeIndex
       );
+      
       if (parentLink) {
         setParentIndex(parentLink.source);
-        setIsModalOpen(true);
+      } else {
+        // If no parent link found, try to find a parent category node by name
+        // This can happen if the transaction structure is different
+        const categoryName = clickedNode.category;
+        if (categoryName) {
+          const parentNode = dataValue.nodes.find(
+            (n) => !n.isleaf && n.name === categoryName
+          );
+          if (parentNode) {
+            setParentIndex(parentNode.index);
+          } else {
+            // Last resort: use the first available category node or set to 0
+            // This ensures the modal can still open
+            const firstCategoryNode = dataValue.nodes.find((n) => !n.isleaf);
+            setParentIndex(firstCategoryNode?.index ?? 0);
+          }
+        } else {
+          // If no category name, use first category node or 0
+          const firstCategoryNode = dataValue.nodes.find((n) => !n.isleaf);
+          setParentIndex(firstCategoryNode?.index ?? 0);
+        }
       }
+      setIsModalOpen(true);
     } else {
       // If it's a parent node (category), we can edit the category name
       // For categories, we'll set the parentIndex to the category itself
@@ -395,7 +446,10 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
    */
   const handleEditFromCategory = (nodeIndex: number, categoryIndex: number) => {
     const clickedNode = dataValue.nodes.find((n) => n.index === nodeIndex);
-    if (!clickedNode) return;
+    if (!clickedNode) {
+      console.warn("Clicked node not found for index:", nodeIndex);
+      return;
+    }
 
     setNodeIndex(nodeIndex);
     setNode(clickedNode);
@@ -405,10 +459,42 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
     const parentLink = dataValue.links.find(
       (link) => link.target === nodeIndex
     );
+    
     if (parentLink) {
       setParentIndex(parentLink.source);
-      setIsModalOpen(true);
+    } else {
+      // If no parent link found, try to find parent by category name or use categoryIndex
+      const categoryName = clickedNode.category;
+      if (categoryName) {
+        const parentNode = dataValue.nodes.find(
+          (n) => !n.isleaf && n.name === categoryName
+        );
+        if (parentNode) {
+          setParentIndex(parentNode.index);
+        } else {
+          // Use the categoryIndex if it's a valid node index
+          const categoryNode = dataValue.nodes.find((n) => n.index === categoryIndex);
+          if (categoryNode) {
+            setParentIndex(categoryIndex);
+          } else {
+            // Last resort: use first category node or 0
+            const firstCategoryNode = dataValue.nodes.find((n) => !n.isleaf);
+            setParentIndex(firstCategoryNode?.index ?? 0);
+          }
+        }
+      } else {
+        // Use categoryIndex if available, otherwise use first category node
+        const categoryNode = dataValue.nodes.find((n) => n.index === categoryIndex);
+        if (categoryNode) {
+          setParentIndex(categoryIndex);
+        } else {
+          const firstCategoryNode = dataValue.nodes.find((n) => !n.isleaf);
+          setParentIndex(firstCategoryNode?.index ?? 0);
+        }
+      }
     }
+    
+    setIsModalOpen(true);
   };
 
   /**
@@ -1190,139 +1276,171 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
     metaTotals?.creditCardPaymentsTotal,
   ]);
 
+  const sidebarLinks = [
+    {
+      label: "Home",
+      href: "/",
+      icon: <FiHome className="h-5 w-5 flex-shrink-0" style={{ color: theme.text.primary }} />,
+    },
+    {
+      label: "TreeMap",
+      href: "#",
+      icon: <FiBarChart2 className="h-5 w-5 flex-shrink-0" style={{ color: theme.text.primary }} />,
+      onClick: () => setViewMode("treemap"),
+    },
+    {
+      label: "Calendar",
+      href: "#",
+      icon: <FiCalendar className="h-5 w-5 flex-shrink-0" style={{ color: theme.text.primary }} />,
+      onClick: () => setViewMode("calendar"),
+    },
+    {
+      label: "Table",
+      href: "#",
+      icon: <FiGrid className="h-5 w-5 flex-shrink-0" style={{ color: theme.text.primary }} />,
+      onClick: () => setViewMode("table"),
+    },
+    {
+      label: "Editor",
+      href: "#",
+      icon: <FiEdit3 className="h-5 w-5 flex-shrink-0" style={{ color: theme.text.primary }} />,
+      onClick: () => setViewMode("editor"),
+    },
+    {
+      label: "Trends",
+      href: "/trends",
+      icon: <FiTrendingUp className="h-5 w-5 flex-shrink-0" style={{ color: theme.text.primary }} />,
+      onClick: () => {
+        setIsViewTrendsLoading(true);
+      },
+    },
+    {
+      label: "Upload",
+      href: "/",
+      icon: <FiUpload className="h-5 w-5 flex-shrink-0" style={{ color: theme.text.primary }} />,
+    },
+  ];
+
   return (
-    <div className="relative min-h-screen overflow-x-auto bg-background-primary text-text-primary">
-      <header className="sticky top-0 z-50 border-b border-border-secondary bg-background-secondary/70 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
-          <div className="flex items-center gap-3">
+    <div className="flex h-screen w-full overflow-hidden bg-background-primary text-text-primary">
+      <Sidebar open={sidebarOpen} setOpen={setSidebarOpen}>
+        <SidebarBody className="justify-between gap-4" style={{ backgroundColor: theme.background.secondary, borderRight: `1px solid ${theme.border.secondary}` }}>
+          <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
+            {/* Logo */}
+            {sidebarOpen ? (
+              <div className="font-normal flex space-x-2 items-center py-2 relative z-20">
+                <div className="h-6 w-6 rounded-lg flex-shrink-0" style={{ background: `linear-gradient(135deg, ${theme.primary[500]}, ${theme.secondary[500]})` }} />
+                <motion.span
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="font-bold text-sm whitespace-pre"
+                  style={{ color: theme.text.primary }}
+                >
+                  Expenses Tracker
+                </motion.span>
+              </div>
+            ) : (
+              <div className="font-normal flex justify-center items-center py-2 relative z-20">
+                <div className="h-6 w-6 rounded-lg flex-shrink-0" style={{ background: `linear-gradient(135deg, ${theme.primary[500]}, ${theme.secondary[500]})` }} />
+              </div>
+            )}
+
+            {/* Navigation Links */}
+            <div className="mt-4 flex flex-col gap-0.5">
+              {sidebarLinks.map((link, idx) => (
+                <SidebarLink
+                  key={idx}
+                  link={link}
+                  className={viewMode === link.label.toLowerCase() ? "bg-background-tertiary" : ""}
+                  {...(link.onClick && {
+                    onClick: (e: React.MouseEvent) => {
+                      e.preventDefault();
+                      link.onClick?.();
+                    },
+                  })}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Bottom Section */}
+          <div className="flex flex-col gap-1.5 pt-3 border-t" style={{ borderColor: theme.border.secondary }}>
+            {/* Settings */}
             <button
-              type="button"
-              onClick={() => router.push("/")}
-              className="inline-flex items-center gap-2 rounded-full border border-border-secondary bg-background-card px-4 py-2 text-sm font-medium text-text-primary transition hover:border-border-focus hover:bg-background-tertiary"
+              onClick={() => setIsLLMSettingsOpen(true)}
+              className="flex items-center gap-2.5 px-2 py-2 rounded-lg transition hover:bg-opacity-10"
+              style={{ color: theme.text.secondary }}
             >
-              ← Back to Home
+              <FiSettings className="h-4 w-4 flex-shrink-0" />
+              {sidebarOpen && <span className="text-sm font-medium">Settings</span>}
             </button>
+
+            {/* User Profile */}
+            {user && (
+              <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg" style={{ backgroundColor: theme.background.tertiary }}>
+                <div
+                  className="h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 font-semibold text-xs"
+                  style={{ backgroundColor: theme.primary[500], color: theme.text.inverse }}
+                >
+                  {user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || "U"}
+                </div>
+                {sidebarOpen && (
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate" style={{ color: theme.text.primary }}>
+                      {user.name || user.email}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Logout */}
             <button
-              type="button"
-              onClick={() => router.push("/trends")}
-              className="inline-flex items-center gap-2 rounded-full border border-border-secondary bg-gradient-to-r from-secondary-500 to-accent-500 px-4 py-2 text-sm font-medium text-text-inverse transition hover:from-secondary-600 hover:to-accent-600"
+              onClick={() => signOut({ callbackUrl: "/" })}
+              className="flex items-center gap-2.5 px-2 py-2 rounded-lg transition hover:bg-red-500/10"
+              style={{ color: theme.text.secondary }}
             >
-              📈 View Trends
+              <FiLogOut className="h-4 w-4 flex-shrink-0" />
+              {sidebarOpen && <span className="text-sm font-medium">Logout</span>}
             </button>
           </div>
-          <div className="text-center">
-            <p className="text-xs uppercase tracking-[0.3em] text-text-tertiary">
-              Editing Month
+        </SidebarBody>
+      </Sidebar>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden relative">
+        {/* Top Bar */}
+        <div className="border-b px-4 py-3 flex items-center justify-between" style={{ backgroundColor: theme.background.secondary, borderColor: theme.border.secondary }}>
+          <div className="flex-1">
+            {/* Sync Notification */}
+            {syncNotification && (
+              <div
+                className={`px-4 py-2 rounded-lg text-sm font-medium inline-block ${
+                  syncNotification.type === "success"
+                    ? "bg-green-500/20 text-green-300 border border-green-500/30"
+                    : "bg-red-500/20 text-red-300 border border-red-500/30"
+                }`}
+              >
+                {syncNotification.message}
+              </div>
+            )}
+          </div>
+
+          {/* Month Display - Center */}
+          <div className="flex-1 text-center">
+            <p className="text-xs uppercase tracking-[0.3em]" style={{ color: theme.text.tertiary }}>
+              Transaction Month
             </p>
-            <p className="text-lg font-semibold text-text-primary">
+            <p className="text-lg font-bold" style={{ color: theme.text.primary }}>
               {month.toUpperCase()}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            {/* Theme Switcher */}
-            <ThemeSwitcher />
 
-            {/* LLM Settings Button */}
-            <button
-              type="button"
-              onClick={() => setIsLLMSettingsOpen(true)}
-              className="inline-flex items-center justify-center rounded-full bg-background-card border border-border-secondary p-2 text-text-secondary transition hover:text-text-primary hover:bg-background-tertiary"
-              title="LLM Provider Settings"
-            >
-              <FiSettings size={18} />
-            </button>
-
-            {/* Tab Navigation */}
-            <div className="flex rounded-full border border-border-secondary bg-background-card p-1">
-              <button
-                type="button"
-                onClick={() => setViewMode("treemap")}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition ${
-                  viewMode === "treemap"
-                    ? "bg-primary-500 text-text-inverse"
-                    : "text-text-secondary hover:text-text-primary hover:bg-background-tertiary"
-                }`}
-              >
-                <FiBarChart2 size={16} />
-                TreeMap
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("calendar")}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition ${
-                  viewMode === "calendar"
-                    ? "bg-primary-500 text-text-inverse"
-                    : "text-text-secondary hover:text-text-primary hover:bg-background-tertiary"
-                }`}
-              >
-                <FiCalendar size={16} />
-                Calendar
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("table")}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition ${
-                  viewMode === "table"
-                    ? "bg-primary-500 text-text-inverse"
-                    : "text-text-secondary hover:text-text-primary hover:bg-background-tertiary"
-                }`}
-              >
-                <FiGrid size={16} />
-                Table
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("editor")}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition ${
-                  viewMode === "editor"
-                    ? "bg-primary-500 text-text-inverse"
-                    : "text-text-secondary hover:text-text-primary hover:bg-background-tertiary"
-                }`}
-              >
-                <FiEdit3 size={16} />
-                Editor
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsAddModalOpen(true)}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-primary-500 px-4 py-2 text-sm font-semibold text-text-inverse shadow transition hover:bg-primary-600"
-            >
-              <FiPlus size={16} />
-              Add Transaction
-            </button>
-            <button
-              type="button"
-              onClick={sendDataToFirebase}
-              disabled={syncDisabled}
-              className={`inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-text-inverse shadow transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                hasUnsavedChanges
-                  ? "bg-red-500 hover:bg-red-600 animate-pulse"
-                  : "bg-accent-500 hover:bg-accent-600"
-              }`}
-            >
-              {syncDisabled && isLoading ? (
-                <>
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-text-inverse/40 border-t-transparent" />
-                  Loading…
-                </>
-              ) : (
-                <>
-                  {hasUnsavedChanges && (
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-                    </span>
-                  )}
-                  Sync to Cloud
-                </>
-              )}
-            </button>
-          </div>
+          <div className="flex-1"></div>
         </div>
-      </header>
 
-      <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pb-16 pt-6 sm:px-6 lg:px-8">
+        {/* Content Area */}
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
         {error && (
           <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-200">
             {error}
@@ -1519,16 +1637,61 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
         {chartReady && session?.user?.email && month && (
           <UploadedFilesPanel userEmail={session.user.email} month={month} />
         )}
-      </main>
+        </main>
 
+        {/* Floating Action Buttons - Bottom Right */}
+        <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-40">
+          <button
+            type="button"
+            onClick={() => setIsAddModalOpen(true)}
+            className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold shadow-lg transition-transform hover:scale-95 active:scale-90"
+            style={{ backgroundColor: theme.primary[500], color: theme.text.inverse }}
+          >
+            <FiPlus size={18} />
+            Add Transaction
+          </button>
+          <button
+            type="button"
+            onClick={sendDataToFirebase}
+            disabled={syncDisabled}
+            className={`inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold shadow-lg transition-transform hover:scale-95 active:scale-90 disabled:cursor-not-allowed disabled:opacity-50`}
+            style={{
+              backgroundColor: hasUnsavedChanges ? "#ef4444" : theme.accent[500],
+              color: theme.text.inverse,
+            }}
+          >
+            {syncDisabled && isLoading ? (
+              <>
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-transparent" />
+                Loading…
+              </>
+            ) : (
+              <>
+                {hasUnsavedChanges && (
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                  </span>
+                )}
+                Sync to Cloud
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Modals */}
       {isModalOpen &&
-        parentIndex !== null &&
         nodeIndex !== null &&
         clickedNode !== null && (
           <InputModal
             clickedNode={clickedNode}
             initialParentName={
-              dataValue.nodes.find((n) => n.index === parentIndex)?.name || ""
+              parentIndex !== null
+                ? dataValue.nodes.find((n) => n.index === parentIndex)?.name ||
+                  clickedNode.category ||
+                  ""
+                : clickedNode.category || ""
             }
             initialPrice={(
               dataValue.nodes.find((n) => n.index === nodeIndex)?.value ??

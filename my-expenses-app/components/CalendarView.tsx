@@ -67,12 +67,32 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   onEditTransaction,
 }) => {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Get the month number and year
   const { monthNumber, year } = useMemo(() => {
-    const monthNumber = MONTH_NAMES[month.toLowerCase()] ?? 0;
-    // Use current year by default
-    const year = new Date().getFullYear();
+    const monthLower = month.toLowerCase().trim();
+    // Try to find month in the mapping
+    let monthNum = MONTH_NAMES[monthLower];
+    
+    // If not found, try to extract from strings like "January 2025" or "jan 2025"
+    if (monthNum === undefined) {
+      const parts = monthLower.split(/\s+/);
+      for (const part of parts) {
+        if (MONTH_NAMES[part] !== undefined) {
+          monthNum = MONTH_NAMES[part];
+          break;
+        }
+      }
+    }
+    
+    // Default to current month if still not found
+    const monthNumber = monthNum ?? new Date().getMonth();
+    
+    // Try to extract year from month string (e.g., "January 2025")
+    const yearMatch = month.match(/\b(20\d{2})\b/);
+    const year = yearMatch ? parseInt(yearMatch[1], 10) : new Date().getFullYear();
+    
     return { monthNumber, year };
   }, [month]);
 
@@ -90,20 +110,44 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       if (!transaction.date) return;
 
       try {
-        const transactionDate = new Date(transaction.date);
-        // Only include transactions from the current month
-        if (
-          transactionDate.getMonth() === monthNumber &&
-          transactionDate.getFullYear() === year
-        ) {
-          const day = transactionDate.getDate();
-          if (!grouped.has(day)) {
-            grouped.set(day, []);
+        // Try multiple date parsing strategies
+        let transactionDate: Date | null = null;
+        
+        // Strategy 1: Direct Date constructor
+        const dateStr = String(transaction.date).trim();
+        transactionDate = new Date(dateStr);
+        
+        // Strategy 2: If invalid, try parsing common formats
+        if (isNaN(transactionDate.getTime())) {
+          // Try MM/DD/YYYY or YYYY-MM-DD
+          const parts = dateStr.split(/[-\/]/);
+          if (parts.length === 3) {
+            if (parts[0].length === 4) {
+              // YYYY-MM-DD format
+              transactionDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            } else {
+              // MM/DD/YYYY format
+              transactionDate = new Date(parseInt(parts[2]), parseInt(parts[0]) - 1, parseInt(parts[1]));
+            }
           }
-          grouped.get(day)!.push(transaction);
         }
-      } catch {
-        console.warn("Invalid date format:", transaction.date);
+        
+        // Only process if we have a valid date
+        if (transactionDate && !isNaN(transactionDate.getTime())) {
+          // Only include transactions from the current month
+          if (
+            transactionDate.getMonth() === monthNumber &&
+            transactionDate.getFullYear() === year
+          ) {
+            const day = transactionDate.getDate();
+            if (!grouped.has(day)) {
+              grouped.set(day, []);
+            }
+            grouped.get(day)!.push(transaction);
+          }
+        }
+      } catch (error) {
+        console.warn("Invalid date format:", transaction.date, error);
       }
     });
 
@@ -178,6 +222,18 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     );
   }, [selectedDay, calendarDays]);
 
+  // Handle ESC key to close modal
+  React.useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isModalOpen) {
+        setIsModalOpen(false);
+        setSelectedDay(null);
+      }
+    };
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [isModalOpen]);
+
   return (
     <div className="space-y-6">
       {/* Calendar Header */}
@@ -222,9 +278,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 key={index}
                 onClick={() => {
                   if (dayData.isCurrentMonth && hasTransactions) {
-                    setSelectedDay(
-                      isSelected ? null : dayData.date
-                    );
+                    setSelectedDay(dayData.date);
+                    setIsModalOpen(true);
                   }
                 }}
                 className={`
@@ -257,6 +312,21 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                             {dayData.transactions.length} transaction
                             {dayData.transactions.length !== 1 ? "s" : ""}
                           </div>
+                          <div className="space-y-0.5">
+                            {dayData.transactions.slice(0, 2).map((transaction) => (
+                              <div
+                                key={transaction.index}
+                                className="truncate text-[10px] text-text-secondary"
+                              >
+                                • {transaction.name}
+                              </div>
+                            ))}
+                            {dayData.transactions.length > 2 && (
+                              <div className="text-[10px] text-text-tertiary">
+                                +{dayData.transactions.length - 2} more
+                              </div>
+                            )}
+                          </div>
                         </div>
                         {/* Indicator dots for number of transactions */}
                         <div className="absolute bottom-2 left-2 right-2 flex gap-0.5 flex-wrap">
@@ -282,79 +352,117 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       </div>
 
-      {/* Selected Day Details */}
-      {selectedDayData && (
-        <div className="rounded-xl border border-border-secondary bg-background-card p-6 animate-in slide-in-from-bottom-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-text-primary">
-              {MONTH_NAMES_FULL[monthNumber]} {selectedDayData.date}, {year}
-            </h3>
-            <button
-              onClick={() => setSelectedDay(null)}
-              className="text-text-secondary hover:text-text-primary text-sm"
+      {/* Selected Day Modal */}
+      {isModalOpen && selectedDayData && (
+        <div
+          className="glass-backdrop fixed inset-0 z-[9999] flex items-center justify-center p-4"
+          style={{ 
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            overflow: 'auto'
+          }}
+          onClick={() => {
+            setIsModalOpen(false);
+            setSelectedDay(null);
+          }}
+        >
+          <div
+            className="glass-modal w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col relative"
+            style={{
+              position: 'relative',
+              margin: 'auto',
+              zIndex: 10000
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-6 border-b border-border-secondary/40 bg-background-secondary/40">
+              <div>
+                <h3 className="text-xl font-semibold text-text-primary">
+                  {MONTH_NAMES_FULL[monthNumber]} {selectedDayData.date}, {year}
+                </h3>
+                <p className="text-sm text-text-secondary mt-1">
+                  {selectedDayData.transactions.length} transaction
+                  {selectedDayData.transactions.length !== 1 ? "s" : ""} •{" "}
+                  {formatCurrency(selectedDayData.total)}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsModalOpen(false);
+                  setSelectedDay(null);
+                }}
+                className="rounded-full p-2 text-text-secondary transition hover:bg-white/10 hover:text-text-primary"
+                aria-label="Close day details"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div 
+              className="p-6 overflow-y-auto space-y-2 flex-1"
+              style={{ maxHeight: 'calc(90vh - 120px)' }}
             >
-              ✕ Close
-            </button>
-          </div>
+              {selectedDayData.transactions.length > 0 ? (
+                selectedDayData.transactions
+                  .sort((a, b) => (b.cost || 0) - (a.cost || 0))
+                  .map((transaction) => {
+                  const parentLink = links.find(
+                    (link) => link.target === transaction.index
+                  );
+                  const category = parentLink
+                    ? nodes.find((n) => n.index === parentLink.source)?.name
+                    : "Uncategorized";
 
-          <div className="mb-4 p-4 rounded-lg bg-background-secondary">
-            <div className="text-2xl font-bold text-primary-500">
-              {formatCurrency(selectedDayData.total)}
+                  return (
+                    <button
+                      key={transaction.index}
+                      onClick={() => {
+                        if (onEditTransaction) {
+                          onEditTransaction(transaction.index);
+                        }
+                        setIsModalOpen(false);
+                        setSelectedDay(null);
+                      }}
+                      className="w-full flex items-center justify-between gap-3 rounded-2xl border border-border-secondary bg-background-secondary/60 px-4 py-3 text-left transition hover:border-primary-500 hover:bg-background-tertiary/60"
+                    >
+                      <div className="flex-1">
+                        <p className="font-semibold text-text-primary">
+                          {transaction.name}
+                        </p>
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-text-secondary">
+                          <span className="px-2 py-0.5 rounded-full bg-background-card border border-border-secondary">
+                            {category}
+                          </span>
+                          {transaction.location &&
+                            transaction.location !== "None" && (
+                              <span>📍 {transaction.location}</span>
+                            )}
+                          {transaction.bank &&
+                            transaction.bank !== "Unknown Bank" && (
+                              <span>💳 {transaction.bank}</span>
+                            )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-text-primary">
+                          {formatCurrency(transaction.cost || 0)}
+                        </p>
+                        <p className="text-xs text-text-tertiary">
+                          Tap to edit
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })
+              ) : (
+                <div className="text-center text-text-tertiary py-8">
+                  No transactions recorded for this day.
+                </div>
+              )}
             </div>
-            <div className="text-sm text-text-secondary mt-1">
-              {selectedDayData.transactions.length} transaction
-              {selectedDayData.transactions.length !== 1 ? "s" : ""}
-            </div>
-          </div>
-
-          {/* Transaction List */}
-          <div className="space-y-2">
-            {selectedDayData.transactions
-              .sort((a, b) => (b.cost || 0) - (a.cost || 0))
-              .map((transaction) => {
-                // Find category for this transaction
-                const parentLink = links.find(
-                  (link) => link.target === transaction.index
-                );
-                const category = parentLink
-                  ? nodes.find((n) => n.index === parentLink.source)?.name
-                  : "Uncategorized";
-
-                return (
-                  <div
-                    key={transaction.index}
-                    onClick={() => {
-                      if (onEditTransaction) {
-                        onEditTransaction(transaction.index);
-                      }
-                    }}
-                    className="flex items-center justify-between p-3 rounded-lg bg-background-secondary hover:bg-background-tertiary border border-border-secondary cursor-pointer transition-all hover:border-primary-500"
-                  >
-                    <div className="flex-1">
-                      <div className="font-medium text-text-primary">
-                        {transaction.name}
-                      </div>
-                      <div className="flex items-center gap-2 mt-1 text-xs text-text-secondary">
-                        <span className="px-2 py-0.5 rounded-full bg-background-card border border-border-secondary">
-                          {category}
-                        </span>
-                        {transaction.location &&
-                          transaction.location !== "None" && (
-                            <span>📍 {transaction.location}</span>
-                          )}
-                        {transaction.bank && transaction.bank !== "Unknown Bank" && (
-                          <span>💳 {transaction.bank}</span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold text-text-primary">
-                        {formatCurrency(transaction.cost || 0)}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
           </div>
         </div>
       )}

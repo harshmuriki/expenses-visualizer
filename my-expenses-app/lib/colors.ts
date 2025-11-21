@@ -104,19 +104,19 @@ export interface ColorTheme {
   categories: string[];
 }
 
-// Ocean Theme - Modern, sophisticated dark theme with excellent contrast
+// Ocean Theme - Cool blue glassmorphism palette
 export const oceanTheme: ColorTheme = {
   primary: {
-    50: "#f0f9ff",
-    100: "#e0f2fe",
-    200: "#bae6fd",
-    300: "#7dd3fc",
-    400: "#38bdf8",
-    500: "#0ea5e9", // sky-500
-    600: "#0284c7",
-    700: "#0369a1",
-    800: "#075985",
-    900: "#0c4a6e",
+    50: "#eef7ff",
+    100: "#d9ecff",
+    200: "#b5d9ff",
+    300: "#8ec4ff",
+    400: "#63a8ff",
+    500: "#3b82f6",
+    600: "#2563eb",
+    700: "#1d4ed8",
+    800: "#1e40af",
+    900: "#172b72",
   },
 
   secondary: {
@@ -125,7 +125,7 @@ export const oceanTheme: ColorTheme = {
     200: "#a5f3fc",
     300: "#67e8f9",
     400: "#22d3ee",
-    500: "#06b6d4", // cyan-500
+    500: "#06b6d4",
     600: "#0891b2",
     700: "#0e7490",
     800: "#155e75",
@@ -133,81 +133,82 @@ export const oceanTheme: ColorTheme = {
   },
 
   accent: {
-    50: "#f0fdfa",
-    100: "#ccfbf1",
-    200: "#99f6e4",
-    300: "#5eead4",
-    400: "#2dd4bf",
-    500: "#14b8a6", // teal-500
-    600: "#0d9488",
-    700: "#0f766e",
-    800: "#115e59",
-    900: "#134e4a",
+    50: "#f4f4ff",
+    100: "#e4e4ff",
+    200: "#c7c9ff",
+    300: "#a5a8ff",
+    400: "#8b90ff",
+    500: "#6d72ff",
+    600: "#585ae6",
+    700: "#4546bf",
+    800: "#333495",
+    900: "#232466",
   },
 
   neutral: {
-    50: "#f8fafc",
-    100: "#f1f5f9",
-    200: "#e2e8f0",
-    300: "#cbd5e1",
-    400: "#94a3b8",
-    500: "#64748b",
-    600: "#475569",
-    700: "#334155",
-    800: "#1e293b",
-    900: "#0f172a",
-    950: "#020617",
+    50: "#f5f7fb",
+    100: "#e4e8f2",
+    200: "#c5ccdc",
+    300: "#a5aec6",
+    400: "#828cab",
+    500: "#626c8a",
+    600: "#4b536d",
+    700: "#353c4f",
+    800: "#1d2232",
+    900: "#0d111e",
+    950: "#05060d",
   },
 
   semantic: {
-    success: "#22c55e", // Brighter green for better visibility
-    warning: "#f59e0b",
-    error: "#ef4444",
-    info: "#3b82f6",
+    success: "#22d3a6",
+    warning: "#fbbf24",
+    error: "#fb7185",
+    info: "#38bdf8",
   },
 
   background: {
-    primary: "#0a0f1a", // Deeper, richer dark blue
-    secondary: "#131b2e",
-    tertiary: "#1e293b",
-    glass: "rgba(19, 27, 46, 0.7)",
-    card: "rgba(19, 27, 46, 0.6)",
+    primary: "#020617",
+    secondary: "#030b1f",
+    tertiary: "#07142e",
+    glass: "rgba(5, 12, 31, 0.78)",
+    card: "rgba(7, 18, 40, 0.65)",
   },
 
   text: {
-    primary: "#ffffff", // Pure white for maximum contrast
-    secondary: "#cbd5e1",
-    tertiary: "#94a3b8",
-    inverse: "#0a0f1a",
+    primary: "#f8fbff",
+    secondary: "#c7d7ff",
+    tertiary: "#95a4cc",
+    inverse: "#040713",
   },
 
   border: {
-    primary: "#334155",
-    secondary: "#1e293b",
-    focus: "#0ea5e9",
-    glass: "rgba(51, 65, 85, 0.4)",
+    primary: "rgba(99, 178, 255, 0.35)",
+    secondary: "rgba(255, 255, 255, 0.08)",
+    focus: "#38bdf8",
+    glass: "rgba(120, 180, 255, 0.4)",
   },
 
   gradients: {
-    primary: "from-sky-500 to-cyan-500",
-    secondary: "from-cyan-500 to-teal-500",
-    accent: "from-teal-500 to-emerald-500",
-    background: "from-slate-900 via-slate-800 to-slate-900",
+    primary: "linear-gradient(130deg, #3b82f6 0%, #06b6d4 45%, #22d3ee 100%)",
+    secondary: "linear-gradient(140deg, #2563eb 0%, #6d72ff 100%)",
+    accent: "linear-gradient(125deg, #0ea5e9, #22d3ee, #34d399)",
+    background:
+      "radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.25), transparent 55%), radial-gradient(circle at 80% 0%, rgba(6, 182, 212, 0.25), transparent 45%)",
   },
 
   categories: [
-    "#3b82f6", // Blue - for major categories
-    "#8b5cf6", // Purple - housing/utilities
-    "#ec4899", // Pink - entertainment
-    "#f59e0b", // Amber - food/dining
-    "#10b981", // Emerald - income/savings
-    "#06b6d4", // Cyan - transportation
-    "#ef4444", // Red - bills/debt
-    "#a855f7", // Violet - health
-    "#14b8a6", // Teal - shopping
-    "#f97316", // Orange - subscriptions
-    "#22c55e", // Green - investments
-    "#6366f1", // Indigo - misc
+    "#60a5fa",
+    "#38bdf8",
+    "#0ea5e9",
+    "#22d3ee",
+    "#34d399",
+    "#2dd4bf",
+    "#7dd3fc",
+    "#93c5fd",
+    "#818cf8",
+    "#a5b4fc",
+    "#c084fc",
+    "#67e8f9",
   ],
 };
 

@@ -121,7 +121,7 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
         fill="#fff"
         fontSize={fontSize}
         fontWeight="600"
-        fontFamily="'Inter', 'Segoe UI', 'Arial', sans-serif"
+        fontFamily="'Inter', sans-serif"
         style={{
           transition: "fill 0.3s, font-size 0.3s",
           pointerEvents: "none",
@@ -140,7 +140,7 @@ export const MyCustomNode: React.FC<MyCustomNodeProps> = ({
         opacity={0.95}
         fontSize={isLeafNode ? 12 : 13}
         fontWeight="600"
-        fontFamily="'Inter', 'Segoe UI', 'Arial', sans-serif"
+        fontFamily="'Inter', sans-serif"
         style={{
           transition: "fill 0.3s, font-size 0.3s",
           pointerEvents: "none",

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { InputModalProps } from "@/app/types/types";
 import { useTheme } from "@/lib/theme-context";
 
@@ -18,6 +19,12 @@ const InputModal: React.FC<InputModalProps> = ({
   const [newTransactionName, setNewTransactionName] = useState(
     clickedNode.name
   );
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   const handleSubmit = useCallback(() => {
     const parsedPrice = parseFloat(newPrice);
@@ -55,49 +62,32 @@ const InputModal: React.FC<InputModalProps> = ({
     };
   }, [newParentName, newPrice, handleSubmit, onClose]);
 
-  return (
-    <div
-      style={{
-        position: "fixed",
-        top: "50%",
-        left: "50%",
-        transform: "translate(-50%, -50%)",
-        backgroundColor: theme.background.secondary,
-        padding: "40px",
-        borderRadius: "20px",
-        boxShadow: "0 20px 60px rgba(0, 0, 0, 0.5)",
-        border: `1px solid ${theme.border.primary}`,
-        color: theme.text.primary,
-        maxWidth: "500px",
-        width: "100%",
-        boxSizing: "border-box",
-        fontFamily: "Arial, sans-serif",
-        zIndex: 9999,
-      }}
-    >
-      <h3
-        style={{
-          margin: "0 0 20px",
-          fontSize: "1.8rem",
-          textAlign: "center",
-          background: `linear-gradient(to right, ${theme.secondary[500]}, ${theme.accent[500]})`,
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-          backgroundClip: "text",
-          fontWeight: "bold",
-        }}
+  if (!mounted) return null;
+
+  const modalContent = (
+    <>
+      {/* Glass Backdrop */}
+      <div
+        className="glass-backdrop fixed inset-0"
+        style={{ zIndex: 9998 }}
+        onClick={onClose}
+      />
+
+      {/* Scrollable Modal Container */}
+      <div
+        className="fixed inset-0 overflow-y-auto flex items-center justify-center p-4 pointer-events-none"
+        style={{ zIndex: 9999 }}
       >
-        {clickedNode.isleaf ? "Update Transaction" : "Update Category"}
-      </h3>
-      <h2
-        style={{
-          margin: "10px 0 20px",
-          fontSize: "1.1rem",
-          textAlign: "center",
-          color: theme.text.secondary,
-        }}
-      >
-        {clickedNode.isleaf ? "Transaction" : "Category"}:{" "}
+        {/* Glass Modal */}
+        <div
+          className="glass-modal p-10 max-w-[500px] w-full pointer-events-auto my-8"
+          onClick={(e) => e.stopPropagation()}
+        >
+        <h3 className="text-3xl font-bold text-center mb-4 bg-gradient-to-r from-sky-400 to-cyan-400 bg-clip-text text-transparent">
+          {clickedNode.isleaf ? "Update Transaction" : "Update Category"}
+        </h3>
+        <h2 className="text-lg text-center mb-6 text-text-secondary">
+          {clickedNode.isleaf ? "Transaction" : "Category"}:{" "}
         <span style={{ fontWeight: "600", color: theme.primary[500] }}>
           {clickedNode.name}
         </span>
@@ -120,7 +110,7 @@ const InputModal: React.FC<InputModalProps> = ({
             style={{
               width: "100%",
               padding: "12px",
-              borderRadius: "10px",
+              borderRadius: "20px",
               border: `1px solid ${theme.border.primary}`,
               backgroundColor: theme.background.primary,
               color: theme.text.primary,
@@ -138,15 +128,8 @@ const InputModal: React.FC<InputModalProps> = ({
       )}
 
       {/* Name Edit Field */}
-      <div style={{ marginBottom: "20px" }}>
-        <label
-          style={{
-            display: "block",
-            marginBottom: "8px",
-            fontWeight: "600",
-            color: theme.text.secondary,
-          }}
-        >
+      <div className="mb-5">
+        <label className="glass-label">
           {clickedNode.isleaf ? "Transaction Name:" : "Category Name:"}
         </label>
         <input
@@ -158,90 +141,27 @@ const InputModal: React.FC<InputModalProps> = ({
               ? "Enter transaction name"
               : "Enter category name"
           }
-          style={{
-            width: "100%",
-            padding: "12px",
-            borderRadius: "10px",
-            border: `1px solid ${theme.border.primary}`,
-            backgroundColor: theme.background.primary,
-            color: theme.text.primary,
-            boxSizing: "border-box",
-            fontSize: "1rem",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = theme.primary[500];
-            e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = theme.border.primary;
-            e.currentTarget.style.boxShadow = "none";
-          }}
-          onFocus={(e) => {
-            e.currentTarget.style.borderColor = theme.primary[500];
-            e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
-          }}
-          onBlur={(e) => {
-            e.currentTarget.style.borderColor = theme.border.primary;
-            e.currentTarget.style.boxShadow = "none";
-          }}
+          className="glass-input"
         />
       </div>
 
       {/* Category Selection - only for transactions */}
       {clickedNode.isleaf && (
-        <div style={{ marginBottom: "20px" }}>
-          <label
-            style={{
-              display: "block",
-              marginBottom: "8px",
-              fontWeight: "600",
-              color: theme.text.secondary,
-            }}
-          >
+        <div className="mb-5">
+          <label className="glass-label">
             New Category:
           </label>
           <select
             value={isCreatingNewParent ? "createNew" : newParentName}
             onChange={handleParentChange}
-            style={{
-              width: "100%",
-              padding: "12px",
-              borderRadius: "10px",
-              border: `1px solid ${theme.border.primary}`,
-              backgroundColor: theme.background.primary,
-              color: theme.text.primary,
-              boxSizing: "border-box",
-              fontSize: "1rem",
-              cursor: "pointer",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = theme.primary[500];
-              e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = theme.border.primary;
-              e.currentTarget.style.boxShadow = "none";
-            }}
+            className="glass-select"
           >
             {parentOptions.map((parent) => (
-              <option
-                key={parent}
-                value={parent}
-                style={{
-                  backgroundColor: theme.background.secondary,
-                  color: theme.text.primary,
-                }}
-              >
+              <option key={parent} value={parent}>
                 {parent}
               </option>
             ))}
-            <option
-              value="createNew"
-              style={{
-                backgroundColor: theme.background.secondary,
-                color: theme.text.primary,
-              }}
-            >
+            <option value="createNew">
               Create New Category
             </option>
           </select>
@@ -251,176 +171,50 @@ const InputModal: React.FC<InputModalProps> = ({
               value={newParentName}
               onChange={(e) => setNewParentName(e.target.value)}
               placeholder="Enter new category name"
-              style={{
-                width: "100%",
-                padding: "12px",
-                marginTop: "12px",
-                borderRadius: "10px",
-                border: `1px solid ${theme.secondary[500]}`,
-                backgroundColor: theme.background.primary,
-                color: theme.text.primary,
-                boxSizing: "border-box",
-                fontSize: "1rem",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = theme.primary[500];
-                e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = theme.secondary[500];
-                e.currentTarget.style.boxShadow = "none";
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = theme.primary[500];
-                e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.borderColor = theme.secondary[500];
-                e.currentTarget.style.boxShadow = "none";
-              }}
+              className="glass-input mt-3"
             />
           )}
         </div>
       )}
 
-      {/* Price Field - only for transactions */}
+      {/* Price Edit Field */}
       {clickedNode.isleaf && (
-        <div style={{ marginBottom: "25px" }}>
-          <label
-            style={{
-              display: "block",
-              marginBottom: "8px",
-              fontWeight: "600",
-              color: theme.text.secondary,
-            }}
-          >
+        <div className="mb-6">
+          <label className="glass-label">
             New Price:
           </label>
           <input
-            type="text"
+            type="number"
+            step="0.01"
             value={newPrice}
             onChange={(e) => setNewPrice(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "12px",
-              borderRadius: "10px",
-              border: `1px solid ${theme.border.primary}`,
-              backgroundColor: theme.background.primary,
-              color: theme.accent[500],
-              boxSizing: "border-box",
-              fontSize: "1.1rem",
-              fontWeight: "600",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = theme.primary[500];
-              e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = theme.border.primary;
-              e.currentTarget.style.boxShadow = "none";
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.borderColor = theme.primary[500];
-              e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary[500]}20`;
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.borderColor = theme.border.primary;
-              e.currentTarget.style.boxShadow = "none";
-            }}
+            placeholder="Enter new price"
+            className="glass-input text-xl font-semibold"
+            style={{ color: theme.accent[500] }}
           />
         </div>
       )}
-      {/* Delete button - only show for leaf nodes (transactions) */}
-      {clickedNode.isleaf && onDelete && (
-        <div style={{ marginBottom: "16px" }}>
-          <button
-            onClick={() => {
-              if (window.confirm(`Are you sure you want to delete "${clickedNode.name}"?`)) {
-                onDelete();
-                onClose();
-              }
-            }}
-            style={{
-              width: "100%",
-              background: `linear-gradient(to right, #991b1b, #7f1d1d)`,
-              color: "white",
-              border: "none",
-              padding: "12px 24px",
-              borderRadius: "10px",
-              cursor: "pointer",
-              fontSize: "0.95rem",
-              fontWeight: "600",
-              boxShadow: `0 4px 12px rgba(153, 27, 27, 0.3)`,
-              transition: "all 0.3s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = "scale(1.02)";
-              e.currentTarget.style.background = "linear-gradient(to right, #7f1d1d, #991b1b)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "scale(1)";
-              e.currentTarget.style.background = "linear-gradient(to right, #991b1b, #7f1d1d)";
-            }}
-          >
-            🗑️ Delete Transaction
-          </button>
-        </div>
-      )}
 
-      <div
-        style={{
-          display: "flex",
-          gap: "12px",
-          justifyContent: "space-between",
-        }}
-      >
-        <button
-          onClick={handleSubmit}
-          style={{
-            flex: 1,
-            background: `linear-gradient(to right, ${theme.primary[500]}, ${theme.secondary[500]})`,
-            color: "white",
-            border: "none",
-            padding: "14px 24px",
-            borderRadius: "10px",
-            cursor: "pointer",
-            fontSize: "1rem",
-            fontWeight: "600",
-            boxShadow: `0 4px 12px ${theme.primary[500]}30`,
-            transition: "all 0.3s",
-          }}
-          onMouseEnter={(e) =>
-            (e.currentTarget.style.transform = "scale(1.05)")
-          }
-          onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
-        >
-          Save Changes
+      {/* Buttons */}
+      <div className="flex gap-3">
+        <button onClick={handleSubmit} className="glass-button-primary flex-1">
+          Update
         </button>
-        <button
-          onClick={onClose}
-          style={{
-            flex: 1,
-            background: `linear-gradient(to right, ${theme.semantic.error}, #dc2626)`,
-            color: "white",
-            border: "none",
-            padding: "14px 24px",
-            borderRadius: "10px",
-            cursor: "pointer",
-            fontSize: "1rem",
-            fontWeight: "600",
-            boxShadow: `0 4px 12px ${theme.semantic.error}30`,
-            transition: "all 0.3s",
-          }}
-          onMouseEnter={(e) =>
-            (e.currentTarget.style.transform = "scale(1.05)")
-          }
-          onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
-        >
+        {clickedNode.isleaf && (
+          <button onClick={onDelete} className="glass-button-secondary flex-1">
+            Delete
+          </button>
+        )}
+        <button onClick={onClose} className="glass-button flex-1">
           Cancel
         </button>
       </div>
-    </div>
+        </div>
+      </div>
+    </>
   );
+
+  return createPortal(modalContent, document.body);
 };
 
 export default InputModal;

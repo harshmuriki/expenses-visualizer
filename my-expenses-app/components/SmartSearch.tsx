@@ -109,7 +109,7 @@ const SmartSearch: React.FC<SmartSearchProps> = ({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder='Try "Starbucks", "over $100", or "Amazon"'
-              className="w-full rounded-lg border border-border-secondary bg-background-secondary py-3 pl-10 pr-10 text-sm text-slate-100 placeholder-slate-500 focus:border-[colors.primary.500] focus:outline-none focus:ring-2 focus:ring-[colors.primary.500]/50"
+              className="w-full rounded-lg border border-border-secondary bg-background-secondary py-3 pl-10 pr-10 text-sm text-text-primary placeholder-text-tertiary focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
             />
             {query && (
               <button
@@ -124,7 +124,7 @@ const SmartSearch: React.FC<SmartSearchProps> = ({
             onClick={() => setShowFilters(!showFilters)}
             className={`rounded-lg border px-4 py-3 transition ${
               showFilters
-                ? "border-[colors.primary.500] bg-[colors.primary.500]/10 text-[colors.primary.500]"
+                ? "border-primary-500 bg-primary-500/10 text-primary-500"
                 : "border-border-secondary bg-background-secondary text-text-tertiary hover:text-text-primary"
             }`}
           >
@@ -145,7 +145,7 @@ const SmartSearch: React.FC<SmartSearchProps> = ({
                 setFilters((prev) => ({ ...prev, minAmount: e.target.value }))
               }
               placeholder="$0"
-              className="w-full rounded-lg border border-border-secondary bg-background-primary px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-[colors.primary.500] focus:outline-none"
+              className="w-full rounded-lg border border-border-secondary bg-background-primary px-3 py-2 text-sm text-text-primary placeholder-text-tertiary focus:border-primary-500 focus:outline-none"
             />
           </div>
           <div>
@@ -157,7 +157,7 @@ const SmartSearch: React.FC<SmartSearchProps> = ({
                 setFilters((prev) => ({ ...prev, maxAmount: e.target.value }))
               }
               placeholder="$999+"
-              className="w-full rounded-lg border border-border-secondary bg-background-primary px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-[colors.primary.500] focus:outline-none"
+              className="w-full rounded-lg border border-border-secondary bg-background-primary px-3 py-2 text-sm text-text-primary placeholder-text-tertiary focus:border-primary-500 focus:outline-none"
             />
           </div>
           <div>
@@ -171,7 +171,7 @@ const SmartSearch: React.FC<SmartSearchProps> = ({
                 setFilters((prev) => ({ ...prev, fileSource: e.target.value }))
               }
               placeholder="e.g., Chase, Amex"
-              className="w-full rounded-lg border border-border-secondary bg-background-primary px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-[colors.primary.500] focus:outline-none"
+              className="w-full rounded-lg border border-border-secondary bg-background-primary px-3 py-2 text-sm text-text-primary placeholder-text-tertiary focus:border-primary-500 focus:outline-none"
             />
           </div>
         </div>
@@ -196,19 +196,19 @@ const SmartSearch: React.FC<SmartSearchProps> = ({
                     <div className="mt-1 flex flex-wrap gap-3 text-xs text-text-tertiary">
                       {node.date && (
                         <span className="flex items-center gap-1">
-                          <span className="text-slate-500">📅</span>
+                          <span className="text-text-tertiary">📅</span>
                           {node.date}
                         </span>
                       )}
                       {node.location && (
                         <span className="flex items-center gap-1">
-                          <span className="text-slate-500">📍</span>
+                          <span className="text-text-tertiary">📍</span>
                           {node.location}
                         </span>
                       )}
                       {node.bank && (
                         <span className="flex items-center gap-1">
-                          <span className="text-slate-500">🏦</span>
+                          <span className="text-text-tertiary">🏦</span>
                           {node.bank}
                         </span>
                       )}
@@ -232,7 +232,7 @@ const SmartSearch: React.FC<SmartSearchProps> = ({
           <p className="text-text-tertiary">
             No transactions found matching &quot;{query}&quot;
           </p>
-          <p className="mt-2 text-xs text-slate-500">
+          <p className="mt-2 text-xs text-text-tertiary">
             Try adjusting your search or filters
           </p>
         </div>

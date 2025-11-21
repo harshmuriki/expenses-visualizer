@@ -36,7 +36,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   links,
   onEditTransaction,
 }) => {
-  const { themeName } = useTheme();
+  const { themeName, theme } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<SortField>("cost");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
@@ -46,9 +46,10 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
     start: "",
     end: "",
   });
-  const [amountRange, setAmountRange] = useState<{ min: string; max: string }>(
-    { min: "", max: "" }
-  );
+  const [amountRange, setAmountRange] = useState<{ min: string; max: string }>({
+    min: "",
+    max: "",
+  });
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [showRecurringInsights, setShowRecurringInsights] = useState(true);
 
@@ -285,6 +286,85 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
     ) : (
       <FiChevronDown className="inline ml-1" />
     );
+  };
+
+  const categoryColorMap = useMemo(() => {
+    const map = new Map<string, string>();
+    categories.forEach((category, index) => {
+      const palette = theme.categories || [];
+      map.set(category, palette[index % palette.length]);
+    });
+    return map;
+  }, [categories, theme]);
+
+  const getAvatarStyles = useCallback(
+    (category: string) => {
+      const base = categoryColorMap.get(category) || theme.primary[500];
+      return {
+        background: base,
+        boxShadow: `0 10px 25px ${base}33`,
+      };
+    },
+    [categoryColorMap, theme]
+  );
+
+  const getStatusInfo = (transaction: SankeyNode) => {
+    const status =
+      (typeof (transaction as any).status === "string"
+        ? (transaction as any).status
+        : undefined) || "completed";
+    if (status.toLowerCase() === "pending") {
+      return {
+        label: "pending",
+        classes:
+          "text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-full text-[11px] font-semibold",
+      };
+    }
+    return {
+      label: "completed",
+      classes:
+        "text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full text-[11px] font-semibold",
+    };
+  };
+
+  const formatTimelineLabel = (dateString?: string) => {
+    if (!dateString) return "No date";
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const timeLabel = date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+
+    if (
+      diffDays === 0 &&
+      date.getDate() === now.getDate() &&
+      date.getMonth() === now.getMonth()
+    ) {
+      return `Today, ${timeLabel}`;
+    }
+    if (
+      diffDays === 1 ||
+      (diffDays === 0 && date.getDate() === now.getDate() - 1)
+    ) {
+      return `Yesterday, ${timeLabel}`;
+    }
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: date.getFullYear() === now.getFullYear() ? undefined : "numeric",
+    });
+  };
+
+  const formatShortDate = (dateString?: string) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
   };
 
   return (
@@ -618,10 +698,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                     <p className="text-lg font-bold text-text-primary tabular-nums">
                       $
                       {recurringTransactions
-                        .reduce(
-                          (sum, r) => sum + calculateAnnualCost(r),
-                          0
-                        )
+                        .reduce((sum, r) => sum + calculateAnnualCost(r), 0)
                         .toFixed(2)}
                     </p>
                   </div>
@@ -631,19 +708,17 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                       Most Common Frequency
                     </p>
                     <p className="text-lg font-bold text-text-primary">
-                      {
-                        formatFrequency(
-                          recurringTransactions.sort(
-                            (a, b) =>
-                              recurringTransactions.filter(
-                                (r) => r.frequency === b.frequency
-                              ).length -
-                              recurringTransactions.filter(
-                                (r) => r.frequency === a.frequency
-                              ).length
-                          )[0]?.frequency || "N/A"
-                        )
-                      }
+                      {formatFrequency(
+                        recurringTransactions.sort(
+                          (a, b) =>
+                            recurringTransactions.filter(
+                              (r) => r.frequency === b.frequency
+                            ).length -
+                            recurringTransactions.filter(
+                              (r) => r.frequency === a.frequency
+                            ).length
+                        )[0]?.frequency || "N/A"
+                      )}
                     </p>
                   </div>
                   <div className="text-center p-3 rounded-lg bg-background-tertiary/30 border border-border-primary/30">
@@ -666,185 +741,102 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
         </div>
       )}
 
-      {/* Excel-style Table */}
-      <div
-        className={`rounded-2xl border border-slate-800/60 ${getTableBackground()} overflow-hidden shadow-2xl`}
-      >
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead
-              className={`${getTableHeaderBackground()} border-b-2 border-border-primary`}
-            >
-              <tr>
-                <th
-                  className="cursor-pointer px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-text-primary hover:text-text-primary hover:bg-background-tertiary/50 transition-colors border-r border-border-primary/50 min-w-[200px]"
-                  onClick={() => handleSort("name")}
-                >
-                  <div className="flex items-center gap-2">
-                    Transaction <SortIcon field="name" />
-                  </div>
-                </th>
-                <th
-                  className="cursor-pointer px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-text-primary hover:text-text-primary hover:bg-background-tertiary/50 transition-colors border-r border-border-primary/50 min-w-[120px]"
-                  onClick={() => handleSort("cost")}
-                >
-                  <div className="flex items-center justify-end gap-2">
-                    Amount <SortIcon field="cost" />
-                  </div>
-                </th>
-                <th
-                  className="cursor-pointer px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-text-primary hover:text-text-primary hover:bg-background-tertiary/50 transition-colors border-r border-border-primary/50 min-w-[140px]"
-                  onClick={() => handleSort("category")}
-                >
-                  <div className="flex items-center gap-2">
-                    Category <SortIcon field="category" />
-                  </div>
-                </th>
-                <th
-                  className="cursor-pointer px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-text-primary hover:text-text-primary hover:bg-background-tertiary/50 transition-colors border-r border-border-primary/50 min-w-[110px]"
-                  onClick={() => handleSort("date")}
-                >
-                  <div className="flex items-center gap-2">
-                    Date <SortIcon field="date" />
-                  </div>
-                </th>
-                <th
-                  className="cursor-pointer px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-text-primary hover:text-text-primary hover:bg-background-tertiary/50 transition-colors border-r border-border-primary/50 min-w-[150px]"
-                  onClick={() => handleSort("location")}
-                >
-                  <div className="flex items-center gap-2">
-                    Location <SortIcon field="location" />
-                  </div>
-                </th>
-                <th
-                  className="cursor-pointer px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-text-primary hover:text-text-primary hover:bg-background-tertiary/50 transition-colors border-r border-border-primary/50 min-w-[120px]"
-                  onClick={() => handleSort("source")}
-                >
-                  <div className="flex items-center gap-2">
-                    Source <SortIcon field="source" />
-                  </div>
-                </th>
-                <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-text-primary min-w-[100px]">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-background-primary/30">
-              {filteredTransactions.length > 0 ? (
-                filteredTransactions.map((transaction, idx) => (
-                  <tr
-                    key={transaction.index}
-                    className={`transition-all duration-150 hover:bg-background-tertiary/30 hover:shadow-md border-b border-border-secondary/30 cursor-pointer ${
-                      idx % 2 === 0
-                        ? "bg-background-secondary/20"
-                        : "bg-background-secondary/10"
-                    }`}
-                    onClick={() => onEditTransaction(transaction.index)}
-                  >
-                    <td className="px-4 py-3 text-sm text-text-primary border-r border-border-secondary/30 font-medium">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="truncate max-w-[140px]"
-                          title={transaction.name || "Unnamed"}
-                        >
-                          {transaction.name || "Unnamed"}
-                        </div>
-                        {getRecurringInfo(transaction, recurringTransactions) && (
-                          <span
-                            className="inline-flex items-center gap-1 rounded-md bg-blue-500/20 px-1.5 py-0.5 text-xs font-medium text-blue-400 border border-blue-500/30 flex-shrink-0"
-                            title={`Recurring ${formatFrequency(
-                              getRecurringInfo(transaction, recurringTransactions)
-                                ?.frequency || ""
-                            )}`}
-                          >
-                            <FiRepeat size={10} />
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right text-sm font-bold text-emerald-400 border-r border-border-secondary/30 tabular-nums">
-                      ${(transaction.cost || 0).toFixed(2)}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-text-secondary border-r border-border-secondary/30">
-                      <span className="inline-flex rounded-md border border-border-primary/50 bg-background-tertiary/40 px-2 py-1 text-xs font-medium">
-                        {transaction.category}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-text-secondary border-r border-border-secondary/30 tabular-nums">
-                      {transaction.date ? (
-                        <span className="font-mono text-xs">
-                          {new Date(transaction.date).toLocaleDateString(
-                            "en-US",
-                            {
-                              month: "2-digit",
-                              day: "2-digit",
-                              year: "2-digit",
-                            }
-                          )}
-                        </span>
-                      ) : (
-                        <span className="text-slate-500 italic">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-text-secondary border-r border-border-secondary/30">
-                      <div
-                        className="truncate max-w-[130px]"
-                        title={transaction.location || "-"}
-                      >
-                        {transaction.location || (
-                          <span className="text-slate-500 italic">-</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-text-tertiary border-r border-border-secondary/30">
-                      <div
-                        className="truncate max-w-[100px]"
-                        title={transaction.bank || "-"}
-                      >
-                        {transaction.bank ? (
-                          <span className="text-xs bg-background-tertiary/50 px-2 py-1 rounded font-mono">
-                            {transaction.bank}
-                          </span>
-                        ) : (
-                          <span className="text-slate-500 italic">-</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation(); // Prevent row click
-                          onEditTransaction(transaction.index);
-                        }}
-                        className="inline-flex items-center gap-1 rounded-md bg-[colors.primary.500] px-3 py-1.5 text-xs font-medium text-text-primary transition-all hover:bg-[colors.primary.600] hover:shadow-md active:scale-95"
-                      >
-                        <FiEdit2 size={12} />
-                        Edit
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-6 py-16 text-center bg-background-secondary/10"
-                  >
-                    <div className="flex flex-col items-center gap-3">
-                      <FiSearch className="h-16 w-16 text-slate-600" />
-                      <p className="text-text-tertiary text-lg font-medium">
-                        No transactions found matching your filters
-                      </p>
-                      <p className="text-slate-500 text-sm">
-                        Try adjusting your search criteria or category filter
-                      </p>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+      {/* Recent Activity List */}
+      <div className="rounded-3xl border border-border-secondary/60 bg-background-card/80 shadow-2xl overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border-secondary/60 px-6 py-5">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.4em] text-text-tertiary">
+              Recent Activity
+            </p>
+            <h3 className="text-2xl font-bold text-text-primary mt-1">
+              Transactions
+            </h3>
+          </div>
+          <button
+            onClick={exportToCSV}
+            className="text-sm font-semibold text-primary-400 hover:text-primary-300 transition-colors"
+          >
+            View All
+          </button>
         </div>
+        {filteredTransactions.length > 0 ? (
+          <div className="divide-y divide-border-secondary/40">
+            {filteredTransactions.map((transaction) => {
+              const statusInfo = getStatusInfo(transaction);
+              const timelineLabel = formatTimelineLabel(transaction.date);
+              const shortDate = formatShortDate(transaction.date);
+              const amount = `$${(transaction.cost || 0).toFixed(2)}`;
+              const recurringInfo = getRecurringInfo(
+                transaction,
+                recurringTransactions
+              );
+
+              return (
+                <button
+                  key={transaction.index}
+                  onClick={() => onEditTransaction(transaction.index)}
+                  className="w-full px-6 py-4 flex flex-wrap items-center gap-4 text-left transition hover:bg-white/5/10 hover:bg-background-secondary/40"
+                >
+                  <div
+                    className="flex h-12 w-12 items-center justify-center rounded-2xl text-base font-semibold text-white uppercase shadow-lg"
+                    style={getAvatarStyles(transaction.category)}
+                  >
+                    {(transaction.name || "P")[0]}
+                  </div>
+
+                  <div className="flex-1 min-w-[160px]">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-semibold text-text-primary truncate max-w-[220px]">
+                        {transaction.name || "Unnamed"}
+                      </p>
+                      <span className={statusInfo.classes}>
+                        {statusInfo.label}
+                      </span>
+                      {recurringInfo && (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[11px] font-semibold text-blue-200">
+                          <FiRepeat size={12} />
+                          {formatFrequency(recurringInfo.frequency)}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-text-tertiary mt-1">
+                      {timelineLabel}
+                    </p>
+                  </div>
+
+                  <div className="hidden md:flex items-center">
+                    <span className="inline-flex rounded-full border border-border-secondary/60 bg-background-secondary/40 px-3 py-1 text-xs font-semibold text-text-secondary">
+                      {transaction.category}
+                    </span>
+                  </div>
+
+                  <div className="hidden sm:flex w-24 text-sm text-text-tertiary">
+                    {shortDate}
+                  </div>
+
+                  <div className="text-right min-w-[110px]">
+                    <p className="text-lg font-bold text-text-primary tabular-nums">
+                      {amount}
+                    </p>
+                    <p className="text-xs text-text-tertiary">
+                      {transaction.bank || "Unknown"}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="py-16 text-center text-text-tertiary">
+            <FiSearch className="mx-auto mb-3 h-10 w-10 text-text-secondary" />
+            <p className="text-lg font-medium">
+              No transactions found matching your filters
+            </p>
+            <p className="text-sm mt-1">
+              Try adjusting your search criteria or category filter
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

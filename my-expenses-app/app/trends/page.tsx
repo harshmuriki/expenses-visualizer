@@ -5,11 +5,6 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 
-const SpendingTrendsComponent = dynamic(
-  () => import("@/components/SpendingTrendsComponent"),
-  { ssr: false }
-);
-
 const LoadingSpinner = () => (
   <div className="min-h-screen bg-background-primary text-text-primary flex items-center justify-center">
     <div className="flex flex-col items-center space-y-6">
@@ -66,6 +61,14 @@ const LoadingSpinner = () => (
       </div>
     </div>
   </div>
+);
+
+const SpendingTrendsComponent = dynamic(
+  () => import("@/components/SpendingTrendsComponent"),
+  { 
+    ssr: false,
+    loading: () => <LoadingSpinner />
+  }
 );
 
 export default function TrendsPage() {

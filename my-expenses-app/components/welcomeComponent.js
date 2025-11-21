@@ -42,7 +42,7 @@ function WelcomeComponent() {
             <button
                 onClick={handleSignIn}
                 disabled={isSigningIn}
-                className={`bg-gradient-to-r from-primary-500 to-secondary-500 text-white hover:from-primary-600 hover:to-secondary-600 font-semibold py-3 px-8 rounded-lg shadow-lg transition duration-300 transform hover:scale-105 ${isSigningIn ? 'opacity-75 cursor-not-allowed' : ''
+                className={`glass-button-primary py-3 px-8 transform hover:scale-105 ${isSigningIn ? 'opacity-75 cursor-not-allowed' : ''
                     }`}
             >
                 {isSigningIn ? (
@@ -57,8 +57,8 @@ function WelcomeComponent() {
 
             {/* Warning Modal */}
             {showWarning && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-                    <div className="bg-background-secondary border border-border-secondary rounded-2xl shadow-2xl p-8 w-full max-w-md">
+                <div className="glass-backdrop fixed inset-0 flex items-center justify-center z-50">
+                    <div className="glass-modal p-8 w-full max-w-md">
                         <h3 className="text-2xl font-bold text-text-primary mb-4">Important Notice</h3>
                         <p className="text-text-secondary mb-6 leading-relaxed">
                             By signing in, you acknowledge that this application is hosted on
@@ -70,14 +70,14 @@ function WelcomeComponent() {
                         <div className="flex justify-end space-x-4">
                             <button
                                 onClick={handleCancel}
-                                className="bg-background-tertiary text-text-primary py-2 px-6 rounded-lg hover:bg-background-secondary transition"
+                                className="glass-button py-2 px-6"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleAccept}
                                 disabled={isSigningIn}
-                                className={`bg-gradient-to-r from-primary-500 to-secondary-500 text-white py-2 px-6 rounded-lg hover:from-primary-600 hover:to-secondary-600 transition ${isSigningIn ? 'opacity-75 cursor-not-allowed' : ''
+                                className={`glass-button-primary py-2 px-6 ${isSigningIn ? 'opacity-75 cursor-not-allowed' : ''
                                     }`}
                             >
                                 {isSigningIn ? (

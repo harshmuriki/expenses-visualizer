@@ -163,7 +163,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
                   className={`max-w-[80%] rounded-2xl px-4 py-2 ${
                     message.role === "user"
                       ? "bg-gradient-to-r from-primary-500 to-secondary-500 text-text-primary"
-                      : "bg-background-secondary text-slate-100"
+                      : "bg-background-secondary text-text-primary"
                   }`}
                 >
                   <p className="text-sm leading-relaxed">{message.content}</p>
@@ -230,7 +230,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Ask about your expenses..."
-                className="flex-1 rounded-lg border border-border-primary bg-background-primary px-4 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                className="flex-1 rounded-lg border border-border-primary bg-background-primary px-4 py-2 text-sm text-text-primary placeholder-text-tertiary focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
                 disabled={isLoading}
               />
               <button

@@ -87,21 +87,21 @@ const SpendingTrendsDemo: React.FC = () => {
       case "down":
         return <FiTrendingDown className="text-green-500" />;
       default:
-        return <FiDollarSign className="text-gray-500" />;
+        return <FiDollarSign className="text-text-tertiary" />;
     }
   };
 
   const getTrendColor = (trend: string) => {
     if (trend === "up") return "text-red-500";
     if (trend === "down") return "text-green-500";
-    return "text-gray-500";
+    return "text-text-tertiary";
   };
 
   return (
     <div className="w-full space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-text-primary flex items-center space-x-2">
-          <FiCalendar className="text-[colors.primary.500]" />
+          <FiCalendar className="text-primary-500" />
           <span>Spending Trends Demo</span>
         </h2>
         <div className="text-sm text-text-tertiary">
@@ -141,7 +141,7 @@ const SpendingTrendsDemo: React.FC = () => {
                       </span>
                       <div className="w-16 bg-background-tertiary rounded-full h-1.5">
                         <div
-                          className="bg-gradient-to-r from-[colors.primary.500] to-[colors.secondary.500] h-1.5 rounded-full"
+                          className="bg-gradient-to-r from-primary-500 to-secondary-500 h-1.5 rounded-full"
                           style={{ width: `${category.percentage}%` }}
                         />
                       </div>
@@ -230,15 +230,15 @@ const SpendingTrendsDemo: React.FC = () => {
                         className="w-full bg-background-tertiary rounded-t"
                         style={{ height: "60px" }}
                       >
-                        <div
-                          className="bg-gradient-to-t from-[colors.primary.500] to-[colors.secondary.500] rounded-t transition-all duration-500"
+                      <div
+                        className="bg-gradient-to-t from-primary-500 to-secondary-500 rounded-t transition-all duration-500"
                           style={{ height: `${height}%` }}
                         />
                       </div>
                       <span className="text-xs text-text-tertiary">
                         {month.slice(0, 3)}
                       </span>
-                      <span className="text-xs text-slate-500">
+                      <span className="text-xs text-text-tertiary">
                         {formatCurrency(amount)}
                       </span>
                     </div>

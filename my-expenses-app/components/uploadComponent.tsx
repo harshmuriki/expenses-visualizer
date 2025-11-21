@@ -344,7 +344,7 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
           accept=".csv"
           multiple
           onChange={handleFileChange}
-          className="p-3 border border-border-primary rounded-lg bg-background-primary/50 text-text-primary w-full cursor-pointer hover:border-primary-500 transition file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary-500 file:text-white file:cursor-pointer hover:file:bg-primary-600"
+          className="glass-input cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:glass-button-primary file:cursor-pointer"
         />
         {files && files.length > 0 && (
           <p className="text-xs text-text-tertiary mt-2">
@@ -364,7 +364,7 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
             value={month}
             onChange={(e) => setMonth(e.target.value)}
             placeholder="e.g. January, or 2023-01"
-            className="p-3 border border-border-primary rounded-lg bg-background-primary/50 text-slate-900 placeholder-slate-500 focus:border-secondary-500 focus:ring-2 focus:ring-secondary-500/30 transition w-full"
+            className="glass-input"
           />
           {month && (
             <button
@@ -384,17 +384,17 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
       <button
         onClick={handleUpload}
         disabled={isUploading}
-        className={`px-6 py-3 rounded-lg transition duration-300 font-semibold shadow-lg transform ${
+        className={`px-6 py-3 rounded-lg transition duration-300 font-semibold transform ${
           isUploading
-            ? "bg-background-tertiary cursor-not-allowed text-text-tertiary"
-            : "bg-gradient-to-r from-primary-500 to-secondary-500 hover:from-primary-600 hover:to-secondary-600 text-text-primary hover:scale-105"
+            ? "glass-button opacity-50 cursor-not-allowed"
+            : "glass-button-primary hover:scale-105"
         }`}
       >
         {/* Enhanced loading state */}
         {isUploading ? (
           <div className="flex items-center justify-center">
             <div className="relative mr-3">
-              <div className="w-5 h-5 border-2 border-slate-400 border-t-primary-500 rounded-full animate-spin"></div>
+              <div className="w-5 h-5 border-2 border-text-tertiary border-t-primary-500 rounded-full animate-spin"></div>
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-2 h-2 bg-secondary-500 rounded-full animate-pulse"></div>
               </div>
@@ -425,7 +425,7 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
             <p className="text-text-tertiary text-sm">
               No previous months found
             </p>
-            <p className="text-slate-500 text-xs mt-1">
+            <p className="text-text-tertiary text-xs mt-1">
               Upload some CSV files to get started!
             </p>
           </div>
@@ -438,11 +438,11 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
                   // Navigate directly to the chart page for this month
                   router.push(`/chart?month=${encodeURIComponent(eachMonth)}`);
                 }}
-                className="p-3 rounded-lg border transition-all duration-200 text-left bg-background-secondary/50 border-border-primary hover:border-primary-500 text-text-secondary hover:bg-gradient-to-r hover:from-primary-500/10 hover:to-secondary-500/10 hover:text-text-primary group"
+                className="glass-card p-3 transition-all duration-200 text-left text-text-secondary hover:text-text-primary group cursor-pointer"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 rounded-full bg-slate-400 group-hover:bg-white transition-colors"></div>
+                    <div className="w-2 h-2 rounded-full bg-text-tertiary group-hover:bg-text-primary transition-colors"></div>
                     <span className="font-medium">{eachMonth}</span>
                   </div>
                   <div className="text-text-tertiary group-hover:text-text-primary transition-colors">

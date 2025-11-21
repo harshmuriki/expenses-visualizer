@@ -40,13 +40,8 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
 
-  // Use theme-aware category colors
+  // Use theme-aware category colors (kept for potential future use)
   const CHART_COLORS = theme.categories;
-
-  // Get text color based on theme
-  const getTextColor = () => {
-    return themeName === "nordic" ? "#000000" : theme.text.primary;
-  };
 
   // Close panel on ESC key
   React.useEffect(() => {
@@ -137,23 +132,98 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
     if (width < 30 || height < 30 || !name) return null;
 
     const isHovered = hoveredNode === name;
-    const fontSize = Math.max(12, Math.min(width / 10, height / 5, 18));
-    const valueFontSize = Math.max(11, Math.min(width / 12, height / 6, 16));
+    const fontSize = Math.max(14, Math.min(width / 8, height / 4, 20));
+    const valueFontSize = Math.max(12, Math.min(width / 10, height / 5, 16));
+    const borderRadius = 8; // Rounded corners
+
+    // Add spacing between blocks (gap)
+    const gap = 4;
+    const adjustedX = x + gap / 2;
+    const adjustedY = y + gap / 2;
+    const adjustedWidth = Math.max(0, width - gap);
+    const adjustedHeight = Math.max(0, height - gap);
+
+    // Use the provided color or fallback to a dark gray
+    // Slightly darken the color to work with dark theme while keeping it vibrant
+    const baseColor = color || "#374151";
+
+    // Convert hex to RGB and adjust brightness
+    const hexToRgb = (hex: string) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result
+        ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16),
+          }
+        : { r: 55, g: 65, b: 81 }; // fallback to gray-700
+    };
+
+    const rgb = hexToRgb(baseColor);
+    // Slightly darken the color (reduce by 15-20%) to work with dark background
+    // but keep it vibrant enough to show the color
+    const blockColor = `rgba(${Math.max(
+      0,
+      Math.floor(rgb.r * 0.75)
+    )}, ${Math.max(0, Math.floor(rgb.g * 0.75))}, ${Math.max(
+      0,
+      Math.floor(rgb.b * 0.75)
+    )}, 0.9)`;
+    const hoverColor = `rgba(${Math.min(
+      255,
+      Math.floor(rgb.r * 0.9)
+    )}, ${Math.min(255, Math.floor(rgb.g * 0.9))}, ${Math.min(
+      255,
+      Math.floor(rgb.b * 0.9)
+    )}, 1)`;
+
+    // Calculate max characters that fit in the block width
+    // Approximate: each character is about 0.6 * fontSize wide
+    // Use 85% of width to leave padding on sides
+    const textPadding = 8;
+    const availableWidth = adjustedWidth - textPadding * 2;
+    const maxChars = Math.floor(availableWidth / (fontSize * 0.6));
+    const truncatedName =
+      name && name.length > maxChars
+        ? name.substring(0, Math.max(0, maxChars - 3)) + "..."
+        : name || "";
+
+    // Create unique clip path ID for this block
+    const clipId = `clip-${
+      originalIndex !== undefined
+        ? originalIndex
+        : `${Math.floor(x)}-${Math.floor(y)}`
+    }`;
 
     return (
       <g>
+        {/* Define clip path to prevent text overflow */}
+        <defs>
+          <clipPath id={clipId}>
+            <rect
+              x={adjustedX}
+              y={adjustedY}
+              width={adjustedWidth}
+              height={adjustedHeight}
+              rx={borderRadius}
+              ry={borderRadius}
+            />
+          </clipPath>
+        </defs>
+
+        {/* Rounded rectangle with spacing */}
         <rect
-          x={x}
-          y={y}
-          width={width + 0.5}
-          height={height + 0.5}
+          x={adjustedX}
+          y={adjustedY}
+          width={adjustedWidth}
+          height={adjustedHeight}
+          rx={borderRadius}
+          ry={borderRadius}
           style={{
-            fill: color || theme.primary[500],
-            stroke: isHovered ? theme.text.primary : "none",
-            strokeWidth: isHovered ? 3 : 0,
+            fill: isHovered ? hoverColor : blockColor,
+            stroke: "none",
             cursor: "pointer",
-            opacity: isHovered ? 1 : 1,
-            filter: isHovered ? "brightness(1.1)" : "none",
+            transition: "fill 0.2s ease",
           }}
           onMouseEnter={() => setHoveredNode(name || "")}
           onMouseLeave={() => setHoveredNode(null)}
@@ -163,43 +233,38 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
             }
           }}
         />
-        {width > 50 && height > 30 && (
-          <>
+        {adjustedWidth > 60 && adjustedHeight > 40 && (
+          <g clipPath={`url(#${clipId})`}>
+            {/* Category name - bold white text */}
             <text
-              x={x + width / 2}
-              y={y + height / 2 - 6}
+              x={adjustedX + adjustedWidth / 2}
+              y={adjustedY + adjustedHeight / 2 - 8}
               textAnchor="middle"
-              fill={getTextColor()}
-              opacity={0.99}
+              fill="#FFFFFF"
               fontSize={fontSize}
-              fontWeight="500"
+              fontWeight="700"
               style={{
                 pointerEvents: "none",
-                letterSpacing: "0.3px",
-                // Extra subtle shadow for readability without heavy darkening
-                textShadow: `0 1px 1px ${theme.background.primary}40`,
+                letterSpacing: "0.2px",
               }}
             >
-              {name && name.length > 20
-                ? name.substring(0, 17) + "..."
-                : name || ""}
+              {truncatedName}
             </text>
+            {/* Amount - lighter white text below */}
             <text
-              x={x + width / 2}
-              y={y + height / 2 + fontSize + 4}
+              x={adjustedX + adjustedWidth / 2}
+              y={adjustedY + adjustedHeight / 2 + fontSize - 2}
               textAnchor="middle"
-              fill={getTextColor()}
-              opacity={0.82}
+              fill="#E5E7EB"
               fontSize={valueFontSize}
-              fontWeight="600"
+              fontWeight="400"
               style={{
                 pointerEvents: "none",
-                textShadow: `0 1px 1px ${theme.background.primary}40`,
               }}
             >
               ${(size || 0).toFixed(0)}
             </text>
-          </>
+          </g>
         )}
       </g>
     );
@@ -214,19 +279,23 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
     const data = payload[0].payload;
 
     return (
-      <div className="rounded-lg border border-border-primary bg-background-secondary/98 p-3 shadow-2xl backdrop-blur-lg">
-        <p className="font-semibold text-text-primary">{data.name}</p>
-        <p className="mt-1 text-lg font-bold text-text-primary">
+      <div
+        className="rounded-lg p-3 shadow-xl"
+        style={{
+          backgroundColor: "#374151",
+          border: "1px solid rgba(255, 255, 255, 0.1)",
+        }}
+      >
+        <p className="font-semibold text-white">{data.name}</p>
+        <p className="mt-1 text-lg font-bold text-white">
           ${data.size?.toFixed(2) || 0}
         </p>
         {data.transactionCount && (
-          <p className="mt-1 text-xs text-text-primary/80">
+          <p className="mt-1 text-xs text-gray-300">
             {data.transactionCount} transactions
           </p>
         )}
-        <p className="mt-2 text-xs text-text-primary/70">
-          Click to view transactions
-        </p>
+        <p className="mt-2 text-xs text-gray-400">Click to view transactions</p>
       </div>
     );
   };
@@ -240,19 +309,28 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
     <div className="space-y-6">
       {/* TreeMap Visualization */}
       <div
-        className="border border-slate-800/60 bg-background-primary/40 shadow-2xl"
-        style={{ overflow: "hidden" }}
+        className="rounded-2xl overflow-hidden"
+        style={{
+          backgroundColor: "#1F2937", // dark gray background
+          border: "1px solid rgba(255, 255, 255, 0.1)",
+        }}
       >
-        <div className="px-6 pt-6 pb-4 flex items-center justify-between">
-          <h3 className="text-xl font-bold text-text-primary">
-            Expense Categories
-          </h3>
-          <p className="text-sm text-text-tertiary">
+        <div className="px-6 pt-6 pb-4 flex items-center justify-between border-b border-white/10">
+          <h3 className="text-xl font-bold text-white">CATEGORY HEATMAP</h3>
+          <p className="text-sm text-gray-400">
             Click any category to view transactions
           </p>
         </div>
 
-        <div style={{ width: "100%", height: 500, position: "relative" }}>
+        <div
+          style={{
+            width: "100%",
+            height: 500,
+            position: "relative",
+            backgroundColor: "#111827", // darker background for the chart area
+            padding: "16px",
+          }}
+        >
           <ResponsiveContainer
             width="100%"
             height="100%"
@@ -262,7 +340,7 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
               data={treeData.children}
               dataKey="size"
               stroke="none"
-              fill="#8b5cf6"
+              fill="#374151"
               content={CustomContent as never}
               animationDuration={0}
               isAnimationActive={false}
@@ -277,27 +355,27 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
       {/* Transaction Detail Panel */}
       {selectedCategory !== null && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          className="glass-backdrop fixed inset-0 z-50 flex items-center justify-center p-4"
           onClick={() => setSelectedCategory(null)}
         >
           <div
-            className="w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl border border-border-secondary bg-background-primary shadow-2xl"
+            className="glass-modal w-full max-w-4xl max-h-[90vh] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-border-secondary bg-gradient-to-r from-primary-500 to-secondary-500 p-6">
+            <div className="flex items-center justify-between border-b border-white/20 bg-gradient-to-r from-primary-500/80 to-secondary-500/80 backdrop-blur-sm p-6">
               <div>
-                <h2 className="text-2xl font-bold text-text-primary">
+                <h2 className="text-2xl font-bold text-gray-100">
                   {selectedCategoryNode?.name || "Category"}
                 </h2>
-                <p className="mt-1 text-sm text-text-primary/90">
+                <p className="mt-1 text-sm text-gray-300">
                   {selectedTransactions.length} transactions · $
                   {totalCategoryAmount.toFixed(2)}
                 </p>
               </div>
               <button
                 onClick={() => setSelectedCategory(null)}
-                className="rounded-lg p-2 text-text-primary transition hover:bg-white/20"
+                className="rounded-lg p-2 text-gray-100 transition hover:bg-white/20"
               >
                 <FiX size={24} />
               </button>
@@ -314,13 +392,18 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
                     return (
                       <div
                         key={transaction.index}
-                        className="group relative rounded-xl border border-border-secondary/60 bg-background-secondary/50 p-4 transition-all hover:scale-[1.02] cursor-pointer"
-                        onClick={() => {
+                        className="group relative glass-card p-4 transition-all hover:scale-[1.02] cursor-pointer text-white"
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent closing the category panel
                           if (onEditFromCategory && selectedCategory !== null) {
-                            onEditFromCategory(
-                              transaction.index,
-                              selectedCategory
-                            );
+                            // Close category panel first, then open edit modal
+                            setSelectedCategory(null);
+                            setTimeout(() => {
+                              onEditFromCategory(
+                                transaction.index,
+                                selectedCategory
+                              );
+                            }, 100);
                           } else {
                             setSelectedCategory(null);
                             setTimeout(
@@ -333,29 +416,29 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-500 text-xs font-bold text-text-primary">
+                              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white">
                                 {idx + 1}
                               </span>
                               <div className="flex-1">
-                                <h3 className="font-semibold text-text-primary">
+                                <h3 className="font-semibold text-gray-100">
                                   {transaction.name}
                                 </h3>
-                                <div className="mt-1 flex flex-wrap gap-3 text-xs text-text-tertiary">
+                                <div className="mt-1 flex flex-wrap gap-3 text-xs text-gray-400">
                                   {transaction.node?.date && (
                                     <span className="flex items-center gap-1">
-                                      <span className="text-slate-500">📅</span>
+                                      <span className="text-gray-400">📅</span>
                                       {transaction.node.date}
                                     </span>
                                   )}
                                   {transaction.node?.location && (
                                     <span className="flex items-center gap-1">
-                                      <span className="text-slate-500">📍</span>
+                                      <span className="text-gray-400">📍</span>
                                       {transaction.node.location}
                                     </span>
                                   )}
                                   {transaction.node?.bank && (
                                     <span className="flex items-center gap-1">
-                                      <span className="text-slate-500">🏦</span>
+                                      <span className="text-gray-400">🏦</span>
                                       {transaction.node.bank}
                                     </span>
                                   )}
@@ -369,7 +452,7 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
                               <p className="text-2xl font-bold text-emerald-400">
                                 ${transaction.amount.toFixed(2)}
                               </p>
-                              <p className="text-xs text-text-tertiary">
+                              <p className="text-xs text-gray-400">
                                 {(
                                   (transaction.amount / totalCategoryAmount) *
                                   100
@@ -384,10 +467,14 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
                                   onEditFromCategory &&
                                   selectedCategory !== null
                                 ) {
-                                  onEditFromCategory(
-                                    transaction.index,
-                                    selectedCategory
-                                  );
+                                  // Close category panel first, then open edit modal
+                                  setSelectedCategory(null);
+                                  setTimeout(() => {
+                                    onEditFromCategory(
+                                      transaction.index,
+                                      selectedCategory
+                                    );
+                                  }, 100);
                                 } else {
                                   setSelectedCategory(null);
                                   setTimeout(

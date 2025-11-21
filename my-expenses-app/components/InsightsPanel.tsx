@@ -87,38 +87,50 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
   return (
     <div className="space-y-6">
       {/* AI Insights Section */}
-      <section className="rounded-2xl border border-border-secondary bg-background-card backdrop-blur-sm p-6 shadow-lg">
-        <div className="mb-5 flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-primary-500/15">
-            <FiZap className="h-5 w-5 text-primary-500" />
+      <section className="glass-card rounded-2xl p-6 shadow-xl border border-glass-border-strong overflow-hidden relative">
+        {/* Subtle gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 via-transparent to-secondary-500/5 pointer-events-none" />
+        
+        <div className="relative mb-4 flex items-center gap-3">
+          <div className="relative p-2.5 rounded-xl bg-gradient-to-br from-primary-500/25 to-secondary-500/25 backdrop-blur-md border border-primary-500/40 shadow-lg">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-xl" />
+            <FiZap className="h-5 w-5 text-primary-300 relative z-10" />
           </div>
-          <h3 className="text-lg font-bold text-text-primary">AI Insights</h3>
+          <div>
+            <h3 className="text-lg font-bold text-text-primary tracking-tight">AI Insights</h3>
+            <p className="text-[10px] text-text-tertiary/80 font-medium uppercase tracking-wider">Powered by intelligent analysis</p>
+          </div>
         </div>
 
         {insights.length > 0 ? (
-          <div className="space-y-3">
+          <div className="relative space-y-3">
             {insights.map((insight, index) => {
               const colors = getColorClasses(insight.type);
               return (
                 <div
                   key={index}
-                  className={`group rounded-xl border ${colors.border} ${colors.bg} backdrop-blur-sm p-5 transition-all duration-300 hover:scale-[1.01] hover:shadow-md`}
+                  className={`group relative glass-card rounded-xl border ${colors.border} ${colors.bg} p-4 transition-all duration-300 hover:scale-[1.01] hover:shadow-xl hover:border-opacity-60 overflow-hidden`}
                 >
-                  <div className="flex items-start gap-4">
-                    <div className={`flex-shrink-0 p-2.5 rounded-lg ${colors.iconBg} transition-transform duration-300 group-hover:scale-110`}>
+                  {/* Animated gradient overlay on hover */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 -translate-x-full group-hover:translate-x-full" />
+                  
+                  <div className="relative flex items-start gap-4">
+                    <div className={`flex-shrink-0 p-2.5 rounded-lg ${colors.iconBg} border ${colors.border} transition-all duration-300 group-hover:scale-105 group-hover:rotate-3`}>
                       <div className={colors.icon}>{getIcon(insight.type)}</div>
                     </div>
                     <div className="flex-1 space-y-1.5">
-                      <h4 className={`font-semibold text-base ${colors.text}`}>
+                      <h4 className={`font-bold text-base ${colors.text} tracking-tight leading-tight`}>
                         {insight.title}
                       </h4>
-                      <p className={`text-sm leading-relaxed ${colors.text} opacity-90`}>
+                      <p className={`text-sm leading-relaxed ${colors.text} opacity-80`}>
                         {insight.description}
                       </p>
                       {insight.amount && (
-                        <p className={`mt-2 text-sm font-semibold ${colors.text}`}>
-                          ${insight.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </p>
+                        <div className="mt-2 pt-2 border-t border-current/15">
+                          <p className={`text-base font-bold ${colors.text} tracking-tight`}>
+                            ${insight.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </p>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -127,9 +139,9 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
             })}
           </div>
         ) : (
-          <div className="rounded-xl border border-border-secondary bg-background-secondary/30 backdrop-blur-sm p-8 text-center">
-            <div className="inline-flex p-4 rounded-full bg-background-tertiary/50 mb-3">
-              <FiInfo className="h-8 w-8 text-text-tertiary" />
+          <div className="relative glass-card rounded-xl border border-border-secondary/40 p-8 text-center">
+            <div className="inline-flex p-3 rounded-xl bg-background-tertiary/20 mb-3 border border-border-secondary/30 backdrop-blur-sm">
+              <FiInfo className="h-6 w-6 text-text-tertiary" />
             </div>
             <p className="text-sm text-text-secondary leading-relaxed max-w-sm mx-auto">
               No insights available yet. Upload more transaction data to get
@@ -141,52 +153,55 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
 
       {/* Predictions Section */}
       {predictions && predictions.length > 0 && (
-        <section className="rounded-2xl border border-border-secondary bg-background-card backdrop-blur-sm p-6 shadow-lg">
-          <div className="mb-5 flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-secondary-500/15">
-              <FiTrendingUp className="h-5 w-5 text-secondary-500" />
+        <section className="glass-card rounded-3xl p-8 shadow-xl">
+          <div className="mb-6 flex items-center gap-4">
+            <div className="p-3 rounded-2xl bg-gradient-to-br from-secondary-500/20 to-accent-500/20 backdrop-blur-sm border border-secondary-500/30">
+              <FiTrendingUp className="h-6 w-6 text-secondary-400" />
             </div>
-            <h3 className="text-lg font-bold text-text-primary">
-              Spending Predictions
-            </h3>
+            <div>
+              <h3 className="text-xl font-bold text-text-primary tracking-tight">
+                Spending Predictions
+              </h3>
+              <p className="text-xs text-text-tertiary mt-0.5">Forecasted trends</p>
+            </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             {predictions.slice(0, 5).map((prediction, index) => (
               <div
                 key={index}
-                className="group flex items-center justify-between rounded-xl border border-border-secondary bg-background-secondary/30 backdrop-blur-sm p-5 transition-all duration-300 hover:scale-[1.01] hover:shadow-md hover:border-border-focus/30"
+                className="group glass-card flex items-center justify-between rounded-2xl border border-border-secondary/50 p-6 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:border-border-focus/50"
               >
-                <div className="flex items-center gap-4">
-                  <div className={`p-2.5 rounded-lg transition-transform duration-300 group-hover:scale-110 ${
+                <div className="flex items-center gap-5">
+                  <div className={`p-3 rounded-xl transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 ${
                     prediction.trend === "increasing"
-                      ? "bg-red-500/15"
+                      ? "bg-red-500/15 border border-red-500/30"
                       : prediction.trend === "decreasing"
-                      ? "bg-emerald-500/15"
-                      : "bg-slate-500/15"
+                      ? "bg-emerald-500/15 border border-emerald-500/30"
+                      : "bg-slate-500/15 border border-slate-500/30"
                   }`}>
                     {prediction.trend === "increasing" ? (
-                      <FiTrendingUp className="h-5 w-5 text-red-500" />
+                      <FiTrendingUp className="h-6 w-6 text-red-400" />
                     ) : prediction.trend === "decreasing" ? (
-                      <FiTrendingDown className="h-5 w-5 text-emerald-500" />
+                      <FiTrendingDown className="h-6 w-6 text-emerald-400" />
                     ) : (
-                      <div className="h-5 w-5 text-text-tertiary flex items-center justify-center">→</div>
+                      <div className="h-6 w-6 text-text-tertiary flex items-center justify-center text-lg">→</div>
                     )}
                   </div>
                   <div>
-                    <p className="font-semibold text-text-primary text-base">
+                    <p className="font-bold text-text-primary text-base tracking-tight">
                       {prediction.category}
                     </p>
-                    <p className="text-xs text-text-tertiary mt-0.5">
+                    <p className="text-xs text-text-tertiary mt-1">
                       {prediction.confidence.toFixed(0)}% confidence
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-text-primary text-lg">
+                  <p className="font-bold text-text-primary text-xl">
                     ${prediction.predictedAmount.toFixed(2)}
                   </p>
-                  <p className="text-xs font-medium capitalize text-text-tertiary mt-0.5">
+                  <p className="text-xs font-medium capitalize text-text-tertiary mt-1">
                     {prediction.trend}
                   </p>
                 </div>
@@ -194,7 +209,7 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
             ))}
           </div>
 
-          <div className="mt-5 rounded-xl border border-border-secondary/50 bg-background-secondary/30 backdrop-blur-sm p-4">
+          <div className="mt-6 glass-card rounded-2xl border border-border-secondary/50 p-5">
             <p className="text-xs text-text-secondary leading-relaxed">
               💡 <span className="font-semibold">Note:</span> Predictions are based on your current spending patterns and
               historical trends. Actual spending may vary.
