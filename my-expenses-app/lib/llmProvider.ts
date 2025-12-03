@@ -310,8 +310,9 @@ Respond ONLY with the JSON object, no additional text.`;
     return this.complete(enhancedPrompt, systemPrompt);
   }
 
-  calculateCost(_usage: TokenUsage): number {
+  calculateCost(usage: TokenUsage): number {
     // Local model - no cost
+    void usage; // Suppress unused parameter warning
     return 0;
   }
 
@@ -393,7 +394,7 @@ export class LMStudioProvider implements ILLMProvider {
         content: response.data.choices[0]?.message?.content || "",
         rawResponse: response.data,
       };
-    } catch (error) {
+    } catch {
       // Fall back to prompt engineering
       const enhancedPrompt = `${prompt}
 
@@ -406,8 +407,9 @@ Respond ONLY with the JSON object, no additional text.`;
     }
   }
 
-  calculateCost(_usage: TokenUsage): number {
+  calculateCost(usage: TokenUsage): number {
     // Local model - no cost
+    void usage; // Suppress unused parameter warning
     return 0;
   }
 
@@ -553,7 +555,7 @@ Respond ONLY with the JSON object, no additional text.`;
     return this.complete(enhancedPrompt, systemPrompt);
   }
 
-  calculateCost(_usage: TokenUsage): number {
+  calculateCost(): number {
     // Unknown pricing - return 0
     return 0;
   }

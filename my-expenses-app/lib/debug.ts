@@ -12,22 +12,18 @@ export function debugLog(scope: string, message: string, extra?: unknown) {
   if (!DEBUG_ENABLED) return;
   const ts = new Date().toISOString();
   if (extra !== undefined) {
-    // eslint-disable-next-line no-console
     console.log(`[${ts}] [${scope}] ${message}`, extra);
   } else {
-    // eslint-disable-next-line no-console
     console.log(`[${ts}] [${scope}] ${message}`);
   }
 }
 
 export function timeStart(scope: string, label: string) {
   if (!DEBUG_ENABLED) return;
-  // eslint-disable-next-line no-console
   console.time(`[${scope}] ${label}`);
 }
 
 export function timeEnd(scope: string, label: string) {
   if (!DEBUG_ENABLED) return;
-  // eslint-disable-next-line no-console
   console.timeEnd(`[${scope}] ${label}`);
 }

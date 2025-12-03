@@ -80,7 +80,7 @@ export const LLMSettings: React.FC<LLMSettingsProps> = ({
         setMaxTokens(16000);
         break;
     }
-  }, [provider]);
+  }, [provider, baseUrl, model]);
 
   const buildConfig = (): LLMConfig => {
     const base = {
@@ -153,7 +153,14 @@ export const LLMSettings: React.FC<LLMSettingsProps> = ({
     { name: "nordic", label: "Nordic", description: "Minimal grays", colors: ["#64748b", "#475569", "#334155"] },
   ];
 
-  const InputField = ({ label, type = "text", value, onChange, placeholder, info }: any) => (
+  const InputField = ({ label, type = "text", value, onChange, placeholder, info }: {
+    label: string;
+    type?: string;
+    value: string | number;
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    placeholder?: string;
+    info?: string;
+  }) => (
     <div className="space-y-2">
       <label className="block text-sm font-medium" style={{ color: theme.text.primary }}>
         {label}
@@ -249,7 +256,7 @@ export const LLMSettings: React.FC<LLMSettingsProps> = ({
               {themes.map((t) => (
                 <button
                   key={t.name}
-                  onClick={() => setTheme(t.name as any)}
+                  onClick={() => setTheme(t.name as "ocean" | "cherryBlossom" | "nordic")}
                   className={`relative p-4 rounded-xl border-2 transition-all hover:scale-105 ${
                     themeName === t.name ? "ring-2" : ""
                   }`}
@@ -315,7 +322,7 @@ export const LLMSettings: React.FC<LLMSettingsProps> = ({
               <InputField
                 label="API Key"
                 value={apiKey}
-                onChange={(e: any) => setApiKey(e.target.value)}
+                onChange={(e) => setApiKey(e.target.value)}
                 placeholder="Enter your API key"
                 info={
                   provider === "openai"
@@ -329,7 +336,7 @@ export const LLMSettings: React.FC<LLMSettingsProps> = ({
               <InputField
                 label="Base URL"
                 value={baseUrl}
-                onChange={(e: any) => setBaseUrl(e.target.value)}
+                onChange={(e) => setBaseUrl(e.target.value)}
                 placeholder={
                   provider === "ollama"
                     ? "http://localhost:11434"
@@ -351,7 +358,7 @@ export const LLMSettings: React.FC<LLMSettingsProps> = ({
               <InputField
                 label="API Key (Optional)"
                 value={apiKey}
-                onChange={(e: any) => setApiKey(e.target.value)}
+                onChange={(e) => setApiKey(e.target.value)}
                 placeholder="Optional API key"
               />
             )}
@@ -359,7 +366,7 @@ export const LLMSettings: React.FC<LLMSettingsProps> = ({
             <InputField
               label="Model"
               value={model}
-              onChange={(e: any) => setModel(e.target.value)}
+              onChange={(e) => setModel(e.target.value)}
               placeholder={
                 provider === "openai"
                   ? "gpt-4o-mini"
@@ -375,7 +382,7 @@ export const LLMSettings: React.FC<LLMSettingsProps> = ({
               label={`Temperature (${temperature})`}
               type="number"
               value={temperature}
-              onChange={(e: any) => setTemperature(parseFloat(e.target.value))}
+              onChange={(e) => setTemperature(parseFloat(e.target.value))}
               info="Lower = more deterministic, Higher = more creative (0-2)"
             />
 
@@ -383,7 +390,7 @@ export const LLMSettings: React.FC<LLMSettingsProps> = ({
               label="Max Tokens"
               type="number"
               value={maxTokens}
-              onChange={(e: any) => setMaxTokens(parseInt(e.target.value, 10))}
+              onChange={(e) => setMaxTokens(parseInt(e.target.value, 10))}
               info="Maximum tokens for model response"
             />
 

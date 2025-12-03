@@ -22,7 +22,7 @@ export default async function handler(
   }
 
   try {
-    const { messages, dataSummary, userId, month }: ChatRequest = req.body;
+    const { messages, dataSummary, month }: ChatRequest = req.body;
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: "Messages are required" });

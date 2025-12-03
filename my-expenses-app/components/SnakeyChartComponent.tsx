@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import TreeMapChart from "./TreeMapChart";
 import { calculateLinks } from "@/components/processLinks";
 import InputModal from "./editNodes";
@@ -22,9 +22,8 @@ import UploadedFilesPanel from "./UploadedFilesPanel";
 import TransactionTable from "./TransactionTable";
 import SwipeableTransactionEditor from "./SwipeableTransactionEditor";
 import CalendarView from "./CalendarView";
-import { FiBarChart2, FiGrid, FiEdit3, FiPlus, FiSettings, FiCalendar, FiLoader, FiHome, FiTrendingUp, FiUpload, FiLogOut } from "react-icons/fi";
+import { FiBarChart2, FiGrid, FiEdit3, FiPlus, FiSettings, FiCalendar, FiHome, FiTrendingUp, FiUpload, FiLogOut } from "react-icons/fi";
 import { useTheme } from "@/lib/theme-context";
-import ThemeSwitcher from "@/components/ThemeSwitcher";
 import StatsCards from "./StatsCards";
 import { LLMSettings } from "./LLMSettings";
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
@@ -32,7 +31,7 @@ import { motion } from "framer-motion";
 import { signOut } from "next-auth/react";
 
 const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
-  const { theme, themeName } = useTheme();
+  const { theme } = useTheme();
   const [dataValue, setDataValue] = useState<SankeyData>({
     nodes: [],
     links: [],
@@ -47,7 +46,6 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
     null
   );
   const [returnToCategory, setReturnToCategory] = useState<number | null>(null);
-  const [isViewTrendsLoading, setIsViewTrendsLoading] = useState(false);
   const router = useRouter();
   const { data: session } = useSession();
   const [user, setUser] = useState<{
@@ -403,7 +401,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
     // If it's a leaf node (transaction), find its parent
     if (clickedNode.isleaf) {
       // First, try to find parent via link
-      let parentLink = dataValue.links.find(
+      const parentLink = dataValue.links.find(
         (link) => link.target === nodeIndex
       );
       

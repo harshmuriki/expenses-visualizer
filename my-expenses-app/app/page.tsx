@@ -7,18 +7,10 @@ import UploadComponent from "@/components/uploadComponent";
 import WelcomeComponent from "@/components/welcomeComponent";
 import Image from "next/image";
 import Footer from "@/components/footer";
-import Link from "next/link";
 import { FiTrendingUp, FiUpload, FiUser, FiZap } from "react-icons/fi";
 import "../styles/homepage.css";
-import ThemeSwitcher from "@/components/ThemeSwitcher";
 import ThemeTest from "@/components/ThemeTest";
 import { useTheme } from "@/lib/theme-context";
-
-interface UserProfileProps {
-  user: string;
-  image: string;
-  onSignOut: () => void;
-}
 
 // Feature Showcase Component
 const FeatureShowcase: React.FC<{ isLightTheme: boolean }> = ({ isLightTheme }) => {
@@ -158,68 +150,6 @@ const FeatureShowcase: React.FC<{ isLightTheme: boolean }> = ({ isLightTheme }) 
           ))}
         </div>
       </div>
-    </div>
-  );
-};
-
-// Enhanced User Profile Component
-const UserProfile: React.FC<UserProfileProps> = ({
-  user,
-  image,
-  onSignOut,
-}) => {
-  const { theme } = useTheme();
-
-  return (
-    <div className="flex flex-col items-center justify-center space-y-6">
-      <div className="relative">
-        <Image
-          src={image}
-          alt="User profile"
-          className="rounded-full border-4 shadow-2xl"
-          style={{ borderColor: theme.primary[500] }}
-          width={120}
-          height={120}
-        />
-        <div
-          className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full border-4 flex items-center justify-center"
-          style={{
-            backgroundColor: theme.semantic.success,
-            borderColor: theme.background.secondary,
-          }}
-        >
-          <FiZap className="w-4 h-4 text-white" />
-        </div>
-      </div>
-
-      <div className="text-center space-y-2">
-        <h4 className="text-xl font-semibold" style={{ color: theme.text.primary }}>
-          Welcome back!
-        </h4>
-        <p className="font-medium text-xl" style={{ color: theme.secondary[500] }}>{user}</p>
-      </div>
-
-      <button
-        onClick={onSignOut}
-        className="group relative font-semibold py-3.5 px-8 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-[1.02] hover:shadow-2xl active:scale-[0.98]"
-        style={{
-          background: `linear-gradient(to right, ${theme.semantic.error}, ${theme.semantic.error})`,
-          color: 'white',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = `linear-gradient(to right, ${theme.semantic.error}, ${theme.semantic.error})`;
-          e.currentTarget.style.filter = 'brightness(0.9)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = `linear-gradient(to right, ${theme.semantic.error}, ${theme.semantic.error})`;
-          e.currentTarget.style.filter = 'brightness(1)';
-        }}
-      >
-        <span className="relative z-10 flex items-center justify-center gap-2">
-          <FiUser className="w-4 h-4" />
-          <span>Sign Out</span>
-        </span>
-      </button>
     </div>
   );
 };

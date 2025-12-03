@@ -3,7 +3,6 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { SankeyNode, SankeyLink } from "@/app/types/types";
 import {
-  FiEdit2,
   FiSearch,
   FiFilter,
   FiDownload,
@@ -63,26 +62,6 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
       return "bg-gradient-to-br from-pink-50 to-rose-100";
     }
     return "bg-gradient-to-br from-slate-900/80 to-slate-800/60";
-  };
-
-  const getTableBackground = () => {
-    if (themeName === "nordic") {
-      return "bg-white/90";
-    }
-    if (themeName === "cherryBlossom") {
-      return "bg-white/95";
-    }
-    return "bg-white/5";
-  };
-
-  const getTableHeaderBackground = () => {
-    if (themeName === "nordic") {
-      return "bg-gradient-to-r from-slate-200 to-slate-300";
-    }
-    if (themeName === "cherryBlossom") {
-      return "bg-gradient-to-r from-pink-100 to-rose-200";
-    }
-    return "bg-gradient-to-r from-slate-800 to-slate-700";
   };
 
   // Get category name for each transaction
@@ -345,9 +324,10 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   );
 
   const getStatusInfo = (transaction: SankeyNode) => {
+    const transactionWithStatus = transaction as SankeyNode & { status?: string };
     const status =
-      (typeof (transaction as any).status === "string"
-        ? (transaction as any).status
+      (typeof transactionWithStatus.status === "string"
+        ? transactionWithStatus.status
         : undefined) || "completed";
     if (status.toLowerCase() === "pending") {
       return {

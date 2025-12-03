@@ -1,10 +1,9 @@
-import axios, { AxiosResponse } from "axios";
-import { OpenAICompletionResponse, EnvConfig } from "@/app/types/types";
+import axios from "axios";
+import { OpenAICompletionResponse } from "@/app/types/types";
 import {
   LLMProviderFactory,
   ILLMProvider,
   JSONSchema as LLMJSONSchema,
-  TokenUsage as LLMTokenUsage,
 } from "./llmProvider";
 
 /**
@@ -202,7 +201,8 @@ export async function callOpenAIWithSchema(
 
   try {
     const content = result.content;
-    const parsed = JSON.parse(content);
+    // Validate JSON by parsing (result not used, just checking validity)
+    JSON.parse(content);
 
     // Construct OpenAI-compatible response
     response = {

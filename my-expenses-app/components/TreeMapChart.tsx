@@ -36,12 +36,9 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
   insights = [],
   excludedCategories = [],
 }) => {
-  const { theme, themeName } = useTheme();
+  const { theme } = useTheme();
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
-
-  // Determine if current theme is light
-  const isLightTheme = themeName === 'cherryBlossom' || themeName === 'nordic';
 
   // Use theme-aware category colors (kept for potential future use)
   const CHART_COLORS = theme.categories;

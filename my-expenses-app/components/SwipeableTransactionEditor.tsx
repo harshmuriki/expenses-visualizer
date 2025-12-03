@@ -109,7 +109,7 @@ const SwipeableTransactionEditor: React.FC<SwipeableTransactionEditorProps> = ({
         category: currentCategory,
       });
     }
-  }, [currentIndex, currentCategory]); // Only depend on currentIndex, not currentTransaction
+  }, [currentIndex, currentCategory, currentTransaction]); // Depend on currentIndex and currentTransaction
 
   const handleSave = () => {
     if (currentTransaction) {
