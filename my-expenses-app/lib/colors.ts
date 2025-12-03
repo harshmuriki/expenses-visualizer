@@ -65,6 +65,9 @@ export interface ColorTheme {
     warning: string;
     error: string;
     info: string;
+    pending: string;
+    completed: string;
+    recurring: string;
   };
 
   // Background Colors
@@ -164,6 +167,9 @@ export const oceanTheme: ColorTheme = {
     warning: "#fbbf24",
     error: "#fb7185",
     info: "#38bdf8",
+    pending: "#f59e0b",
+    completed: "#10b981",
+    recurring: "#3b82f6",
   },
 
   background: {
@@ -272,6 +278,9 @@ export const cherryBlossomTheme: ColorTheme = {
     warning: "#d97706", // Darker orange for accessibility
     error: "#dc2626", // Deeper red
     info: "#db2777", // Pink info for theme consistency
+    pending: "#ea580c", // Orange for pending state
+    completed: "#059669", // Green for completed
+    recurring: "#0284c7", // Cyan for recurring patterns
   },
 
   background: {
@@ -379,6 +388,9 @@ export const nordicTheme: ColorTheme = {
     warning: "#d97706", // Darker for accessibility
     error: "#dc2626", // Deeper red
     info: "#0284c7", // Sky blue for theme consistency
+    pending: "#ea580c", // Orange for pending state
+    completed: "#059669", // Green for completed
+    recurring: "#0284c7", // Sky blue for recurring patterns
   },
 
   background: {
@@ -535,4 +547,165 @@ export const COLORS = {
   primary: colors.primary[500],
   secondary: colors.secondary[500],
   accent: colors.accent[500],
+};
+
+// ============================================================================
+// UTILITY FUNCTIONS FOR EASY COLOR ACCESS
+// ============================================================================
+
+/**
+ * Get color for status badges (pending, completed, recurring)
+ * Returns an object with color classes for background, text, and border
+ */
+export const getStatusColors = (
+  status: "pending" | "completed" | "recurring" | "success" | "warning" | "error" | "info",
+  theme: ColorTheme
+) => {
+  const colorMap = {
+    pending: {
+      bg: theme.semantic.pending,
+      text: theme.semantic.pending,
+      border: theme.semantic.pending,
+    },
+    completed: {
+      bg: theme.semantic.completed,
+      text: theme.semantic.completed,
+      border: theme.semantic.completed,
+    },
+    recurring: {
+      bg: theme.semantic.recurring,
+      text: theme.semantic.recurring,
+      border: theme.semantic.recurring,
+    },
+    success: {
+      bg: theme.semantic.success,
+      text: theme.semantic.success,
+      border: theme.semantic.success,
+    },
+    warning: {
+      bg: theme.semantic.warning,
+      text: theme.semantic.warning,
+      border: theme.semantic.warning,
+    },
+    error: {
+      bg: theme.semantic.error,
+      text: theme.semantic.error,
+      border: theme.semantic.error,
+    },
+    info: {
+      bg: theme.semantic.info,
+      text: theme.semantic.info,
+      border: theme.semantic.info,
+    },
+  };
+
+  return colorMap[status];
+};
+
+/**
+ * Get color for insight panels based on type
+ * Returns colors optimized for light/dark themes
+ */
+export const getInsightColors = (
+  type: "warning" | "info" | "success" | "tip",
+  isLightTheme: boolean
+) => {
+  const lightColors = {
+    warning: {
+      border: "rgba(217, 119, 6, 0.3)",
+      bg: "linear-gradient(to bottom right, rgba(217, 119, 6, 0.1), rgba(217, 119, 6, 0.05))",
+      text: "#78350f", // amber-900
+      icon: "#d97706", // amber-600
+      iconBg: "rgba(217, 119, 6, 0.15)",
+    },
+    info: {
+      border: "rgba(2, 132, 199, 0.3)",
+      bg: "linear-gradient(to bottom right, rgba(2, 132, 199, 0.1), rgba(2, 132, 199, 0.05))",
+      text: "#075985", // sky-900
+      icon: "#0284c7", // sky-600
+      iconBg: "rgba(2, 132, 199, 0.15)",
+    },
+    success: {
+      border: "rgba(5, 150, 105, 0.3)",
+      bg: "linear-gradient(to bottom right, rgba(5, 150, 105, 0.1), rgba(5, 150, 105, 0.05))",
+      text: "#064e3b", // emerald-900
+      icon: "#059669", // emerald-600
+      iconBg: "rgba(5, 150, 105, 0.15)",
+    },
+    tip: {
+      border: "rgba(139, 92, 246, 0.3)",
+      bg: "linear-gradient(to bottom right, rgba(139, 92, 246, 0.1), rgba(139, 92, 246, 0.05))",
+      text: "#4c1d95", // violet-900
+      icon: "#8b5cf6", // violet-500
+      iconBg: "rgba(139, 92, 246, 0.15)",
+    },
+  };
+
+  const darkColors = {
+    warning: {
+      border: "rgba(251, 191, 36, 0.3)",
+      bg: "linear-gradient(to bottom right, rgba(251, 191, 36, 0.1), rgba(251, 191, 36, 0.05))",
+      text: "#fef3c7", // amber-100
+      icon: "#fbbf24", // amber-400
+      iconBg: "rgba(251, 191, 36, 0.15)",
+    },
+    info: {
+      border: "rgba(59, 130, 246, 0.3)",
+      bg: "linear-gradient(to bottom right, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05))",
+      text: "#dbeafe", // blue-100
+      icon: "#3b82f6", // blue-500
+      iconBg: "rgba(59, 130, 246, 0.15)",
+    },
+    success: {
+      border: "rgba(16, 185, 129, 0.3)",
+      bg: "linear-gradient(to bottom right, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05))",
+      text: "#d1fae5", // emerald-100
+      icon: "#10b981", // emerald-500
+      iconBg: "rgba(16, 185, 129, 0.15)",
+    },
+    tip: {
+      border: "rgba(139, 92, 246, 0.3)",
+      bg: "linear-gradient(to bottom right, rgba(139, 92, 246, 0.1), rgba(139, 92, 246, 0.05))",
+      text: "#ede9fe", // violet-100
+      icon: "#8b5cf6", // violet-500
+      iconBg: "rgba(139, 92, 246, 0.15)",
+    },
+  };
+
+  return isLightTheme ? lightColors[type] : darkColors[type];
+};
+
+/**
+ * Convert hex color to rgba with opacity
+ */
+export const hexToRgba = (hex: string, opacity: number): string => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!result) return hex;
+
+  const r = parseInt(result[1], 16);
+  const g = parseInt(result[2], 16);
+  const b = parseInt(result[3], 16);
+
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+};
+
+/**
+ * Lighten or darken a color
+ */
+export const adjustColorBrightness = (
+  hex: string,
+  percent: number
+): string => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!result) return hex;
+
+  let r = parseInt(result[1], 16);
+  let g = parseInt(result[2], 16);
+  let b = parseInt(result[3], 16);
+
+  r = Math.min(255, Math.max(0, Math.floor(r * (1 + percent / 100))));
+  g = Math.min(255, Math.max(0, Math.floor(g * (1 + percent / 100))));
+  b = Math.min(255, Math.max(0, Math.floor(b * (1 + percent / 100))));
+
+  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
 };

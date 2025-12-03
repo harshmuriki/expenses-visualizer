@@ -11,6 +11,7 @@ interface ThemeContextType {
   systemTheme: 'light' | 'dark' | null;
   useSystemTheme: boolean;
   setUseSystemTheme: (use: boolean) => void;
+  isInitialized: boolean;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -27,11 +28,24 @@ interface ThemeProviderProps {
   children: React.ReactNode;
 }
 
+// Helper to get initial theme from localStorage (runs synchronously)
+const getInitialTheme = (): ThemeName => {
+  if (typeof window !== 'undefined') {
+    const savedTheme = localStorage.getItem('theme') as ThemeName;
+    if (savedTheme && themes[savedTheme]) {
+      return savedTheme;
+    }
+  }
+  return currentTheme;
+};
+
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const [themeName, setThemeName] = useState<ThemeName>(currentTheme);
-  const [theme, setThemeState] = useState<ColorTheme>(themes[currentTheme]);
+  const initialTheme = getInitialTheme();
+  const [themeName, setThemeName] = useState<ThemeName>(initialTheme);
+  const [theme, setThemeState] = useState<ColorTheme>(themes[initialTheme]);
   const [systemTheme, setSystemTheme] = useState<'light' | 'dark' | null>(null);
   const [useSystemTheme, setUseSystemTheme] = useState<boolean>(false);
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
 
   const setTheme = (newThemeName: ThemeName) => {
     setThemeName(newThemeName);
@@ -61,9 +75,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   // Load theme from localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const savedTheme = localStorage.getItem('theme') as ThemeName;
       const savedUseSystemTheme = localStorage.getItem('useSystemTheme') === 'true';
-
       setUseSystemTheme(savedUseSystemTheme);
 
       if (savedUseSystemTheme && systemTheme) {
@@ -71,10 +83,9 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         const autoTheme = systemTheme === 'dark' ? 'ocean' : 'cherryBlossom';
         setThemeName(autoTheme);
         setThemeState(themes[autoTheme]);
-      } else if (savedTheme && themes[savedTheme]) {
-        setThemeName(savedTheme);
-        setThemeState(themes[savedTheme]);
       }
+
+      setIsInitialized(true);
     }
   }, [systemTheme]);
 
@@ -84,13 +95,19 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       const root = document.documentElement;
       const body = document.body;
 
-      // Add transition class for smooth color changes
-      root.classList.add('theme-transition');
-      body.classList.add('theme-transition');
-      setTimeout(() => {
-        root.classList.remove('theme-transition');
-        body.classList.remove('theme-transition');
-      }, 300);
+      // Remove no-transitions class on first load
+      root.classList.remove('no-transitions');
+      body.classList.remove('no-transitions');
+
+      // Add transition class for smooth color changes (but not on initial load)
+      if (isInitialized) {
+        root.classList.add('theme-transition');
+        body.classList.add('theme-transition');
+        setTimeout(() => {
+          root.classList.remove('theme-transition');
+          body.classList.remove('theme-transition');
+        }, 300);
+      }
 
       // Apply CSS variables
       Object.entries(theme.primary).forEach(([key, value]) => {
@@ -128,8 +145,13 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       // Apply background and text colors directly to body for full coverage
       body.style.backgroundColor = theme.background.primary;
       body.style.color = theme.text.primary;
+
+      // Add data attribute to body for theme-aware styling
+      const isLight = themeName === 'cherryBlossom' || themeName === 'nordic';
+      body.setAttribute('data-theme', themeName);
+      body.setAttribute('data-theme-type', isLight ? 'light' : 'dark');
     }
-  }, [theme]);
+  }, [theme, isInitialized, themeName]);
 
   const value: ThemeContextType = {
     theme,
@@ -138,6 +160,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     availableThemes: Object.keys(themes) as ThemeName[],
     systemTheme,
     useSystemTheme,
+    isInitialized,
     setUseSystemTheme: (use: boolean) => {
       setUseSystemTheme(use);
       if (typeof window !== 'undefined') {

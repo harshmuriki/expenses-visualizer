@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import { SankeyNode, SankeyLink } from "@/app/types/types";
+import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 
 interface CalendarViewProps {
   nodes: SankeyNode[];
@@ -96,6 +97,30 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     return { monthNumber, year };
   }, [month]);
 
+  // Month/year currently being viewed (can be navigated)
+  const [viewDate, setViewDate] = useState<Date>(
+    () => new Date(year, monthNumber, 1)
+  );
+  const viewMonthNumber = viewDate.getMonth();
+  const viewYear = viewDate.getFullYear();
+
+  // Keep viewDate in sync when incoming month changes
+  React.useEffect(() => {
+    setViewDate(new Date(year, monthNumber, 1));
+  }, [year, monthNumber]);
+
+  const goToPreviousMonth = () => {
+    setSelectedDay(null);
+    setIsModalOpen(false);
+    setViewDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  };
+
+  const goToNextMonth = () => {
+    setSelectedDay(null);
+    setIsModalOpen(false);
+    setViewDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  };
+
   // Filter to only leaf nodes (transactions)
   const transactions = useMemo(
     () => nodes.filter((node) => node.isleaf && node.cost),
@@ -134,10 +159,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         
         // Only process if we have a valid date
         if (transactionDate && !isNaN(transactionDate.getTime())) {
-          // Only include transactions from the current month
+          // Only include transactions from the currently viewed month
           if (
-            transactionDate.getMonth() === monthNumber &&
-            transactionDate.getFullYear() === year
+            transactionDate.getMonth() === viewMonthNumber &&
+            transactionDate.getFullYear() === viewYear
           ) {
             const day = transactionDate.getDate();
             if (!grouped.has(day)) {
@@ -152,12 +177,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     });
 
     return grouped;
-  }, [transactions, monthNumber, year]);
+  }, [transactions, viewMonthNumber, viewYear]);
 
   // Calculate calendar grid
   const calendarDays = useMemo(() => {
-    const firstDay = new Date(year, monthNumber, 1);
-    const lastDay = new Date(year, monthNumber + 1, 0);
+    const firstDay = new Date(viewYear, viewMonthNumber, 1);
+    const lastDay = new Date(viewYear, viewMonthNumber + 1, 0);
     const daysInMonth = lastDay.getDate();
     const firstDayOfWeek = firstDay.getDay();
 
@@ -190,7 +215,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     }
 
     return days;
-  }, [year, monthNumber, transactionsByDate]);
+  }, [viewYear, viewMonthNumber, transactionsByDate]);
 
   // Calculate total spending for the month
   const monthTotal = useMemo(() => {
@@ -199,13 +224,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         if (!t.date) return false;
         try {
           const d = new Date(t.date);
-          return d.getMonth() === monthNumber && d.getFullYear() === year;
+          return d.getMonth() === viewMonthNumber && d.getFullYear() === viewYear;
         } catch {
           return false;
         }
       })
       .reduce((sum, t) => sum + (t.cost || 0), 0);
-  }, [transactions, monthNumber, year]);
+  }, [transactions, viewMonthNumber, viewYear]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -239,14 +264,32 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       {/* Calendar Header */}
       <div className="rounded-xl border border-border-secondary bg-background-card p-6">
         <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-text-primary">
-              {MONTH_NAMES_FULL[monthNumber]} {year}
-            </h2>
-            <p className="text-sm text-text-secondary mt-1">
-              {transactions.length} transactions • {formatCurrency(monthTotal)}{" "}
-              total
-            </p>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={goToPreviousMonth}
+              className="p-2 rounded-full border border-border-secondary bg-background-secondary hover:bg-background-tertiary text-text-secondary hover:text-text-primary transition-colors"
+              aria-label="Previous month"
+            >
+              <FiChevronLeft className="w-4 h-4" />
+            </button>
+            <div>
+              <h2 className="text-2xl font-bold text-text-primary">
+                {MONTH_NAMES_FULL[viewMonthNumber]} {viewYear}
+              </h2>
+              <p className="text-sm text-text-secondary mt-1">
+                {transactions.length} transactions • {formatCurrency(monthTotal)}{" "}
+                total
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={goToNextMonth}
+              className="p-2 rounded-full border border-border-secondary bg-background-secondary hover:bg-background-tertiary text-text-secondary hover:text-text-primary transition-colors"
+              aria-label="Next month"
+            >
+              <FiChevronRight className="w-4 h-4" />
+            </button>
           </div>
           <div className="text-right">
             <div className="text-3xl font-bold text-primary-500">
@@ -381,7 +424,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             <div className="flex items-center justify-between p-6 border-b border-border-secondary/40 bg-background-secondary/40">
               <div>
                 <h3 className="text-xl font-semibold text-text-primary">
-                  {MONTH_NAMES_FULL[monthNumber]} {selectedDayData.date}, {year}
+                  {MONTH_NAMES_FULL[viewMonthNumber]} {selectedDayData.date},{" "}
+                  {viewYear}
                 </h3>
                 <p className="text-sm text-text-secondary mt-1">
                   {selectedDayData.transactions.length} transaction

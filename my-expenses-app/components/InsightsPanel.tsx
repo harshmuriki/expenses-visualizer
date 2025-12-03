@@ -11,6 +11,7 @@ import {
 } from "react-icons/fi";
 import { SpendingInsight, SpendingPrediction } from "@/lib/aiAnalytics";
 import { useTheme } from "@/lib/theme-context";
+import { getInsightColors, hexToRgba } from "@/lib/colors";
 
 interface InsightsPanelProps {
   insights: SpendingInsight[];
@@ -21,7 +22,9 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
   insights,
   predictions,
 }) => {
-  const { themeName } = useTheme();
+  const { themeName, theme } = useTheme();
+  // Light themes (cherryBlossom, nordic) need darker text colors for better contrast
+  // Dark themes (ocean) use lighter text colors
   const isLightTheme = themeName === 'cherryBlossom' || themeName === 'nordic';
 
   const getIcon = (type: SpendingInsight["type"]) => {
@@ -39,49 +42,8 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
     }
   };
 
-  const getColorClasses = (type: SpendingInsight["type"]) => {
-    switch (type) {
-      case "warning":
-        return {
-          border: "border-amber-500/30",
-          bg: "bg-gradient-to-br from-amber-500/10 to-amber-500/5",
-          text: isLightTheme ? "text-amber-900" : "text-amber-100",
-          icon: "text-amber-500",
-          iconBg: "bg-amber-500/15",
-        };
-      case "info":
-        return {
-          border: "border-blue-500/30",
-          bg: "bg-gradient-to-br from-blue-500/10 to-blue-500/5",
-          text: isLightTheme ? "text-blue-900" : "text-blue-100",
-          icon: "text-blue-500",
-          iconBg: "bg-blue-500/15",
-        };
-      case "success":
-        return {
-          border: "border-emerald-500/30",
-          bg: "bg-gradient-to-br from-emerald-500/10 to-emerald-500/5",
-          text: isLightTheme ? "text-emerald-900" : "text-emerald-100",
-          icon: "text-emerald-500",
-          iconBg: "bg-emerald-500/15",
-        };
-      case "tip":
-        return {
-          border: "border-violet-500/30",
-          bg: "bg-gradient-to-br from-violet-500/10 to-violet-500/5",
-          text: isLightTheme ? "text-violet-900" : "text-violet-100",
-          icon: "text-violet-500",
-          iconBg: "bg-violet-500/15",
-        };
-      default:
-        return {
-          border: "border-border-secondary/30",
-          bg: "bg-gradient-to-br from-slate-500/10 to-slate-500/5",
-          text: "text-text-primary",
-          icon: "text-text-secondary",
-          iconBg: "bg-slate-500/15",
-        };
-    }
+  const getColorStyles = (type: SpendingInsight["type"]) => {
+    return getInsightColors(type, isLightTheme);
   };
 
   return (
@@ -105,29 +67,48 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
         {insights.length > 0 ? (
           <div className="relative space-y-3">
             {insights.map((insight, index) => {
-              const colors = getColorClasses(insight.type);
+              const colorStyles = getColorStyles(insight.type);
               return (
                 <div
                   key={index}
-                  className={`group relative glass-card rounded-xl border ${colors.border} ${colors.bg} p-4 transition-all duration-300 hover:scale-[1.01] hover:shadow-xl hover:border-opacity-60 overflow-hidden`}
+                  className="group relative glass-card rounded-xl p-4 transition-all duration-300 hover:scale-[1.01] hover:shadow-xl overflow-hidden"
+                  style={{
+                    border: `1px solid ${colorStyles.border}`,
+                    background: colorStyles.bg,
+                  }}
                 >
                   {/* Animated gradient overlay on hover */}
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 -translate-x-full group-hover:translate-x-full" />
-                  
+
                   <div className="relative flex items-start gap-4">
-                    <div className={`flex-shrink-0 p-2.5 rounded-lg ${colors.iconBg} border ${colors.border} transition-all duration-300 group-hover:scale-105 group-hover:rotate-3`}>
-                      <div className={colors.icon}>{getIcon(insight.type)}</div>
+                    <div
+                      className="flex-shrink-0 p-2.5 rounded-lg transition-all duration-300 group-hover:scale-105 group-hover:rotate-3"
+                      style={{
+                        background: colorStyles.iconBg,
+                        border: `1px solid ${colorStyles.border}`,
+                      }}
+                    >
+                      <div style={{ color: colorStyles.icon }}>{getIcon(insight.type)}</div>
                     </div>
                     <div className="flex-1 space-y-1.5">
-                      <h4 className={`font-bold text-base ${colors.text} tracking-tight leading-tight`}>
+                      <h4
+                        className="font-bold text-base tracking-tight leading-tight"
+                        style={{ color: colorStyles.text }}
+                      >
                         {insight.title}
                       </h4>
-                      <p className={`text-sm leading-relaxed ${colors.text} opacity-80`}>
+                      <p
+                        className="text-sm leading-relaxed opacity-80"
+                        style={{ color: colorStyles.text }}
+                      >
                         {insight.description}
                       </p>
                       {insight.amount && (
                         <div className="mt-2 pt-2 border-t border-current/15">
-                          <p className={`text-base font-bold ${colors.text} tracking-tight`}>
+                          <p
+                            className="text-base font-bold tracking-tight"
+                            style={{ color: colorStyles.text }}
+                          >
                             ${insight.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </p>
                         </div>
@@ -167,46 +148,57 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
           </div>
 
           <div className="space-y-4">
-            {predictions.slice(0, 5).map((prediction, index) => (
-              <div
-                key={index}
-                className="group glass-card flex items-center justify-between rounded-2xl border border-border-secondary/50 p-6 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:border-border-focus/50"
-              >
-                <div className="flex items-center gap-5">
-                  <div className={`p-3 rounded-xl transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 ${
-                    prediction.trend === "increasing"
-                      ? "bg-red-500/15 border border-red-500/30"
-                      : prediction.trend === "decreasing"
-                      ? "bg-emerald-500/15 border border-emerald-500/30"
-                      : "bg-slate-500/15 border border-slate-500/30"
-                  }`}>
-                    {prediction.trend === "increasing" ? (
-                      <FiTrendingUp className="h-6 w-6 text-red-400" />
-                    ) : prediction.trend === "decreasing" ? (
-                      <FiTrendingDown className="h-6 w-6 text-emerald-400" />
-                    ) : (
-                      <div className="h-6 w-6 text-text-tertiary flex items-center justify-center text-lg">→</div>
-                    )}
+            {predictions.slice(0, 5).map((prediction, index) => {
+              const trendColor =
+                prediction.trend === "increasing"
+                  ? theme.semantic.error
+                  : prediction.trend === "decreasing"
+                  ? theme.semantic.success
+                  : theme.text.tertiary;
+
+              return (
+                <div
+                  key={index}
+                  className="group glass-card flex items-center justify-between rounded-2xl border border-border-secondary/50 p-6 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:border-border-focus/50"
+                >
+                  <div className="flex items-center gap-5">
+                    <div
+                      className="p-3 rounded-xl transition-all duration-300 group-hover:scale-110 group-hover:rotate-3"
+                      style={{
+                        background: hexToRgba(trendColor, 0.15),
+                        border: `1px solid ${hexToRgba(trendColor, 0.3)}`,
+                      }}
+                    >
+                      {prediction.trend === "increasing" ? (
+                        <FiTrendingUp className="h-6 w-6" style={{ color: trendColor }} />
+                      ) : prediction.trend === "decreasing" ? (
+                        <FiTrendingDown className="h-6 w-6" style={{ color: trendColor }} />
+                      ) : (
+                        <div className="h-6 w-6 text-text-tertiary flex items-center justify-center text-lg">
+                          →
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-bold text-text-primary text-base tracking-tight">
+                        {prediction.category}
+                      </p>
+                      <p className="text-xs text-text-tertiary mt-1">
+                        {prediction.confidence.toFixed(0)}% confidence
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-bold text-text-primary text-base tracking-tight">
-                      {prediction.category}
+                  <div className="text-right">
+                    <p className="font-bold text-text-primary text-xl">
+                      ${prediction.predictedAmount.toFixed(2)}
                     </p>
-                    <p className="text-xs text-text-tertiary mt-1">
-                      {prediction.confidence.toFixed(0)}% confidence
+                    <p className="text-xs font-medium capitalize text-text-tertiary mt-1">
+                      {prediction.trend}
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-bold text-text-primary text-xl">
-                    ${prediction.predictedAmount.toFixed(2)}
-                  </p>
-                  <p className="text-xs font-medium capitalize text-text-tertiary mt-1">
-                    {prediction.trend}
-                  </p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="mt-6 glass-card rounded-2xl border border-border-secondary/50 p-5">

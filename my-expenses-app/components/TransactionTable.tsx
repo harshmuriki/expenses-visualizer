@@ -37,6 +37,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   onEditTransaction,
 }) => {
   const { themeName, theme } = useTheme();
+  const isLightTheme = themeName === 'cherryBlossom' || themeName === 'nordic';
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<SortField>("cost");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
@@ -126,6 +127,38 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
     return detectRecurringTransactions(transactions);
   }, [transactions]);
 
+  // Robust date parsing helper for mixed formats
+  const parseDate = (value?: string | null): number => {
+    if (!value) return 0;
+    const dateStr = String(value).trim();
+    let d = new Date(dateStr);
+
+    if (!isNaN(d.getTime())) {
+      return d.getTime();
+    }
+
+    const parts = dateStr.split(/[-\/]/);
+    if (parts.length === 3) {
+      if (parts[0].length === 4) {
+        // YYYY-MM-DD
+        d = new Date(
+          parseInt(parts[0]),
+          parseInt(parts[1]) - 1,
+          parseInt(parts[2])
+        );
+      } else {
+        // MM/DD/YYYY
+        d = new Date(
+          parseInt(parts[2]),
+          parseInt(parts[0]) - 1,
+          parseInt(parts[1])
+        );
+      }
+    }
+
+    return isNaN(d.getTime()) ? 0 : d.getTime();
+  };
+
   // Filter and sort transactions
   const filteredTransactions = useMemo(() => {
     let filtered = transactions;
@@ -193,9 +226,12 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
         case "category":
           comparison = a.category.localeCompare(b.category);
           break;
-        case "date":
-          comparison = (a.date || "").localeCompare(b.date || "");
+        case "date": {
+          const aTime = parseDate(a.date as string | undefined);
+          const bTime = parseDate(b.date as string | undefined);
+          comparison = aTime - bTime;
           break;
+        }
         case "location":
           comparison = (a.location || "").localeCompare(b.location || "");
           break;
@@ -752,12 +788,43 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
               Transactions
             </h3>
           </div>
-          <button
-            onClick={exportToCSV}
-            className="text-sm font-semibold text-primary-400 hover:text-primary-300 transition-colors"
-          >
-            View All
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 text-xs text-text-tertiary">
+              <span className="font-semibold uppercase tracking-wide">
+                Sort by
+              </span>
+              <button
+                type="button"
+                onClick={() => handleSort("date")}
+                className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 transition-colors ${
+                  sortField === "date"
+                    ? "border-primary-500 bg-primary-500/10 text-primary-300"
+                    : "border-border-secondary bg-background-secondary/60 text-text-secondary hover:text-text-primary"
+                }`}
+              >
+                Date
+                <SortIcon field="date" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSort("cost")}
+                className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 transition-colors ${
+                  sortField === "cost"
+                    ? "border-primary-500 bg-primary-500/10 text-primary-300"
+                    : "border-border-secondary bg-background-secondary/60 text-text-secondary hover:text-text-primary"
+                }`}
+              >
+                Amount
+                <SortIcon field="cost" />
+              </button>
+            </div>
+            <button
+              onClick={exportToCSV}
+              className="text-sm font-semibold text-primary-400 hover:text-primary-300 transition-colors"
+            >
+              View All
+            </button>
+          </div>
         </div>
         {filteredTransactions.length > 0 ? (
           <div className="divide-y divide-border-secondary/40">
@@ -778,7 +845,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                   className="w-full px-6 py-4 flex flex-wrap items-center gap-4 text-left transition hover:bg-white/5/10 hover:bg-background-secondary/40"
                 >
                   <div
-                    className="flex h-12 w-12 items-center justify-center rounded-2xl text-base font-semibold text-white uppercase shadow-lg"
+                    className={`flex h-12 w-12 items-center justify-center rounded-2xl text-base font-semibold uppercase shadow-lg ${isLightTheme ? 'text-white' : 'text-white'}`}
                     style={getAvatarStyles(transaction.category)}
                   >
                     {(transaction.name || "P")[0]}

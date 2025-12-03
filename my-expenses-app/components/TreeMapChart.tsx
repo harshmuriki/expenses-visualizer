@@ -40,6 +40,9 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
 
+  // Determine if current theme is light
+  const isLightTheme = themeName === 'cherryBlossom' || themeName === 'nordic';
+
   // Use theme-aware category colors (kept for potential future use)
   const CHART_COLORS = theme.categories;
 
@@ -282,20 +285,20 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
       <div
         className="rounded-lg p-3 shadow-xl"
         style={{
-          backgroundColor: "#374151",
-          border: "1px solid rgba(255, 255, 255, 0.1)",
+          backgroundColor: theme.background.card,
+          border: `1px solid ${theme.border.secondary}`,
         }}
       >
-        <p className="font-semibold text-white">{data.name}</p>
-        <p className="mt-1 text-lg font-bold text-white">
+        <p className="font-semibold" style={{ color: theme.text.primary }}>{data.name}</p>
+        <p className="mt-1 text-lg font-bold" style={{ color: theme.text.primary }}>
           ${data.size?.toFixed(2) || 0}
         </p>
         {data.transactionCount && (
-          <p className="mt-1 text-xs text-gray-300">
+          <p className="mt-1 text-xs" style={{ color: theme.text.secondary }}>
             {data.transactionCount} transactions
           </p>
         )}
-        <p className="mt-2 text-xs text-gray-400">Click to view transactions</p>
+        <p className="mt-2 text-xs" style={{ color: theme.text.tertiary }}>Click to view transactions</p>
       </div>
     );
   };
@@ -311,13 +314,16 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
       <div
         className="rounded-2xl overflow-hidden"
         style={{
-          backgroundColor: "#1F2937", // dark gray background
-          border: "1px solid rgba(255, 255, 255, 0.1)",
+          backgroundColor: theme.background.card,
+          border: `1px solid ${theme.border.secondary}`,
         }}
       >
-        <div className="px-6 pt-6 pb-4 flex items-center justify-between border-b border-white/10">
-          <h3 className="text-xl font-bold text-white">CATEGORY HEATMAP</h3>
-          <p className="text-sm text-gray-400">
+        <div
+          className="px-6 pt-6 pb-4 flex items-center justify-between border-b"
+          style={{ borderColor: theme.border.secondary }}
+        >
+          <h3 className="text-xl font-bold text-text-primary">CATEGORY HEATMAP</h3>
+          <p className="text-sm text-text-tertiary">
             Click any category to view transactions
           </p>
         </div>
@@ -327,7 +333,7 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
             width: "100%",
             height: 500,
             position: "relative",
-            backgroundColor: "#111827", // darker background for the chart area
+            backgroundColor: theme.background.secondary,
             padding: "16px",
           }}
         >
@@ -363,19 +369,34 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/20 bg-gradient-to-r from-primary-500/80 to-secondary-500/80 backdrop-blur-sm p-6">
+            <div
+              className="flex items-center justify-between border-b backdrop-blur-sm p-6"
+              style={{
+                borderColor: theme.border.secondary,
+                background: `linear-gradient(to right, ${theme.primary[500]}cc, ${theme.secondary[500]}cc)`,
+              }}
+            >
               <div>
-                <h2 className="text-2xl font-bold text-gray-100">
+                <h2 className="text-2xl font-bold" style={{ color: theme.text.inverse }}>
                   {selectedCategoryNode?.name || "Category"}
                 </h2>
-                <p className="mt-1 text-sm text-gray-300">
+                <p className="mt-1 text-sm" style={{ color: theme.text.inverse, opacity: 0.9 }}>
                   {selectedTransactions.length} transactions · $
                   {totalCategoryAmount.toFixed(2)}
                 </p>
               </div>
               <button
                 onClick={() => setSelectedCategory(null)}
-                className="rounded-lg p-2 text-gray-100 transition hover:bg-white/20"
+                className="rounded-lg p-2 transition"
+                style={{
+                  color: theme.text.inverse,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = `${theme.text.inverse}30`;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
               >
                 <FiX size={24} />
               </button>
@@ -392,7 +413,8 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
                     return (
                       <div
                         key={transaction.index}
-                        className="group relative glass-card p-4 transition-all hover:scale-[1.02] cursor-pointer text-white"
+                        className="group relative glass-card p-4 transition-all hover:scale-[1.02] cursor-pointer"
+                        style={{ color: theme.text.primary }}
                         onClick={(e) => {
                           e.stopPropagation(); // Prevent closing the category panel
                           if (onEditFromCategory && selectedCategory !== null) {
@@ -416,29 +438,35 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white">
+                              <span
+                                className="flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold"
+                                style={{
+                                  backgroundColor: theme.primary[500],
+                                  color: theme.text.inverse,
+                                }}
+                              >
                                 {idx + 1}
                               </span>
                               <div className="flex-1">
-                                <h3 className="font-semibold text-gray-100">
+                                <h3 className="font-semibold" style={{ color: theme.text.primary }}>
                                   {transaction.name}
                                 </h3>
-                                <div className="mt-1 flex flex-wrap gap-3 text-xs text-gray-400">
+                                <div className="mt-1 flex flex-wrap gap-3 text-xs" style={{ color: theme.text.tertiary }}>
                                   {transaction.node?.date && (
                                     <span className="flex items-center gap-1">
-                                      <span className="text-gray-400">📅</span>
+                                      <span>📅</span>
                                       {transaction.node.date}
                                     </span>
                                   )}
                                   {transaction.node?.location && (
                                     <span className="flex items-center gap-1">
-                                      <span className="text-gray-400">📍</span>
+                                      <span>📍</span>
                                       {transaction.node.location}
                                     </span>
                                   )}
                                   {transaction.node?.bank && (
                                     <span className="flex items-center gap-1">
-                                      <span className="text-gray-400">🏦</span>
+                                      <span>🏦</span>
                                       {transaction.node.bank}
                                     </span>
                                   )}
@@ -449,10 +477,10 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
 
                           <div className="flex flex-col items-end gap-2">
                             <div className="text-right">
-                              <p className="text-2xl font-bold text-emerald-400">
+                              <p className="text-2xl font-bold" style={{ color: theme.semantic.success }}>
                                 ${transaction.amount.toFixed(2)}
                               </p>
-                              <p className="text-xs text-gray-400">
+                              <p className="text-xs" style={{ color: theme.text.tertiary }}>
                                 {(
                                   (transaction.amount / totalCategoryAmount) *
                                   100

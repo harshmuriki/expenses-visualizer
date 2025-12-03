@@ -595,7 +595,28 @@ const SpendingTrendsComponent: React.FC = () => {
                       setShowMonthSelector(false);
                       fetchSpendingData();
                     }}
-                    className="px-8 py-3 bg-gradient-to-r from-primary-500 to-secondary-500 hover:from-primary-600 hover:to-secondary-600 text-white rounded-xl font-bold shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center gap-2"
+                    className="px-8 py-3 rounded-xl font-bold shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center gap-2"
+                    style={{
+                      background: isLightTheme
+                        ? theme.background.card
+                        : `linear-gradient(to right, ${theme.primary[500]}, ${theme.secondary[500]})`,
+                      color: isLightTheme ? theme.text.primary : 'white',
+                      border: isLightTheme ? `2px solid ${theme.border.secondary}` : 'none',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (isLightTheme) {
+                        e.currentTarget.style.backgroundColor = theme.background.tertiary;
+                      } else {
+                        e.currentTarget.style.background = `linear-gradient(to right, ${theme.primary[600]}, ${theme.secondary[600]})`;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (isLightTheme) {
+                        e.currentTarget.style.backgroundColor = theme.background.card;
+                      } else {
+                        e.currentTarget.style.background = `linear-gradient(to right, ${theme.primary[500]}, ${theme.secondary[500]})`;
+                      }
+                    }}
                   >
                     <FiBarChart2 className="w-5 h-5" />
                     Analyze Trends
@@ -611,26 +632,99 @@ const SpendingTrendsComponent: React.FC = () => {
 
   if (isLoading || isInitializing) {
     return (
-      <div className="w-full p-8 bg-background-card rounded-xl border border-border-secondary">
-        <div className="flex flex-col items-center space-y-4">
+      <div className="w-full min-h-[70vh] flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-6">
           <div className="relative">
-            <div className="w-16 h-16 border-4 border-border-primary border-t-primary-500 rounded-full animate-spin"></div>
+            <div
+              className="w-20 h-20 border-4 rounded-full animate-spin"
+              style={{
+                borderColor: theme.border.primary,
+                borderTopColor: theme.primary[500],
+              }}
+            ></div>
             <div className="absolute inset-0 flex items-center justify-center">
               <div
-                className="w-8 h-8 border-2 border-border-secondary border-t-secondary-500 rounded-full animate-spin"
-                style={{ animationDirection: "reverse" }}
+                className="w-10 h-10 border-2 rounded-full animate-spin"
+                style={{
+                  borderColor: theme.border.secondary,
+                  borderTopColor: theme.secondary[500],
+                  animationDirection: "reverse",
+                }}
+              ></div>
+            </div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div
+                className="w-6 h-6 border-2 rounded-full animate-pulse"
+                style={{ borderColor: theme.accent[500] }}
               ></div>
             </div>
           </div>
-          <div className="text-center">
-            <h3 className="text-xl font-bold text-text-primary mb-2">
-              {loadingStep}
-            </h3>
-            <p className="text-text-secondary">
+          <div className="text-center max-w-md">
+            <h2
+              className="text-2xl font-bold mb-3"
+              style={{
+                background: `linear-gradient(to right, ${theme.primary[500]}, ${theme.secondary[500]})`,
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+              }}
+            >
+              🔍 {loadingStep}
+            </h2>
+            <p className="text-base mb-4" style={{ color: theme.text.secondary }}>
               {isInitializing
-                ? "Preparing your insights..."
-                : "Crunching the numbers..."}
+                ? "Preparing your insights and analyzing spending patterns..."
+                : "Processing your financial data..."}
             </p>
+            <div className="space-y-2 text-sm" style={{ color: theme.text.tertiary }}>
+              <div className="flex items-center justify-center space-x-2">
+                <div
+                  className="w-2 h-2 rounded-full animate-pulse"
+                  style={{ backgroundColor: theme.primary[500] }}
+                ></div>
+                <span>Loading transaction data</span>
+              </div>
+              <div className="flex items-center justify-center space-x-2">
+                <div
+                  className="w-2 h-2 rounded-full animate-pulse"
+                  style={{
+                    backgroundColor: theme.secondary[500],
+                    animationDelay: "0.3s",
+                  }}
+                ></div>
+                <span>Calculating trends</span>
+              </div>
+              <div className="flex items-center justify-center space-x-2">
+                <div
+                  className="w-2 h-2 rounded-full animate-pulse"
+                  style={{
+                    backgroundColor: theme.accent[500],
+                    animationDelay: "0.6s",
+                  }}
+                ></div>
+                <span>Generating insights</span>
+              </div>
+            </div>
+            <div className="mt-6 flex space-x-1 justify-center">
+              <div
+                className="w-3 h-3 rounded-full animate-bounce"
+                style={{ backgroundColor: theme.primary[500] }}
+              ></div>
+              <div
+                className="w-3 h-3 rounded-full animate-bounce"
+                style={{
+                  backgroundColor: theme.secondary[500],
+                  animationDelay: "0.1s",
+                }}
+              ></div>
+              <div
+                className="w-3 h-3 rounded-full animate-bounce"
+                style={{
+                  backgroundColor: theme.accent[500],
+                  animationDelay: "0.2s",
+                }}
+              ></div>
+            </div>
           </div>
         </div>
       </div>
@@ -911,10 +1005,10 @@ const SpendingTrendsComponent: React.FC = () => {
                   </ResponsiveContainer>
                   {/* Center text */}
                   <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                    <p className="text-3xl font-bold text-white">
+                    <p className={`text-3xl font-bold ${isLightTheme ? 'text-text-primary' : 'text-white'}`}>
                       {formatCurrency(monthlyData[0].totalSpending)}
                     </p>
-                    <p className="text-xs uppercase tracking-[0.2em] text-gray-300 mt-1">
+                    <p className={`text-xs uppercase tracking-[0.2em] mt-1 ${isLightTheme ? 'text-text-secondary' : 'text-gray-300'}`}>
                       TOTAL
                     </p>
                   </div>

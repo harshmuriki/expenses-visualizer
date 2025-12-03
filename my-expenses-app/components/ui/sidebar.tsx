@@ -5,6 +5,7 @@ import Link, { LinkProps } from "next/link";
 import React, { useState, createContext, useContext } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
+import { useTheme } from "@/lib/theme-context";
 
 interface Links {
   label: string;
@@ -86,14 +87,18 @@ export const DesktopSidebar = ({
   ...props
 }: React.ComponentProps<typeof motion.div>) => {
   const { open, setOpen, animate } = useSidebar();
+  const { theme } = useTheme();
   return (
     <motion.div
       className={cn(
-        "h-full px-3 py-3 hidden md:flex md:flex-col bg-neutral-100 dark:bg-neutral-800 w-[300px] flex-shrink-0",
+        "h-full px-3 py-3 hidden md:flex md:flex-col w-[240px] flex-shrink-0",
         className
       )}
+      style={{
+        backgroundColor: theme.background.secondary,
+      }}
       animate={{
-        width: animate ? (open ? "300px" : "60px") : "300px",
+        width: animate ? (open ? "240px" : "60px") : "240px",
       }}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
@@ -110,17 +115,22 @@ export const MobileSidebar = ({
   ...props
 }: React.ComponentProps<"div">) => {
   const { open, setOpen } = useSidebar();
+  const { theme } = useTheme();
   return (
     <>
       <div
         className={cn(
-          "h-10 px-4 py-4 flex flex-row md:hidden items-center justify-between bg-neutral-100 dark:bg-neutral-800 w-full"
+          "h-10 px-4 py-4 flex flex-row md:hidden items-center justify-between w-full"
         )}
+        style={{
+          backgroundColor: theme.background.secondary,
+        }}
         {...props}
       >
         <div className="flex justify-end z-20 w-full">
           <Menu
-            className="text-neutral-800 dark:text-neutral-200 cursor-pointer"
+            className="cursor-pointer"
+            style={{ color: theme.text.primary }}
             onClick={() => setOpen(!open)}
           />
         </div>
@@ -135,12 +145,16 @@ export const MobileSidebar = ({
                 ease: "easeInOut",
               }}
               className={cn(
-                "fixed h-full w-full inset-0 bg-white dark:bg-neutral-900 p-10 z-[100] flex flex-col justify-between",
+                "fixed h-full w-full inset-0 p-10 z-[100] flex flex-col justify-between",
                 className
               )}
+              style={{
+                backgroundColor: theme.background.primary,
+              }}
             >
               <div
-                className="absolute right-10 top-10 z-50 text-neutral-800 dark:text-neutral-200 cursor-pointer"
+                className="absolute right-10 top-10 z-50 cursor-pointer"
+                style={{ color: theme.text.primary }}
                 onClick={() => setOpen(!open)}
               >
                 <X />
@@ -164,6 +178,7 @@ export const SidebarLink = ({
   props?: LinkProps;
 }) => {
   const { open, animate } = useSidebar();
+  const { theme } = useTheme();
   return (
     <Link
       href={link.href}
@@ -172,6 +187,7 @@ export const SidebarLink = ({
         "flex items-center justify-start gap-2.5 group/sidebar py-2 px-2 rounded-lg transition-colors",
         className
       )}
+      style={{ color: theme.text.primary }}
       {...props}
     >
       {link.icon}
@@ -180,7 +196,8 @@ export const SidebarLink = ({
           display: animate ? (open ? "inline-block" : "none") : "inline-block",
           opacity: animate ? (open ? 1 : 0) : 1,
         }}
-        className="text-neutral-700 dark:text-neutral-200 text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block !p-0 !m-0"
+        className="text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block !p-0 !m-0"
+        style={{ color: theme.text.primary }}
       >
         {link.label}
       </motion.span>

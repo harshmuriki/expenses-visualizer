@@ -1364,11 +1364,14 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
           </div>
 
           {/* Bottom Section */}
-          <div className="flex flex-col gap-1.5 pt-3 border-t" style={{ borderColor: theme.border.secondary }}>
+          <div
+            className="flex flex-col items-center gap-1.5 pt-3 border-t text-center"
+            style={{ borderColor: theme.border.secondary }}
+          >
             {/* Settings */}
             <button
               onClick={() => setIsLLMSettingsOpen(true)}
-              className="flex items-center gap-2.5 px-2 py-2 rounded-lg transition hover:bg-opacity-10"
+              className="flex items-center justify-center gap-2.5 px-2 py-2 rounded-lg transition hover:bg-opacity-10"
               style={{ color: theme.text.secondary }}
             >
               <FiSettings className="h-4 w-4 flex-shrink-0" />
@@ -1377,7 +1380,10 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
 
             {/* User Profile */}
             {user && (
-              <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg" style={{ backgroundColor: theme.background.tertiary }}>
+              <div
+                className="flex items-center justify-center gap-2.5 px-2 py-2 rounded-lg"
+                style={{ backgroundColor: theme.background.tertiary }}
+              >
                 <div
                   className="h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 font-semibold text-xs"
                   style={{ backgroundColor: theme.primary[500], color: theme.text.inverse }}
@@ -1397,7 +1403,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
             {/* Logout */}
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
-              className="flex items-center gap-2.5 px-2 py-2 rounded-lg transition hover:bg-red-500/10"
+              className="flex items-center justify-center gap-2.5 px-2 py-2 rounded-lg transition hover:bg-red-500/10"
               style={{ color: theme.text.secondary }}
             >
               <FiLogOut className="h-4 w-4 flex-shrink-0" />

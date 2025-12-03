@@ -2,6 +2,7 @@
 
 import React from "react";
 import { signOut, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import UploadComponent from "@/components/uploadComponent";
 import WelcomeComponent from "@/components/welcomeComponent";
 import Image from "next/image";
@@ -11,6 +12,7 @@ import { FiTrendingUp, FiUpload, FiUser, FiZap } from "react-icons/fi";
 import "../styles/homepage.css";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import ThemeTest from "@/components/ThemeTest";
+import { useTheme } from "@/lib/theme-context";
 
 interface UserProfileProps {
   user: string;
@@ -18,43 +20,205 @@ interface UserProfileProps {
   onSignOut: () => void;
 }
 
+// Feature Showcase Component
+const FeatureShowcase: React.FC<{ isLightTheme: boolean }> = ({ isLightTheme }) => {
+  const [currentFeature, setCurrentFeature] = React.useState(0);
+
+  const features = [
+    {
+      title: "AI-Powered Categorization",
+      description: "Automatically categorize your transactions using advanced AI. Save hours of manual work.",
+      icon: "🤖",
+      color: "from-blue-500 to-purple-500",
+      stats: "99% Accuracy",
+    },
+    {
+      title: "Beautiful Visualizations",
+      description: "Interactive treemaps, charts, and graphs. Understand your spending at a glance.",
+      icon: "📊",
+      color: "from-emerald-500 to-teal-500",
+      stats: "5+ Chart Types",
+    },
+    {
+      title: "Multi-Month Trends",
+      description: "Track spending patterns across months. See where your money goes over time.",
+      icon: "📈",
+      color: "from-orange-500 to-red-500",
+      stats: "Unlimited History",
+    },
+    {
+      title: "Smart Insights",
+      description: "Get personalized recommendations and anomaly detection powered by AI.",
+      icon: "💡",
+      color: "from-violet-500 to-pink-500",
+      stats: "Real-time Analysis",
+    },
+    {
+      title: "Bank Integration",
+      description: "Connect your bank accounts via Plaid for automatic transaction syncing.",
+      icon: "🏦",
+      color: "from-cyan-500 to-blue-500",
+      stats: "10,000+ Banks",
+    },
+  ];
+
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentFeature((prev) => (prev + 1) % features.length);
+    }, 4000); // Change feature every 4 seconds
+
+    return () => clearInterval(interval);
+  }, [features.length]);
+
+  const feature = features[currentFeature];
+
+  return (
+    <div className="group relative overflow-hidden rounded-3xl p-8 hover:scale-[1.01] transition-all duration-300 border-2 shadow-xl min-h-[400px] flex flex-col"
+      style={{
+        backgroundColor: 'var(--color-background-card)',
+        borderColor: 'var(--color-border-secondary)'
+      }}>
+      {/* Decorative gradient */}
+      <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-secondary-400/20 to-transparent rounded-full blur-2xl"></div>
+
+      <div className="relative z-10 flex-1 flex flex-col">
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-6">
+          <div
+            className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300"
+            style={{
+              background: isLightTheme
+                ? `linear-gradient(to bottom right, var(--color-secondary-700), var(--color-accent-700))`
+                : `linear-gradient(to bottom right, var(--color-secondary-500), var(--color-accent-500))`
+            }}
+          >
+            <span className="text-3xl">{feature.icon}</span>
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
+              App Features
+            </h2>
+            <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
+              Discover what makes us special
+            </p>
+          </div>
+        </div>
+
+        {/* Feature Content - Animated */}
+        <div key={currentFeature} className="flex-1 flex flex-col justify-center space-y-6 fade-in-up">
+          {/* Feature Icon */}
+          <div className="flex justify-center">
+            <div
+              className={`w-32 h-32 rounded-3xl flex items-center justify-center text-6xl transform transition-all duration-500 hover:scale-110 hover:rotate-6 bg-gradient-to-br ${feature.color} shadow-2xl`}
+            >
+              {feature.icon}
+            </div>
+          </div>
+
+          {/* Feature Details */}
+          <div className="text-center space-y-3">
+            <h3 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
+              {feature.title}
+            </h3>
+            <p className="text-base leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
+              {feature.description}
+            </p>
+            <div className="inline-block px-4 py-2 rounded-full border-2"
+              style={{
+                backgroundColor: 'var(--color-background-secondary)',
+                borderColor: 'var(--color-border-secondary)',
+                color: 'var(--color-primary-500)'
+              }}>
+              <span className="font-bold">{feature.stats}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Progress Indicators */}
+        <div className="flex justify-center gap-2 mt-8">
+          {features.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentFeature(index)}
+              className="relative h-2 rounded-full transition-all duration-300"
+              style={{
+                width: currentFeature === index ? '32px' : '8px',
+                backgroundColor: currentFeature === index
+                  ? 'var(--color-primary-500)'
+                  : 'var(--color-border-secondary)',
+              }}
+            >
+              {currentFeature === index && (
+                <div
+                  className="absolute inset-0 rounded-full animate-pulse"
+                  style={{ backgroundColor: 'var(--color-primary-500)' }}
+                />
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Enhanced User Profile Component
 const UserProfile: React.FC<UserProfileProps> = ({
   user,
   image,
   onSignOut,
 }) => {
+  const { theme } = useTheme();
+
   return (
     <div className="flex flex-col items-center justify-center space-y-6">
       <div className="relative">
         <Image
           src={image}
           alt="User profile"
-          className="rounded-full border-4 border-primary-500 shadow-2xl"
+          className="rounded-full border-4 shadow-2xl"
+          style={{ borderColor: theme.primary[500] }}
           width={120}
           height={120}
         />
-        <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-green-400 rounded-full border-4 border-background-secondary flex items-center justify-center">
-          <FiZap className="w-4 h-4 text-text-primary" />
+        <div
+          className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full border-4 flex items-center justify-center"
+          style={{
+            backgroundColor: theme.semantic.success,
+            borderColor: theme.background.secondary,
+          }}
+        >
+          <FiZap className="w-4 h-4 text-white" />
         </div>
       </div>
 
       <div className="text-center space-y-2">
-        <h4 className="text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+        <h4 className="text-xl font-semibold" style={{ color: theme.text.primary }}>
           Welcome back!
         </h4>
-        <p className="font-medium text-xl" style={{ color: 'var(--color-secondary-500)' }}>{user}</p>
+        <p className="font-medium text-xl" style={{ color: theme.secondary[500] }}>{user}</p>
       </div>
 
       <button
         onClick={onSignOut}
-        className="group relative bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-3.5 px-8 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-[1.02] hover:shadow-2xl active:scale-[0.98]"
+        className="group relative font-semibold py-3.5 px-8 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-[1.02] hover:shadow-2xl active:scale-[0.98]"
+        style={{
+          background: `linear-gradient(to right, ${theme.semantic.error}, ${theme.semantic.error})`,
+          color: 'white',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = `linear-gradient(to right, ${theme.semantic.error}, ${theme.semantic.error})`;
+          e.currentTarget.style.filter = 'brightness(0.9)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = `linear-gradient(to right, ${theme.semantic.error}, ${theme.semantic.error})`;
+          e.currentTarget.style.filter = 'brightness(1)';
+        }}
       >
         <span className="relative z-10 flex items-center justify-center gap-2">
           <FiUser className="w-4 h-4" />
           <span>Sign Out</span>
         </span>
-        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-red-600 to-red-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
       </button>
     </div>
   );
@@ -63,6 +227,18 @@ const UserProfile: React.FC<UserProfileProps> = ({
 // Main Home Page
 const HomePage: React.FC = () => {
   const { data: session, status } = useSession();
+  const { themeName } = useTheme();
+  const isLightTheme = themeName === 'cherryBlossom' || themeName === 'nordic';
+  const [isNavigatingToTrends, setIsNavigatingToTrends] = React.useState(false);
+  const router = useRouter();
+
+  const handleNavigateToTrends = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsNavigatingToTrends(true);
+    // Small delay to ensure loading state renders
+    await new Promise(resolve => setTimeout(resolve, 50));
+    router.push('/trends');
+  };
 
   // Loading state
   if (status === "loading") {
@@ -111,6 +287,30 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-background-primary relative overflow-hidden">
+      {/* Loading Overlay */}
+      {isNavigatingToTrends && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/30 backdrop-blur-sm">
+          <div className="flex flex-col items-center space-y-4 bg-background-card p-8 rounded-2xl border-2 shadow-2xl"
+            style={{ borderColor: 'var(--color-border-focus)' }}>
+            <div className="relative">
+              <div className="w-16 h-16 border-4 border-border-primary border-t-primary-500 rounded-full animate-spin"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-8 h-8 border-2 border-border-secondary border-t-secondary-500 rounded-full animate-spin"
+                  style={{ animationDirection: "reverse" }}></div>
+              </div>
+            </div>
+            <div className="text-center">
+              <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--color-text-primary)' }}>
+                Loading Trends
+              </h3>
+              <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                Preparing your spending analysis...
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Animated Background Elements - More vibrant */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-primary-400/30 to-secondary-400/30 rounded-full blur-3xl animate-pulse"></div>
@@ -120,6 +320,51 @@ const HomePage: React.FC = () => {
 
       {/* Enhanced Header */}
       <header className="relative z-10 py-8 md:py-12 text-center px-4">
+        {/* User Profile Menu - Top Right */}
+        <div className="absolute top-4 right-4 md:top-8 md:right-8 z-20">
+          <div className="flex items-center gap-3 rounded-full border-2 shadow-xl transition-all hover:scale-105"
+            style={{
+              backgroundColor: 'var(--color-background-card)',
+              borderColor: 'var(--color-border-secondary)',
+              padding: '8px 16px'
+            }}>
+            <Image
+              src={session?.user?.image || "/images/defaultuser.jpg"}
+              alt="User profile"
+              className="rounded-full border-2"
+              style={{ borderColor: 'var(--color-primary-500)' }}
+              width={40}
+              height={40}
+            />
+            <div className="hidden md:block text-left">
+              <p className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>
+                {session?.user?.name || "User"}
+              </p>
+              <button
+                onClick={() => signOut()}
+                className="text-xs font-medium transition-colors"
+                style={{ color: 'var(--color-text-tertiary)' }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = 'var(--color-semantic-error)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'var(--color-text-tertiary)';
+                }}
+              >
+                Sign Out
+              </button>
+            </div>
+            {/* Mobile - Icon only with dropdown */}
+            <button
+              onClick={() => signOut()}
+              className="md:hidden p-2 rounded-full transition-all hover:bg-background-secondary"
+              title="Sign Out"
+            >
+              <FiUser className="w-4 h-4" style={{ color: 'var(--color-text-primary)' }} />
+            </button>
+          </div>
+        </div>
+
         {/* Unique floating badge */}
         <div className="mb-6 flex justify-center">
           <div className="relative inline-flex items-center gap-3 rounded-full px-6 py-3 shadow-xl border-2 transition-all duration-300 hover:scale-105"
@@ -230,13 +475,43 @@ const HomePage: React.FC = () => {
             backgroundColor: 'var(--color-background-card)',
             borderColor: 'var(--color-border-secondary)'
           }}>
-          <Link
-            href="/trends"
-            className="group relative flex items-center gap-2.5 px-6 py-3 bg-gradient-to-r from-secondary-500 to-accent-500 hover:from-secondary-600 hover:to-accent-600 text-white rounded-xl font-semibold shadow-lg transform hover:scale-[1.02] transition-all duration-300 active:scale-[0.98]"
+          <button
+            onClick={handleNavigateToTrends}
+            disabled={isNavigatingToTrends}
+            className="group relative flex items-center gap-2.5 px-6 py-3 rounded-xl font-semibold shadow-lg transform hover:scale-[1.02] transition-all duration-300 active:scale-[0.98] disabled:opacity-75 disabled:cursor-wait"
+            style={{
+              background: isLightTheme
+                ? `linear-gradient(to right, var(--color-secondary-700), var(--color-accent-700))`
+                : `linear-gradient(to right, var(--color-secondary-500), var(--color-accent-500))`,
+              color: 'white',
+            }}
+            onMouseEnter={(e) => {
+              if (isLightTheme) {
+                e.currentTarget.style.background = `linear-gradient(to right, var(--color-secondary-800), var(--color-accent-800))`;
+              } else {
+                e.currentTarget.style.background = `linear-gradient(to right, var(--color-secondary-600), var(--color-accent-600))`;
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (isLightTheme) {
+                e.currentTarget.style.background = `linear-gradient(to right, var(--color-secondary-700), var(--color-accent-700))`;
+              } else {
+                e.currentTarget.style.background = `linear-gradient(to right, var(--color-secondary-500), var(--color-accent-500))`;
+              }
+            }}
           >
-            <FiTrendingUp className="w-5 h-5 transition-transform group-hover:scale-110" />
-            <span>View Trends</span>
-          </Link>
+            {isNavigatingToTrends ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Loading...</span>
+              </>
+            ) : (
+              <>
+                <FiTrendingUp className="w-5 h-5 transition-transform group-hover:scale-110" />
+                <span>View Trends</span>
+              </>
+            )}
+          </button>
         </div>
       </nav>
 
@@ -256,7 +531,14 @@ const HomePage: React.FC = () => {
 
               <div className="relative z-10">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  <div
+                    className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300"
+                    style={{
+                      background: isLightTheme
+                        ? `linear-gradient(to bottom right, var(--color-primary-700), var(--color-secondary-700))`
+                        : `linear-gradient(to bottom right, var(--color-primary-500), var(--color-secondary-500))`
+                    }}
+                  >
                     <FiUpload className="w-8 h-8 text-white" />
                   </div>
                   <div>
@@ -275,39 +557,8 @@ const HomePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Enhanced User Profile Card */}
-            <div className="group relative overflow-hidden rounded-3xl p-8 hover:scale-[1.01] transition-all duration-300 border-2 shadow-xl"
-              style={{
-                backgroundColor: 'var(--color-background-card)',
-                borderColor: 'var(--color-border-secondary)'
-              }}>
-              {/* Decorative gradient */}
-              <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-secondary-400/20 to-transparent rounded-full blur-2xl"></div>
-
-              <div className="relative z-10">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-16 h-16 bg-gradient-to-br from-secondary-500 to-accent-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                    <FiUser className="w-8 h-8 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
-                      Your Profile
-                    </h2>
-                    <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
-                      Manage your account
-                    </p>
-                  </div>
-                </div>
-                <UserProfile
-                  user={session?.user?.name || "No User Name"}
-                  image={
-                    (session?.user as { picture?: string })?.picture ||
-                    "/images/defaultuser.jpg"
-                  }
-                  onSignOut={() => signOut()}
-                />
-              </div>
-            </div>
+            {/* Enhanced Features Showcase Card */}
+            <FeatureShowcase isLightTheme={isLightTheme} />
           </div>
 
           {/* Features Overview */}
@@ -333,7 +584,14 @@ const HomePage: React.FC = () => {
                     backgroundColor: 'var(--color-background-secondary)',
                     borderColor: 'var(--color-secondary-500)'
                   }}>
-                  <div className="w-12 h-12 bg-gradient-to-r from-secondary-500 to-accent-500 rounded-xl flex items-center justify-center flex-shrink-0 mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300"
+                    style={{
+                      background: isLightTheme
+                        ? `linear-gradient(to right, var(--color-secondary-700), var(--color-accent-700))`
+                        : `linear-gradient(to right, var(--color-secondary-500), var(--color-accent-500))`
+                    }}
+                  >
                     <FiTrendingUp className="w-6 h-6 text-white" />
                   </div>
                   <h3 className="font-bold mb-2 text-lg" style={{ color: 'var(--color-text-primary)' }}>
@@ -350,7 +608,14 @@ const HomePage: React.FC = () => {
                     backgroundColor: 'var(--color-background-secondary)',
                     borderColor: 'var(--color-primary-500)'
                   }}>
-                  <div className="w-12 h-12 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-xl flex items-center justify-center flex-shrink-0 mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300"
+                    style={{
+                      background: isLightTheme
+                        ? `linear-gradient(to right, var(--color-primary-700), var(--color-secondary-700))`
+                        : `linear-gradient(to right, var(--color-primary-500), var(--color-secondary-500))`
+                    }}
+                  >
                     <FiUpload className="w-6 h-6 text-white" />
                   </div>
                   <h3 className="font-bold mb-2 text-lg" style={{ color: 'var(--color-text-primary)' }}>
@@ -367,7 +632,14 @@ const HomePage: React.FC = () => {
                     backgroundColor: 'var(--color-background-secondary)',
                     borderColor: 'var(--color-accent-500)'
                   }}>
-                  <div className="w-12 h-12 bg-gradient-to-r from-accent-500 to-primary-500 rounded-xl flex items-center justify-center flex-shrink-0 mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300"
+                    style={{
+                      background: isLightTheme
+                        ? `linear-gradient(to right, var(--color-accent-700), var(--color-primary-700))`
+                        : `linear-gradient(to right, var(--color-accent-500), var(--color-primary-500))`
+                    }}
+                  >
                     <FiZap className="w-6 h-6 text-white" />
                   </div>
                   <h3 className="font-bold mb-2 text-lg" style={{ color: 'var(--color-text-primary)' }}>
