@@ -14,6 +14,7 @@ A Next.js application that allows you to upload CSV files of financial transacti
 - [Usage](#usage)
 - [How It Works](#how-it-works)
 - [Customization](#customization)
+- [Storage Architecture](#storage-architecture)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -33,10 +34,13 @@ This project provides a simple interface to:
 ## Features
 
 1. **CSV Upload** – Users can select and upload a `.csv` file for processing.
-2. **Month Selector** – Users can input a month string (e.g., “2023-01” or “January”) associated with the CSV data.
-3. **Streaming OpenAI** – Uses OpenAI’s Node library (`openai`) in streaming mode to categorize each transaction.
+2. **Month Selector** – Users can input a month string (e.g., "2023-01" or "January") associated with the CSV data.
+3. **Streaming OpenAI** – Uses OpenAI's Node library (`openai`) in streaming mode to categorize each transaction.
 4. **Hierarchical Data** – Transforms the CSV rows into a structure suitable for charting or further analysis.
 5. **Realtime Feedback** – A loading spinner indicates when an upload is in progress.
+6. **Flexible Storage Backend** – Choose between local storage (privacy-first) or Firebase cloud storage.
+7. **Multi-View Visualizations** – TreeMap, Calendar, Table, and Editor views for exploring your expenses.
+8. **AI-Powered Insights** – Get intelligent spending analysis and recommendations.
 
 ---
 
@@ -48,6 +52,8 @@ This project provides a simple interface to:
 - **OpenAI Node.js Library** for GPT streaming
 - **csv-parser** for reading CSV files in Node
 - **dotenv** for environment variable management
+- **IndexedDB** for local browser storage
+- **Firebase Firestore** (optional) for cloud storage
 
 ---
 
@@ -95,11 +101,41 @@ Create a `.env` file in your project root (or wherever your Next.js config refer
 
 ```ini
 OPENAI_KEY=your_openai_api_key
+NEXT_PUBLIC_STORAGE_MODE=local
 ```
 
 - Replace `your_openai_api_key` with your actual OpenAI API key.
+- `NEXT_PUBLIC_STORAGE_MODE` can be set to:
+  - `local` - Stores data locally in IndexedDB (browser) or file system (server). Privacy-first, no cloud required.
+  - `firebase` - Stores data in Firebase Firestore. Requires Firebase configuration.
 
-**Note**: If you’re deploying to a production environment, be sure to configure these variables appropriately on your hosting platform (e.g., Vercel, Heroku, etc.).
+**Note**: If you're deploying to a production environment, be sure to configure these variables appropriately on your hosting platform (e.g., Vercel, Heroku, etc.).
+
+### Storage Modes
+
+The application supports two storage backends that can be switched via the `NEXT_PUBLIC_STORAGE_MODE` environment variable:
+
+#### Local Storage (Privacy-First)
+- **Browser**: Data stored in IndexedDB (`ExpensesVisualizerDB`)
+- **Server**: Data stored in `.local-data/` directory as JSON files
+- **Benefits**: 
+  - Complete privacy - data never leaves your device
+  - No cloud costs or API limits
+  - Works offline
+  - Fast local access
+- **Considerations**: 
+  - Data is device-specific (use export/import for backups)
+  - Clearing browser data will remove IndexedDB data
+
+#### Firebase Storage (Cloud)
+- **Storage**: Firebase Firestore
+- **Benefits**:
+  - Access from any device
+  - Automatic backups
+  - Real-time sync
+- **Requirements**: Firebase project configuration
+
+The storage adapter automatically routes all data operations (read, write, months list) to the correct backend based on your configuration.
 
 ---
 
@@ -109,43 +145,71 @@ Below is a simplified structure to highlight key files:
 
 ```
 expenses-project
-├─ app
-│  ├─ api
-│  │  └─ upload
-│  │     └─ route.ts        // API Route: processes the CSV upload
-│  ├─ chart
-│  │  └─ page.tsx           // Chart page (reads processed data)
-│  ├─ page.tsx               // Homepage or main entry
-│  └─ components
-│     └─ UploadComponent.tsx // React component for file upload, spinner, etc.
-├─ lib
-│  ├─ Document.ts            // Document & Item classes
-│  └─ helpers.ts (optional)  // Other utilities
-├─ public
-├─ types
-│  └─ types.ts               // Shared TypeScript types (CSVRow, etc.)
-├─ .env
-├─ package.json
+├─ my-expenses-app/
+│  ├─ app
+│  │  ├─ api
+│  │  │  ├─ upload.ts              // API Route: processes the CSV upload
+│  │  │  └─ local-data.ts          // API endpoint for local file data sync
+│  │  ├─ chart
+│  │  │  └─ page.tsx                // Chart page (reads processed data)
+│  │  ├─ page.tsx                   // Homepage or main entry
+│  │  └─ types
+│  │     └─ types.ts                // Shared TypeScript types
+│  ├─ components
+│  │  ├─ UploadComponent.tsx        // React component for file upload
+│  │  ├─ SnakeyChartComponent.tsx   // Main chart visualization component
+│  │  ├─ CalendarView.tsx           // Calendar view of transactions
+│  │  ├─ TransactionTable.tsx      // Table view of transactions
+│  │  └─ StorageModeToggle.tsx     // UI for switching storage modes
+│  ├─ lib
+│  │  ├─ storageAdapter.ts          // Unified storage interface (local/Firebase)
+│  │  ├─ storageConfig.ts           // Storage mode configuration
+│  │  ├─ localStorageDB.ts          // IndexedDB operations
+│  │  ├─ localDataReader.ts         // Local storage data reader
+│  │  ├─ serverLocalStorage.ts      // Server-side file storage
+│  │  ├─ firebaseUpload.ts          // Firebase upload operations
+│  │  └─ process.tsx                // Document & Item classes for AI processing
+│  ├─ .local-data/                  // Server-side local storage directory
+│  ├─ .env
+│  └─ package.json
 └─ README.md
 ```
 
 - **UploadComponent** – Provides the UI for users to select a CSV file and input a month, then calls `/api/upload`.
-- **route.ts** – The Next.js API route that reads the CSV file (using `csv-parser`), constructs a `Document` object, and invokes OpenAI.
-- **Document.ts** / **Item.ts** – Classes used to parse each CSV row, call OpenAI in streaming mode, and build hierarchical data.
+- **storageAdapter.ts** – Unified interface that routes data operations to the correct storage backend (local or Firebase) based on configuration.
+- **localStorageDB.ts** – IndexedDB wrapper for browser-side local storage operations.
+- **serverLocalStorage.ts** – File system storage for server-side operations.
+- **upload.ts** – The Next.js API route that reads the CSV file (using `csv-parser`), constructs a `Document` object, and invokes OpenAI.
+- **process.tsx** – Classes used to parse each CSV row, call OpenAI in streaming mode, and build hierarchical data.
 
 ---
 
 ## Usage
 
-1. **Start the app**: Run `npm run dev` (or `yarn dev`) locally.
-2. **Navigate** to the main page (e.g. `http://localhost:3000/`).
-3. **Upload your CSV file**:
-   - Click “Select a CSV File”.
+1. **Configure storage mode** (in `.env`):
+   ```ini
+   NEXT_PUBLIC_STORAGE_MODE=local  # or "firebase"
+   ```
+
+2. **Start the app**: Run `npm run dev` (or `yarn dev`) locally.
+
+3. **Navigate** to the main page (e.g. `http://localhost:3000/`).
+
+4. **Upload your CSV file**:
+   - Click "Select a CSV File".
    - Choose your `.csv`.
    - Enter your month or date range.
-   - Click “Upload”.
-4. **Observe** the loading spinner in the upload button while your file is being processed.
-5. **View the result**: The app will push you to `/chart?month=...`, where you can see your newly processed data.
+   - Click "Upload".
+
+5. **Observe** the loading spinner in the upload button while your file is being processed.
+
+6. **View the result**: The app will push you to `/chart?month=...`, where you can see your newly processed data.
+
+7. **Explore your data**:
+   - **TreeMap View**: Visual hierarchy of your spending
+   - **Calendar View**: Transactions organized by date
+   - **Table View**: Excel-style transaction list
+   - **Editor View**: Swipe through and edit transactions
 
 ---
 
@@ -169,10 +233,42 @@ expenses-project
 
 ## Customization
 
-- **Model Selection**: In `Document.ts` (or `Item.ts`), you can change the OpenAI model from `"gpt-4o-mini"` to `"gpt-3.5-turbo"`, `"gpt-4"`, etc.
+- **Model Selection**: In `process.tsx` (or `Document.ts`), you can change the OpenAI model from `"gpt-4o-mini"` to `"gpt-3.5-turbo"`, `"gpt-4"`, etc.
 - **Prompt Engineering**: Modify the prompt text to extract transaction details or add extra classification logic.
 - **Parent Tags**: Define your parent categories in an external file or a database (e.g., `["Groceries", "Bills", "Travel"]`).
-- **Styling**: Adjust the Tailwind classes in `UploadComponent` to change the UI’s appearance.
+- **Styling**: Adjust the Tailwind classes in components to change the UI's appearance.
+- **Storage Backend**: Switch between local and Firebase storage by setting `NEXT_PUBLIC_STORAGE_MODE` in your `.env` file.
+
+## Storage Architecture
+
+The application uses a **storage adapter pattern** that provides a unified interface for data operations while supporting multiple storage backends:
+
+### How It Works
+
+1. **Storage Adapter** (`lib/storageAdapter.ts`) - Central routing layer that:
+   - Detects the configured storage mode from `NEXT_PUBLIC_STORAGE_MODE`
+   - Routes read/write operations to the appropriate backend
+   - Handles server-side vs browser-side differences automatically
+
+2. **Local Storage Flow**:
+   - **Server-side** (API routes): Data saved to `.local-data/{userEmail}_{month}.json`
+   - **Browser-side**: Data stored in IndexedDB (`ExpensesVisualizerDB`)
+   - **Auto-sync**: If browser IndexedDB is empty, automatically syncs from server files
+
+3. **Firebase Storage Flow**:
+   - All operations go through Firebase Firestore
+   - Data structure: `users/{userEmail}/{month}/` collection
+
+### Data Operations
+
+All data operations go through the storage adapter:
+- `fetchSankeyData()` - Fetch transaction data
+- `uploadSankeyData()` - Save transaction data
+- `uploadTransactionsBatch()` - Batch upload transactions
+- `getUserMonths()` - Get list of available months
+- `getUserFiles()` - Get uploaded files
+
+This ensures consistent behavior regardless of the storage backend in use.
 
 ---
 
