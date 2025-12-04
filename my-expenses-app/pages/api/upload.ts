@@ -5,7 +5,7 @@ import { DEBUG_ENABLED } from "@/lib/debug";
 import formidable, { Fields, Files } from "formidable";
 import csv from "csv-parser";
 import { CSVRow, Map, SankeyNode } from "@/app/types/types";
-import { uploadSankeyToFirestore } from "@/lib/firebaseUpload";
+import { uploadSankeyData } from "@/lib/storageAdapter";
 import { syncTransactionsForItem } from "@/lib/transactionSync";
 // import { storeUploadedFile } from "@/lib/fileStorage";
 import { Document } from "@/components/process";
@@ -406,28 +406,33 @@ const handleCombinedCsvFiles = async (
       raw_str: node.raw_str,
     }));
 
-    // Save to Firestore
-    if (DEBUG_ENABLED) console.time("firestore-save");
-    await uploadSankeyToFirestore({
+    // Save to storage (Firebase or local based on NEXT_PUBLIC_STORAGE_MODE)
+    if (DEBUG_ENABLED) console.time("storage-save");
+    const { getStorageMode } = await import("@/lib/storageConfig");
+    const storageMode = getStorageMode();
+    console.log(`📦 Saving data with storage mode: ${storageMode} (from NEXT_PUBLIC_STORAGE_MODE)`);
+    await uploadSankeyData({
       nodes: sankeyNodes,
       parentChildMap: parentChildMap as Map,
       useremail,
       month,
     });
-    if (DEBUG_ENABLED) console.timeEnd("firestore-save");
+    if (DEBUG_ENABLED) console.timeEnd("storage-save");
 
-    // Save meta totals for insights
+    // Save meta totals for insights (Firebase only for now)
     try {
-      const { doc, collection, setDoc } = await import("firebase/firestore");
-      const { db } = await import("@/components/firebaseConfig");
-      const userDocRef = doc(db, "users", useremail);
-      const monthCollectionRef = collection(userDocRef, month);
-      const metaDocRef = doc(monthCollectionRef, "meta");
-      await setDoc(
-        metaDocRef,
-        { creditCardPaymentsTotal: creditCardPaymentsTotal || 0 },
-        { merge: true }
-      );
+      if (storageMode === "firebase") {
+        const { doc, collection, setDoc } = await import("firebase/firestore");
+        const { db } = await import("@/components/firebaseConfig");
+        const userDocRef = doc(db, "users", useremail);
+        const monthCollectionRef = collection(userDocRef, month);
+        const metaDocRef = doc(monthCollectionRef, "meta");
+        await setDoc(
+          metaDocRef,
+          { creditCardPaymentsTotal: creditCardPaymentsTotal || 0 },
+          { merge: true }
+        );
+      }
     } catch (e) {
       console.error("Failed saving meta totals:", e);
     }

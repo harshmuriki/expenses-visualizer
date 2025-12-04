@@ -5,6 +5,7 @@ import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import UploadComponent from "@/components/uploadComponent";
 import WelcomeComponent from "@/components/welcomeComponent";
+import StorageModeToggle from "@/components/StorageModeToggle";
 import Image from "next/image";
 import Footer from "@/components/footer";
 import { FiTrendingUp, FiUpload, FiUser, FiZap } from "react-icons/fi";
@@ -471,7 +472,7 @@ const HomePage: React.FC = () => {
                   >
                     <FiUpload className="w-8 h-8 text-white" />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <h2 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
                       Upload & Analyze
                     </h2>
@@ -480,6 +481,13 @@ const HomePage: React.FC = () => {
                     </p>
                   </div>
                 </div>
+
+                {/* Storage Mode Toggle */}
+                <div className="mb-6 p-4 rounded-xl border-2 bg-background-secondary"
+                  style={{ borderColor: 'var(--color-border-secondary)' }}>
+                  <StorageModeToggle showLabel={true} size="md" />
+                </div>
+
                 <UploadComponent
                   onUploadSuccess={() => {}}
                   useremail={session.user?.email as string}

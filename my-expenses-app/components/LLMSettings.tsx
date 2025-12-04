@@ -8,6 +8,7 @@ import {
 } from "@/lib/llmProvider";
 import { useTheme } from "@/lib/theme-context";
 import { FiX, FiCheck, FiAlertCircle } from "react-icons/fi";
+import { DataBackupManager } from "./DataBackupManager";
 
 interface LLMSettingsProps {
   onSave?: (config: LLMConfig) => void;
@@ -19,7 +20,7 @@ export const LLMSettings: React.FC<LLMSettingsProps> = ({
   onClose,
 }) => {
   const { theme, themeName, setTheme } = useTheme();
-  const [activeTab, setActiveTab] = useState<"llm" | "theme">("theme");
+  const [activeTab, setActiveTab] = useState<"llm" | "theme" | "storage">("theme");
   const [provider, setProvider] = useState<LLMProviderType>("openai");
   const [apiKey, setApiKey] = useState("");
   const [baseUrl, setBaseUrl] = useState("");
@@ -243,6 +244,18 @@ export const LLMSettings: React.FC<LLMSettingsProps> = ({
         >
           LLM Provider
         </button>
+        <button
+          onClick={() => setActiveTab("storage")}
+          className={`flex-1 px-6 py-3 font-medium transition ${
+            activeTab === "storage" ? "border-b-2" : ""
+          }`}
+          style={{
+            color: activeTab === "storage" ? theme.primary[500] : theme.text.secondary,
+            borderColor: activeTab === "storage" ? theme.primary[500] : "transparent",
+          }}
+        >
+          Privacy & Storage
+        </button>
       </div>
 
       {/* Content */}
@@ -293,6 +306,8 @@ export const LLMSettings: React.FC<LLMSettingsProps> = ({
               ))}
             </div>
           </div>
+        ) : activeTab === "storage" ? (
+          <DataBackupManager />
         ) : (
           <div className="space-y-5">
             <div className="space-y-2">

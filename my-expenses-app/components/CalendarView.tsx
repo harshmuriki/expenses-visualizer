@@ -87,15 +87,76 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       }
     }
     
-    // Default to current month if still not found
-    const monthNumber = monthNum ?? new Date().getMonth();
-    
     // Try to extract year from month string (e.g., "January 2025")
     const yearMatch = month.match(/\b(20\d{2})\b/);
-    const year = yearMatch ? parseInt(yearMatch[1], 10) : new Date().getFullYear();
+    let year = yearMatch ? parseInt(yearMatch[1], 10) : new Date().getFullYear();
     
-    return { monthNumber, year };
-  }, [month]);
+    // If month prop doesn't parse to a real month, try to detect from transaction dates
+    if (monthNum === undefined && nodes.length > 0) {
+      // Find the most common month/year from transaction dates
+      const monthYearCounts = new Map<string, number>();
+      
+      nodes.forEach((node) => {
+        if (node.isleaf && node.date) {
+          try {
+            const dateStr = String(node.date).trim();
+            const parts = dateStr.split(/[-\/]/);
+            if (parts.length === 3) {
+              let parsedMonth: number;
+              let parsedYear: number;
+              
+              if (parts[0].length === 4) {
+                // YYYY-MM-DD format
+                parsedYear = parseInt(parts[0]);
+                parsedMonth = parseInt(parts[1]) - 1;
+              } else {
+                // MM/DD/YYYY format
+                parsedMonth = parseInt(parts[0]) - 1;
+                parsedYear = parseInt(parts[2]);
+              }
+              
+              if (!isNaN(parsedMonth) && !isNaN(parsedYear)) {
+                const key = `${parsedYear}-${parsedMonth}`;
+                monthYearCounts.set(key, (monthYearCounts.get(key) || 0) + 1);
+              }
+            }
+          } catch {
+            // Ignore parsing errors
+          }
+        }
+      });
+      
+      // Find the most common month/year
+      if (monthYearCounts.size > 0) {
+        let maxCount = 0;
+        let mostCommon = "";
+        monthYearCounts.forEach((count, key) => {
+          if (count > maxCount) {
+            maxCount = count;
+            mostCommon = key;
+          }
+        });
+        
+        if (mostCommon) {
+          const [detectedYear, detectedMonth] = mostCommon.split("-").map(Number);
+          monthNum = detectedMonth;
+          year = detectedYear;
+          console.log(`[CalendarView] Detected month/year from transactions:`, {
+            month: monthNum,
+            year,
+            transactionCount: maxCount,
+            originalMonthProp: month,
+          });
+        }
+      }
+    }
+    
+    // Default to current month if still not found
+    const monthNumber = monthNum ?? new Date().getMonth();
+    const finalYear = year ?? new Date().getFullYear();
+    
+    return { monthNumber, year: finalYear };
+  }, [month, nodes]);
 
   // Month/year currently being viewed (can be navigated)
   const [viewDate, setViewDate] = useState<Date>(
@@ -122,17 +183,47 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   };
 
   // Filter to only leaf nodes (transactions)
-  const transactions = useMemo(
-    () => nodes.filter((node) => node.isleaf && node.cost),
-    [nodes]
-  );
+  const transactions = useMemo(() => {
+    const filtered = nodes.filter((node) => {
+      // Check if it's a leaf node (transaction)
+      const isLeaf = node.isleaf === true;
+      // Also check if it has a cost (transactions should have costs)
+      const hasCost = node.cost && node.cost > 0;
+      // Exclude root node (index 0)
+      const isNotRoot = node.index !== 0;
+      
+      return isLeaf && hasCost && isNotRoot;
+    });
+    
+    // Debug: Log transaction count and sample dates
+    if (filtered.length > 0) {
+      console.log(`[CalendarView] Found ${filtered.length} transactions`, {
+        sampleDates: filtered.slice(0, 3).map(t => ({ name: t.name, date: t.date, isleaf: t.isleaf })),
+        totalNodes: nodes.length,
+      });
+    } else {
+      console.warn(`[CalendarView] No transactions found`, {
+        totalNodes: nodes.length,
+        nodesWithIsleaf: nodes.filter(n => n.isleaf === true).length,
+        nodesWithCost: nodes.filter(n => n.cost && n.cost > 0).length,
+        sampleNodes: nodes.slice(0, 5).map(n => ({ name: n.name, isleaf: n.isleaf, cost: n.cost, index: n.index })),
+      });
+    }
+    
+    return filtered;
+  }, [nodes]);
 
   // Group transactions by date
   const transactionsByDate = useMemo(() => {
     const grouped = new Map<number, SankeyNode[]>();
+    let parsedCount = 0;
+    let matchedCount = 0;
 
     transactions.forEach((transaction) => {
-      if (!transaction.date) return;
+      if (!transaction.date) {
+        console.warn(`[CalendarView] Transaction missing date:`, transaction.name);
+        return;
+      }
 
       try {
         // Try multiple date parsing strategies
@@ -151,29 +242,46 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               // YYYY-MM-DD format
               transactionDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
             } else {
-              // MM/DD/YYYY format
-              transactionDate = new Date(parseInt(parts[2]), parseInt(parts[0]) - 1, parseInt(parts[1]));
+              // MM/DD/YYYY format (most common in the data)
+              const month = parseInt(parts[0]) - 1; // Month is 0-indexed
+              const day = parseInt(parts[1]);
+              const year = parseInt(parts[2]);
+              transactionDate = new Date(year, month, day);
             }
           }
         }
         
         // Only process if we have a valid date
         if (transactionDate && !isNaN(transactionDate.getTime())) {
+          parsedCount++;
+          
           // Only include transactions from the currently viewed month
           if (
             transactionDate.getMonth() === viewMonthNumber &&
             transactionDate.getFullYear() === viewYear
           ) {
+            matchedCount++;
             const day = transactionDate.getDate();
             if (!grouped.has(day)) {
               grouped.set(day, []);
             }
             grouped.get(day)!.push(transaction);
           }
+        } else {
+          console.warn(`[CalendarView] Failed to parse date:`, transaction.date, `for transaction:`, transaction.name);
         }
       } catch (error) {
-        console.warn("Invalid date format:", transaction.date, error);
+        console.warn("[CalendarView] Invalid date format:", transaction.date, error);
       }
+    });
+
+    console.log(`[CalendarView] Date parsing results:`, {
+      totalTransactions: transactions.length,
+      parsedDates: parsedCount,
+      matchedToViewMonth: matchedCount,
+      viewMonth: viewMonthNumber,
+      viewYear: viewYear,
+      groupedDays: grouped.size,
     });
 
     return grouped;
