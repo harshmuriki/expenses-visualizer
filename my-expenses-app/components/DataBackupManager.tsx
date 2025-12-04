@@ -10,14 +10,13 @@ import {
 } from "@/lib/localStorageDB";
 import {
   getStorageMode,
-  setStorageMode,
   getStorageModeDisplayName,
   getStorageModeWarning,
   StorageMode,
 } from "@/lib/storageConfig";
 
 export const DataBackupManager: React.FC = () => {
-  const [storageMode, setStorageModeState] = useState<StorageMode>(
+  const [storageMode] = useState<StorageMode>(
     getStorageMode()
   );
   const [isExporting, setIsExporting] = useState(false);
@@ -135,13 +134,14 @@ export const DataBackupManager: React.FC = () => {
   };
 
   const handleStorageModeChange = (mode: StorageMode) => {
-    setStorageMode(mode);
-    setStorageModeState(mode);
-    showMessage(
-      `✓ Storage mode changed to ${mode}. Reload the page to apply changes.`,
-      "info"
+    alert(
+      `⚠️ Storage Mode Configuration\n\n` +
+      `To switch to ${mode === "local" ? "Local Storage" : "Firebase"}, you need to:\n\n` +
+      `1. Open .env file in your project root\n` +
+      `2. Set: NEXT_PUBLIC_STORAGE_MODE=${mode}\n` +
+      `3. Restart the dev server (npm run dev)\n\n` +
+      `Current mode: ${getStorageMode()} (from .env file)`
     );
-    setTimeout(() => window.location.reload(), 2000);
   };
 
   const formatBytes = (bytes: number) => {

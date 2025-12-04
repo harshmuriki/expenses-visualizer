@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { collection, getDocs, doc, getDoc } from "firebase/firestore";
-import { db } from "./firebaseConfig";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 // import { useTheme } from "@/lib/theme-context";
 import "../styles/loading-animations.css";
+import { getStorageModeDisplayName } from "@/lib/storageConfig";
+import { fetchSankeyData } from "@/lib/storageAdapter";
 
 interface ChartLoadingComponentProps {
   onDataLoaded: (data: Record<string, unknown>) => void;
@@ -26,7 +26,6 @@ const ChartLoadingComponent: React.FC<ChartLoadingComponentProps> = ({
   const { data: session, status } = useSession();
   const searchParams = useSearchParams();
   const month = searchParams?.get("month") || "feb";
-
   const maxAttempts = 1000; // Poll for up to 1000 * 3 seconds
 
   const startPolling = React.useCallback(() => {
@@ -55,68 +54,17 @@ const ChartLoadingComponent: React.FC<ChartLoadingComponentProps> = ({
           throw new Error("Month parameter not available");
         }
 
-        const userDocRef = doc(db, "users", session.user.email);
-        const nodesCollectionRef = collection(userDocRef, month);
-        const nodesSnapshot = await getDocs(nodesCollectionRef);
-
-        // Check if we have actual transaction data (not just parentChildMap)
-        const transactionDocs = nodesSnapshot.docs.filter(
-          (doc) => doc.id !== "parentChildMap" && doc.id !== "meta"
+        // Use storage adapter to fetch data (works with both local and Firebase)
+        const { nodes, parentChildMap, metaTotals } = await fetchSankeyData(
+          session.user.email,
+          month
         );
-        if (transactionDocs.length > 0) {
+
+        // Check if we have actual transaction data
+        if (nodes.length > 0) {
           // Data found! Process it
           setCurrentStep(4);
           setProcessingStatus("✅ Data found! Loading your chart...");
-
-          const nodes = transactionDocs
-            .map((snapshotDoc) => ({
-              name: snapshotDoc.data().transaction,
-              cost: snapshotDoc.data().cost || 0,
-              index: snapshotDoc.data().index,
-              isleaf: snapshotDoc.data().isleaf,
-              value: snapshotDoc.data().cost || 0,
-              visible: snapshotDoc.data().visible,
-              date: snapshotDoc.data().date,
-              location: snapshotDoc.data().location,
-              bank: snapshotDoc.data().bank,
-              raw_str: snapshotDoc.data().raw_str,
-            }))
-            .sort((a, b) => a.index - b.index);
-
-          const mapDocRef = doc(nodesCollectionRef, "parentChildMap");
-          const mapSnapshot = await getDoc(mapDocRef);
-
-          const keys: number[] = mapSnapshot.exists()
-            ? Object.keys(mapSnapshot.data()).map((key) => parseInt(key))
-            : [];
-
-          const parentChildMapArr: number[][] = mapSnapshot.exists()
-            ? Object.values(mapSnapshot.data()).map(
-                (values) => values as number[]
-              )
-            : [];
-
-          const parentChildMap: Record<number, number[]> = keys.reduce(
-            (acc: Record<number, number[]>, key, index) => {
-              acc[key] = parentChildMapArr[index];
-              return acc;
-            },
-            {}
-          );
-
-          // Fetch meta totals
-          let metaTotals = null;
-          try {
-            const metaRef = doc(nodesCollectionRef, "meta");
-            const metaSnap = await getDoc(metaRef);
-            if (metaSnap.exists()) {
-              metaTotals = metaSnap.data() as {
-                creditCardPaymentsTotal?: number;
-              };
-            }
-          } catch (e) {
-            console.warn("Unable to load meta totals:", e);
-          }
 
           clearInterval(pollInterval);
 
@@ -166,7 +114,9 @@ const ChartLoadingComponent: React.FC<ChartLoadingComponentProps> = ({
 
     // Start polling when session is ready
     setCurrentStep(2);
-    setProcessingStatus("🔍 Looking for your data in Firebase...");
+    setProcessingStatus(
+      `🔍 Looking for your data in ${getStorageModeDisplayName()}...`
+    );
     startPolling();
   }, [session, status, onError, startPolling]);
 

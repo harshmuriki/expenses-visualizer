@@ -6,6 +6,7 @@ export interface UploadPayload {
   parentChildMap: Map;
   useremail: string;
   month: string;
+  clearExisting?: boolean;
 }
 
 export const uploadSankeyToFirestore = async ({

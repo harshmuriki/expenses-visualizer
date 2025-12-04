@@ -1,41 +1,45 @@
 /**
  * Storage Configuration
  * Centralized configuration for storage backend
- * Allows switching between Firebase (cloud) and IndexedDB (local)
+ * Allows switching between Firebase (cloud) and local file system
+ *
+ * IMPORTANT: Storage mode is controlled ONLY by NEXT_PUBLIC_STORAGE_MODE in .env
+ * Set NEXT_PUBLIC_STORAGE_MODE=local for local storage (privacy-first)
+ * Set NEXT_PUBLIC_STORAGE_MODE=firebase for cloud storage
  */
 
 export type StorageMode = "local" | "firebase";
 
 /**
- * Get storage mode from environment or localStorage
- * Priority: localStorage > environment variable > default (local)
+ * Get storage mode from environment variable
+ * Priority: NEXT_PUBLIC_STORAGE_MODE > default (firebase)
  */
 export function getStorageMode(): StorageMode {
-  // Check if we're in the browser
-  if (typeof window !== "undefined") {
-    const saved = localStorage.getItem("storage_mode");
-    if (saved === "local" || saved === "firebase") {
-      return saved;
-    }
-  }
-
-  // Check environment variable
+  // Check environment variable (works on both server and client)
   const envMode = process.env.NEXT_PUBLIC_STORAGE_MODE;
-  if (envMode === "local" || envMode === "firebase") {
-    return envMode;
+
+  if (envMode === "local") {
+    return "local";
   }
 
-  // Default to local for privacy
-  return "local";
+  if (envMode === "firebase") {
+    return "firebase";
+  }
+
+  // Default to firebase for backward compatibility
+  console.warn("NEXT_PUBLIC_STORAGE_MODE not set in .env, defaulting to firebase");
+  return "firebase";
 }
 
 /**
- * Set storage mode (persists to localStorage)
+ * Set storage mode - NOTE: This only updates localStorage for UI state
+ * To actually change storage mode, update NEXT_PUBLIC_STORAGE_MODE in .env and restart server
  */
 export function setStorageMode(mode: StorageMode): void {
   if (typeof window !== "undefined") {
     localStorage.setItem("storage_mode", mode);
-    console.log(`✓ Storage mode set to: ${mode}`);
+    console.log(`✓ Storage mode UI preference set to: ${mode}`);
+    console.warn(`⚠️ To apply changes, set NEXT_PUBLIC_STORAGE_MODE=${mode} in .env and restart the server`);
   }
 }
 

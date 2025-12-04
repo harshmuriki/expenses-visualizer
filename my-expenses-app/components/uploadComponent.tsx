@@ -4,8 +4,7 @@ import React, { useState, useEffect } from "react";
 import { debugLog, timeStart, timeEnd } from "@/lib/debug";
 import { UploadComponentProps } from "@/app/types/types";
 import { useRouter } from "next/navigation";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "./firebaseConfig";
+import { getUserMonths } from "@/lib/storageAdapter";
 import "../styles/loading-animations.css";
 
 type LinkSuccessMetadata = {
@@ -54,7 +53,7 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
   // const [lastSyncMessage, setLastSyncMessage] = useState<string | null>(null);
   // const [isPlaidReady, setIsPlaidReady] = useState(false);
   const router = useRouter();
-  const [months, setMonths] = useState([]);
+  const [months, setMonths] = useState<string[]>([]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -276,30 +275,20 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
   // ]);
 
   useEffect(() => {
-    const fetchUserFields = async () => {
+    const fetchUserMonths = async () => {
       try {
-        const userDocRef = doc(db, "users", useremail);
-        const userDocSnapshot = await getDoc(userDocRef);
-        if (userDocSnapshot.exists()) {
-          const userData = userDocSnapshot.data();
-          // console.log("User fields:", userData);
-
-          if (userData.months) {
-            setMonths(userData.months);
-          } else {
-            console.log("No months field found in user data");
-          }
-        } else {
-          console.log("No such document exists!");
-          return null;
-        }
+        // Use storage adapter to get months (works with both local and Firebase)
+        const monthsList = await getUserMonths(useremail);
+        setMonths(monthsList);
       } catch (error) {
-        console.error("Error fetching user document fields:", error);
-        return null;
+        console.error("Error fetching user months:", error);
+        setMonths([]);
       }
     };
 
-    fetchUserFields();
+    if (useremail) {
+      fetchUserMonths();
+    }
   }, [useremail]);
 
   return (

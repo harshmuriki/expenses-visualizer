@@ -5,7 +5,8 @@
  */
 
 import { SankeyNode } from "@/app/types/types";
-import { getTransactions, getUserData, StoredTransaction } from "./localStorageDB";
+import { getTransactions, getUserData } from "./localStorageDB";
+import { debugLog, timeStart, timeEnd } from "./debug";
 
 type Map = Record<number, number[]>;
 
@@ -25,14 +26,22 @@ export async function fetchDataFromLocal(
   userEmail: string,
   month: string
 ): Promise<FetchedData> {
+  timeStart("local-reader", "fetchDataFromLocal");
+  debugLog("local-reader", `🔍 Starting fetchDataFromLocal`, { userEmail, month });
+  
   try {
     if (!userEmail || !month) {
+      debugLog("local-reader", "❌ Missing required parameters", { userEmail, month });
       throw new Error("User email and month are required");
     }
 
+    debugLog("local-reader", "📥 Fetching transactions from IndexedDB", { userEmail, month });
     const transactions = await getTransactions(userEmail, month);
+    debugLog("local-reader", `📊 Retrieved ${transactions.length} total transactions from IndexedDB`);
 
     if (transactions.length === 0) {
+      debugLog("local-reader", "⚠️ No transactions found, returning empty data");
+      timeEnd("local-reader", "fetchDataFromLocal");
       return {
         nodes: [],
         parentChildMap: {},
@@ -43,8 +52,13 @@ export async function fetchDataFromLocal(
     // Separate nodes from parent-child map
     const nodeTransactions = transactions.filter((t) => !t.isMap);
     const mapTransactions = transactions.filter((t) => t.isMap);
+    debugLog("local-reader", `📦 Separated transactions`, {
+      nodeTransactions: nodeTransactions.length,
+      mapTransactions: mapTransactions.length,
+    });
 
     // Build nodes array
+    debugLog("local-reader", "🔨 Building nodes array from transactions");
     const nodes: SankeyNode[] = nodeTransactions
       .map((t) => ({
         name: t.transaction || "",
@@ -60,33 +74,54 @@ export async function fetchDataFromLocal(
         raw_str: t.raw_str || undefined,
       }))
       .sort((a, b) => a.index - b.index);
+    debugLog("local-reader", `✅ Built ${nodes.length} nodes`, {
+      sampleNodes: nodes.slice(0, 3).map((n) => ({ name: n.name, index: n.index, cost: n.cost })),
+    });
 
     // Build parent-child map
+    debugLog("local-reader", "🔗 Building parent-child map");
     const parentChildMap: Map = {};
     for (const mapTransaction of mapTransactions) {
       if (mapTransaction.key && mapTransaction.values) {
         parentChildMap[parseInt(mapTransaction.key)] = mapTransaction.values;
       }
     }
+    debugLog("local-reader", `✅ Built parent-child map with ${Object.keys(parentChildMap).length} entries`, {
+      mapKeys: Object.keys(parentChildMap).slice(0, 5),
+    });
 
     // Check for meta totals
+    debugLog("local-reader", "🔍 Checking for meta totals");
     const metaTransaction = transactions.find(
       (t) => t.transaction === "meta" || t.key === "meta"
     );
     const metaTotals = metaTransaction
       ? {
           creditCardPaymentsTotal:
-            (metaTransaction as any).creditCardPaymentsTotal || undefined,
+            ("creditCardPaymentsTotal" in metaTransaction
+              ? (metaTransaction as { creditCardPaymentsTotal?: number }).creditCardPaymentsTotal
+              : undefined) || undefined,
         }
       : null;
+    debugLog("local-reader", `📈 Meta totals`, { metaTotals });
 
-    return {
+    const result = {
       nodes,
       parentChildMap,
       metaTotals,
     };
+    debugLog("local-reader", `✅ fetchDataFromLocal completed successfully`, {
+      nodesCount: nodes.length,
+      mapEntriesCount: Object.keys(parentChildMap).length,
+      hasMetaTotals: !!metaTotals,
+    });
+    timeEnd("local-reader", "fetchDataFromLocal");
+    
+    return result;
   } catch (error) {
+    debugLog("local-reader", "❌ Error fetching data from local storage", error);
     console.error("Error fetching data from local storage:", error);
+    timeEnd("local-reader", "fetchDataFromLocal");
     throw error;
   }
 }

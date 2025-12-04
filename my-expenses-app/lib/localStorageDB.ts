@@ -4,7 +4,7 @@
  * All data stays on the user's device
  */
 
-import { SankeyNode } from "@/app/types/types";
+import { debugLog, timeStart, timeEnd } from "./debug";
 
 const DB_NAME = "ExpensesVisualizerDB";
 const DB_VERSION = 1;
@@ -150,15 +150,33 @@ export async function getTransactions(
   userEmail: string,
   month: string
 ): Promise<StoredTransaction[]> {
+  timeStart("indexeddb", "getTransactions");
+  debugLog("indexeddb", `🔍 getTransactions called`, { userEmail, month });
+  
   const db = await initDB();
+  debugLog("indexeddb", `📂 IndexedDB opened: ${DB_NAME}`);
+  
   return new Promise((resolve, reject) => {
     const tx = db.transaction([TRANSACTIONS_STORE], "readonly");
     const store = tx.objectStore(TRANSACTIONS_STORE);
     const index = store.index("userEmail_month");
+    debugLog("indexeddb", `🔑 Using index: userEmail_month`, { userEmail, month });
 
     const request = index.getAll([userEmail, month]);
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const results = request.result;
+      debugLog("indexeddb", `✅ getTransactions success`, {
+        count: results.length,
+        sampleIds: results.slice(0, 3).map((t) => t.id),
+      });
+      timeEnd("indexeddb", "getTransactions");
+      resolve(results);
+    };
+    request.onerror = () => {
+      debugLog("indexeddb", `❌ getTransactions error`, request.error);
+      timeEnd("indexeddb", "getTransactions");
+      reject(request.error);
+    };
   });
 }
 
@@ -374,13 +392,15 @@ export async function exportAllData(): Promise<{
   });
 
   // Convert file data to base64 for JSON serialization
-  const files = filesRaw.map((file) => ({
-    ...file,
-    fileData: undefined as any,
-    fileDataBase64: btoa(
-      String.fromCharCode(...new Uint8Array(file.fileData))
-    ),
-  }));
+  const files = filesRaw.map((file) => {
+    const { fileData, ...rest } = file;
+    return {
+      ...rest,
+      fileDataBase64: btoa(
+        String.fromCharCode(...new Uint8Array(fileData))
+      ),
+    };
+  });
 
   const users = await new Promise<UserData[]>((resolve, reject) => {
     const tx = db.transaction([USER_STORE], "readonly");
@@ -426,11 +446,12 @@ export async function importAllData(data: {
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { fileDataBase64, ...fileRest } = file;
       const fileWithData: StoredFile = {
-        ...file,
+        ...fileRest,
         fileData: bytes.buffer,
       };
-      delete (fileWithData as any).fileDataBase64;
       store2.add(fileWithData);
     }
     await new Promise<void>((resolve, reject) => {

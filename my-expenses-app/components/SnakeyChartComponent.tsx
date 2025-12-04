@@ -5,24 +5,33 @@ import TreeMapChart from "./TreeMapChart";
 import { calculateLinks } from "@/components/processLinks";
 import InputModal from "./editNodes";
 import AddTransactionModal from "./AddTransactionModal";
-import { collection, doc, getDoc, getDocs } from "firebase/firestore";
-import { db } from "./firebaseConfig";
+import { fetchSankeyData } from "@/lib/storageAdapter";
+import { getStorageMode, getStorageModeDisplayName } from "@/lib/storageConfig";
 import {
   SankeyNode,
   SankeyData,
   SnakeyChartComponentProps,
   SankeyLink,
 } from "@/app/types/types";
-
-type Map = Record<number, number[]>;
-import { uploadTransactionsInBatch } from "@/components/sendDataFirebase";
+import { uploadTransactionsBatch } from "@/lib/storageAdapter";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import UploadedFilesPanel from "./UploadedFilesPanel";
 import TransactionTable from "./TransactionTable";
 import SwipeableTransactionEditor from "./SwipeableTransactionEditor";
 import CalendarView from "./CalendarView";
-import { FiBarChart2, FiGrid, FiEdit3, FiPlus, FiSettings, FiCalendar, FiHome, FiTrendingUp, FiUpload, FiLogOut } from "react-icons/fi";
+import {
+  FiBarChart2,
+  FiGrid,
+  FiEdit3,
+  FiPlus,
+  FiSettings,
+  FiCalendar,
+  FiHome,
+  FiTrendingUp,
+  FiUpload,
+  FiLogOut,
+} from "react-icons/fi";
 import { useTheme } from "@/lib/theme-context";
 import StatsCards from "./StatsCards";
 import { LLMSettings } from "./LLMSettings";
@@ -76,9 +85,9 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
 
   // Use theme-aware colors for categories
   const parentColors = useMemo(() => theme.categories, [theme]);
-  const [viewMode, setViewMode] = useState<"treemap" | "table" | "editor" | "calendar">(
-    "treemap"
-  );
+  const [viewMode, setViewMode] = useState<
+    "treemap" | "table" | "editor" | "calendar"
+  >("treemap");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -162,7 +171,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
   }
 
   /**
-   * Fetches data (nodes + parentChildMap) from Firestore,
+   * Fetches data (nodes + parentChildMap) from storage (Firebase or local),
    * then calculates and sets the Sankey links.
    */
   useEffect(() => {
@@ -184,61 +193,20 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
       }
 
       try {
-        const userDocRef = doc(db, "users", user.email);
-        const nodesCollectionRef = collection(userDocRef, month);
-        const nodesSnapshot = await getDocs(nodesCollectionRef);
-        const nodes: SankeyNode[] = nodesSnapshot.docs
-          .filter((snapshotDoc) => snapshotDoc.id !== "parentChildMap")
-          .map((snapshotDoc) => ({
-            name: snapshotDoc.data().transaction,
-            originalName: snapshotDoc.data().transaction, // Store original name for deletion tracking
-            cost: snapshotDoc.data().cost || 0,
-            index: snapshotDoc.data().index,
-            isleaf: snapshotDoc.data().isleaf,
-            value: snapshotDoc.data().cost || 0,
-            visible: snapshotDoc.data().visible,
-            date: snapshotDoc.data().date,
-            location: snapshotDoc.data().location,
-            bank: snapshotDoc.data().bank,
-            raw_str: snapshotDoc.data().raw_str,
-          }))
-          .sort((a, b) => a.index - b.index);
-
-        const mapDocRef = doc(nodesCollectionRef, "parentChildMap");
-        const mapSnapshot = await getDoc(mapDocRef);
-
-        const keys: number[] = mapSnapshot.exists()
-          ? Object.keys(mapSnapshot.data()).map((key) => parseInt(key))
-          : [];
-
-        const parentChildMapArr: number[][] = mapSnapshot.exists()
-          ? Object.values(mapSnapshot.data()).map(
-              (values) => values as number[]
-            )
-          : [];
-
-        const parentChildMap: Map = keys.reduce((acc: Map, key, index) => {
-          acc[key] = parentChildMapArr[index];
-          return acc;
-        }, {});
+        // Use storage adapter to fetch data (handles both Firebase and local storage)
+        const { nodes, parentChildMap, metaTotals } = await fetchSankeyData(
+          user.email,
+          month
+        );
 
         const { nodes: calculatedNodes, links: calculatedLinks } =
           calculateLinks(nodes, parentChildMap);
         const enhancedLinks = enhanceLinks(calculatedLinks);
 
-        // Fetch meta totals (e.g., credit card payments total)
-        try {
-          const metaRef = doc(nodesCollectionRef, "meta");
-          const metaSnap = await getDoc(metaRef);
-          if (metaSnap.exists()) {
-            setMetaTotals(
-              metaSnap.data() as { creditCardPaymentsTotal?: number }
-            );
-          } else {
-            setMetaTotals(null);
-          }
-        } catch (e) {
-          console.warn("Unable to load meta totals:", e);
+        // Set meta totals if available
+        if (metaTotals) {
+          setMetaTotals(metaTotals);
+        } else {
           setMetaTotals(null);
         }
 
@@ -314,16 +282,18 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
   };
 
   // To update the data in Firebase
-  const sendDataToFirebase = async () => {
-    console.log("uploading data to firebase");
+  const saveData = async () => {
+    const storageMode = getStorageMode();
+    const storageName = getStorageModeDisplayName();
+
     setHasUnsavedChanges(false); // Clear unsaved changes flag
     try {
-      // Send the parent-child map to Firebase
+      // Send the parent-child map to storage
       const parentChildMap = updateParentChildMap();
 
       const batchData = [];
 
-      // Prepare batch upload data for Firebase (skip root node at index 0)
+      // Prepare batch upload data (skip root node at index 0)
       dataValue.nodes.forEach((node) => {
         // Skip root node (Expenses)
         if (node.index === 0) return;
@@ -371,16 +341,16 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
           visible: true,
         });
       }
-      // Debug: Log batch data to identify any remaining undefined values
-      console.log("Batch data being sent to Firebase:", batchData.slice(0, 5)); // Log first 5 items for debugging
 
-      await uploadTransactionsInBatch(batchData);
+      await uploadTransactionsBatch(batchData);
 
-      console.log("Data saved to Firebase successfully!");
-      showNotification("✅ Data synced to cloud successfully!", "success");
+      showNotification(
+        `✅ Data saved to ${storageName} successfully!`,
+        "success"
+      );
     } catch (error) {
-      console.error("Error saving data to Firebase:", error);
-      showNotification("❌ Failed to sync data to cloud", "error");
+      console.error("Error saving data:", error);
+      showNotification(`❌ Failed to save data to ${storageName}`, "error");
     }
   };
 
@@ -404,13 +374,13 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
       const parentLink = dataValue.links.find(
         (link) => link.target === nodeIndex
       );
-      
+
       if (parentLink) {
         setParentIndex(parentLink.source);
       } else {
         // If no parent link found, try to find a parent category node by name
         // This can happen if the transaction structure is different
-        const categoryName = clickedNode.category;
+        const categoryName = clickedNode.originalName;
         if (categoryName) {
           const parentNode = dataValue.nodes.find(
             (n) => !n.isleaf && n.name === categoryName
@@ -457,12 +427,12 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
     const parentLink = dataValue.links.find(
       (link) => link.target === nodeIndex
     );
-    
+
     if (parentLink) {
       setParentIndex(parentLink.source);
     } else {
       // If no parent link found, try to find parent by category name or use categoryIndex
-      const categoryName = clickedNode.category;
+      const categoryName = clickedNode.originalName;
       if (categoryName) {
         const parentNode = dataValue.nodes.find(
           (n) => !n.isleaf && n.name === categoryName
@@ -471,7 +441,9 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
           setParentIndex(parentNode.index);
         } else {
           // Use the categoryIndex if it's a valid node index
-          const categoryNode = dataValue.nodes.find((n) => n.index === categoryIndex);
+          const categoryNode = dataValue.nodes.find(
+            (n) => n.index === categoryIndex
+          );
           if (categoryNode) {
             setParentIndex(categoryIndex);
           } else {
@@ -482,7 +454,9 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
         }
       } else {
         // Use categoryIndex if available, otherwise use first category node
-        const categoryNode = dataValue.nodes.find((n) => n.index === categoryIndex);
+        const categoryNode = dataValue.nodes.find(
+          (n) => n.index === categoryIndex
+        );
         if (categoryNode) {
           setParentIndex(categoryIndex);
         } else {
@@ -491,7 +465,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
         }
       }
     }
-    
+
     setIsModalOpen(true);
   };
 
@@ -909,15 +883,25 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
       const filteredNodes = updatedNodes.filter((n) => n.index !== nodeIndex);
 
       // Remove the link from parent to transaction
-      const filteredLinks = updatedLinks.filter((link) => link.target !== nodeIndex);
+      const filteredLinks = updatedLinks.filter(
+        (link) => link.target !== nodeIndex
+      );
 
       // Update parent category cost
-      const parentNodePos = filteredNodes.findIndex((n) => n.index === parentIndex);
+      const parentNodePos = filteredNodes.findIndex(
+        (n) => n.index === parentIndex
+      );
       if (parentNodePos !== -1) {
         filteredNodes[parentNodePos] = {
           ...filteredNodes[parentNodePos],
-          cost: Math.max(0, (filteredNodes[parentNodePos].cost || 0) - transactionCost),
-          value: Math.max(0, (filteredNodes[parentNodePos].value || 0) - transactionCost),
+          cost: Math.max(
+            0,
+            (filteredNodes[parentNodePos].cost || 0) - transactionCost
+          ),
+          value: Math.max(
+            0,
+            (filteredNodes[parentNodePos].value || 0) - transactionCost
+          ),
         };
 
         // Update link from root to parent category
@@ -927,17 +911,24 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
         if (rootToParentLinkPos !== -1) {
           filteredLinks[rootToParentLinkPos] = {
             ...filteredLinks[rootToParentLinkPos],
-            value: Math.max(0, filteredLinks[rootToParentLinkPos].value - transactionCost),
+            value: Math.max(
+              0,
+              filteredLinks[rootToParentLinkPos].value - transactionCost
+            ),
           };
         }
 
         // Check if parent category still has children
-        const parentHasChildren = filteredLinks.some((link) => link.source === parentIndex);
+        const parentHasChildren = filteredLinks.some(
+          (link) => link.source === parentIndex
+        );
 
         // If parent has no more children, remove it
         if (!parentHasChildren && parentIndex !== 0) {
           // Remove parent node
-          const finalNodes = filteredNodes.filter((n) => n.index !== parentIndex);
+          const finalNodes = filteredNodes.filter(
+            (n) => n.index !== parentIndex
+          );
           // Remove link from root to parent
           const finalLinks = filteredLinks.filter(
             (link) => !(link.source === 0 && link.target === parentIndex)
@@ -948,12 +939,23 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
           if (rootNodePos !== -1) {
             finalNodes[rootNodePos] = {
               ...finalNodes[rootNodePos],
-              cost: Math.max(0, (finalNodes[rootNodePos].cost || 0) - transactionCost),
-              value: Math.max(0, (finalNodes[rootNodePos].value || 0) - transactionCost),
+              cost: Math.max(
+                0,
+                (finalNodes[rootNodePos].cost || 0) - transactionCost
+              ),
+              value: Math.max(
+                0,
+                (finalNodes[rootNodePos].value || 0) - transactionCost
+              ),
             };
           }
 
-          showNotification("✅ Transaction deleted! Click 'Sync to Cloud' to save.", "success");
+          showNotification(
+            `✅ Transaction deleted! Click '${
+              getStorageMode() === "local" ? "Save to Local" : "Sync to Cloud"
+            }' to save.`,
+            "success"
+          );
           setHasUnsavedChanges(true);
 
           return { nodes: finalNodes, links: enhanceLinks(finalLinks) };
@@ -965,12 +967,21 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
       if (rootNodePos !== -1) {
         filteredNodes[rootNodePos] = {
           ...filteredNodes[rootNodePos],
-          cost: Math.max(0, (filteredNodes[rootNodePos].cost || 0) - transactionCost),
-          value: Math.max(0, (filteredNodes[rootNodePos].value || 0) - transactionCost),
+          cost: Math.max(
+            0,
+            (filteredNodes[rootNodePos].cost || 0) - transactionCost
+          ),
+          value: Math.max(
+            0,
+            (filteredNodes[rootNodePos].value || 0) - transactionCost
+          ),
         };
       }
 
-      showNotification("✅ Transaction deleted! Click 'Sync to Cloud' to save.", "success");
+      showNotification(
+        "✅ Transaction deleted! Click 'Sync to Cloud' to save.",
+        "success"
+      );
       setHasUnsavedChanges(true);
 
       return { nodes: filteredNodes, links: enhanceLinks(filteredLinks) };
@@ -998,15 +1009,19 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
       // Find or create category node
       const normalizedCategory = category.trim();
       const categoryNode = updatedNodes.find(
-        (n) => !n.isleaf && n.name.toLowerCase() === normalizedCategory.toLowerCase()
+        (n) =>
+          !n.isleaf && n.name.toLowerCase() === normalizedCategory.toLowerCase()
       );
 
       let categoryIndex: number;
 
       if (!categoryNode) {
         // Create new category
-        const validIndices = updatedNodes.map((n) => n.index).filter((idx) => typeof idx === "number" && !isNaN(idx));
-        const maxIndex = validIndices.length > 0 ? Math.max(...validIndices) : 0;
+        const validIndices = updatedNodes
+          .map((n) => n.index)
+          .filter((idx) => typeof idx === "number" && !isNaN(idx));
+        const maxIndex =
+          validIndices.length > 0 ? Math.max(...validIndices) : 0;
         categoryIndex = maxIndex + 1;
 
         const newCategoryNode: SankeyNode = {
@@ -1035,7 +1050,9 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
         categoryIndex = categoryNode.index;
 
         // Update category cost
-        const categoryPos = updatedNodes.findIndex((n) => n.index === categoryIndex);
+        const categoryPos = updatedNodes.findIndex(
+          (n) => n.index === categoryIndex
+        );
         if (categoryPos !== -1) {
           updatedNodes[categoryPos] = {
             ...updatedNodes[categoryPos],
@@ -1057,7 +1074,9 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
       }
 
       // Create new transaction node
-      const validIndices = updatedNodes.map((n) => n.index).filter((idx) => typeof idx === "number" && !isNaN(idx));
+      const validIndices = updatedNodes
+        .map((n) => n.index)
+        .filter((idx) => typeof idx === "number" && !isNaN(idx));
       const maxIndex = validIndices.length > 0 ? Math.max(...validIndices) : 0;
       const newTransactionIndex = maxIndex + 1;
 
@@ -1102,7 +1121,12 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
         totalLinks: updatedLinks.length,
       });
 
-      showNotification("✅ Transaction added! Click 'Sync to Cloud' to save.", "success");
+      showNotification(
+        `✅ Transaction added! Click '${
+          getStorageMode() === "local" ? "Save to Local" : "Sync to Cloud"
+        }' to save.`,
+        "success"
+      );
       setHasUnsavedChanges(true); // Mark as having unsaved changes
 
       return { nodes: updatedNodes, links: enhanceLinks(updatedLinks) };
@@ -1278,36 +1302,66 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
     {
       label: "Home",
       href: "/",
-      icon: <FiHome className="h-5 w-5 flex-shrink-0" style={{ color: theme.text.primary }} />,
+      icon: (
+        <FiHome
+          className="h-5 w-5 flex-shrink-0"
+          style={{ color: theme.text.primary }}
+        />
+      ),
     },
     {
       label: "TreeMap",
       href: "#",
-      icon: <FiBarChart2 className="h-5 w-5 flex-shrink-0" style={{ color: theme.text.primary }} />,
+      icon: (
+        <FiBarChart2
+          className="h-5 w-5 flex-shrink-0"
+          style={{ color: theme.text.primary }}
+        />
+      ),
       onClick: () => setViewMode("treemap"),
     },
     {
       label: "Calendar",
       href: "#",
-      icon: <FiCalendar className="h-5 w-5 flex-shrink-0" style={{ color: theme.text.primary }} />,
+      icon: (
+        <FiCalendar
+          className="h-5 w-5 flex-shrink-0"
+          style={{ color: theme.text.primary }}
+        />
+      ),
       onClick: () => setViewMode("calendar"),
     },
     {
       label: "Table",
       href: "#",
-      icon: <FiGrid className="h-5 w-5 flex-shrink-0" style={{ color: theme.text.primary }} />,
+      icon: (
+        <FiGrid
+          className="h-5 w-5 flex-shrink-0"
+          style={{ color: theme.text.primary }}
+        />
+      ),
       onClick: () => setViewMode("table"),
     },
     {
       label: "Editor",
       href: "#",
-      icon: <FiEdit3 className="h-5 w-5 flex-shrink-0" style={{ color: theme.text.primary }} />,
+      icon: (
+        <FiEdit3
+          className="h-5 w-5 flex-shrink-0"
+          style={{ color: theme.text.primary }}
+        />
+      ),
       onClick: () => setViewMode("editor"),
     },
     {
       label: "Trends",
       href: "/trends",
-      icon: <FiTrendingUp className="h-5 w-5 flex-shrink-0" style={{ color: theme.text.primary }} />,
+      icon: (
+        <FiTrendingUp
+          className="h-5 w-5 flex-shrink-0"
+          style={{ color: theme.text.primary }}
+        />
+      ),
       onClick: () => {
         setIsViewTrendsLoading(true);
       },
@@ -1315,19 +1369,35 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
     {
       label: "Upload",
       href: "/",
-      icon: <FiUpload className="h-5 w-5 flex-shrink-0" style={{ color: theme.text.primary }} />,
+      icon: (
+        <FiUpload
+          className="h-5 w-5 flex-shrink-0"
+          style={{ color: theme.text.primary }}
+        />
+      ),
     },
   ];
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background-primary text-text-primary">
       <Sidebar open={sidebarOpen} setOpen={setSidebarOpen}>
-        <SidebarBody className="justify-between gap-4" style={{ backgroundColor: theme.background.secondary, borderRight: `1px solid ${theme.border.secondary}` }}>
+        <SidebarBody
+          className="justify-between gap-4"
+          style={{
+            backgroundColor: theme.background.secondary,
+            borderRight: `1px solid ${theme.border.secondary}`,
+          }}
+        >
           <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
             {/* Logo */}
             {sidebarOpen ? (
               <div className="font-normal flex space-x-2 items-center py-2 relative z-20">
-                <div className="h-6 w-6 rounded-lg flex-shrink-0" style={{ background: `linear-gradient(135deg, ${theme.primary[500]}, ${theme.secondary[500]})` }} />
+                <div
+                  className="h-6 w-6 rounded-lg flex-shrink-0"
+                  style={{
+                    background: `linear-gradient(135deg, ${theme.primary[500]}, ${theme.secondary[500]})`,
+                  }}
+                />
                 <motion.span
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -1339,7 +1409,12 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
               </div>
             ) : (
               <div className="font-normal flex justify-center items-center py-2 relative z-20">
-                <div className="h-6 w-6 rounded-lg flex-shrink-0" style={{ background: `linear-gradient(135deg, ${theme.primary[500]}, ${theme.secondary[500]})` }} />
+                <div
+                  className="h-6 w-6 rounded-lg flex-shrink-0"
+                  style={{
+                    background: `linear-gradient(135deg, ${theme.primary[500]}, ${theme.secondary[500]})`,
+                  }}
+                />
               </div>
             )}
 
@@ -1349,7 +1424,11 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
                 <SidebarLink
                   key={idx}
                   link={link}
-                  className={viewMode === link.label.toLowerCase() ? "bg-background-tertiary" : ""}
+                  className={
+                    viewMode === link.label.toLowerCase()
+                      ? "bg-background-tertiary"
+                      : ""
+                  }
                   {...(link.onClick && {
                     onClick: (e: React.MouseEvent) => {
                       e.preventDefault();
@@ -1373,7 +1452,9 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
               style={{ color: theme.text.secondary }}
             >
               <FiSettings className="h-4 w-4 flex-shrink-0" />
-              {sidebarOpen && <span className="text-sm font-medium">Settings</span>}
+              {sidebarOpen && (
+                <span className="text-sm font-medium">Settings</span>
+              )}
             </button>
 
             {/* User Profile */}
@@ -1384,13 +1465,21 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
               >
                 <div
                   className="h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 font-semibold text-xs"
-                  style={{ backgroundColor: theme.primary[500], color: theme.text.inverse }}
+                  style={{
+                    backgroundColor: theme.primary[500],
+                    color: theme.text.inverse,
+                  }}
                 >
-                  {user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || "U"}
+                  {user.name?.[0]?.toUpperCase() ||
+                    user.email?.[0]?.toUpperCase() ||
+                    "U"}
                 </div>
                 {sidebarOpen && (
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate" style={{ color: theme.text.primary }}>
+                    <p
+                      className="text-sm font-medium truncate"
+                      style={{ color: theme.text.primary }}
+                    >
                       {user.name || user.email}
                     </p>
                   </div>
@@ -1405,7 +1494,9 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
               style={{ color: theme.text.secondary }}
             >
               <FiLogOut className="h-4 w-4 flex-shrink-0" />
-              {sidebarOpen && <span className="text-sm font-medium">Logout</span>}
+              {sidebarOpen && (
+                <span className="text-sm font-medium">Logout</span>
+              )}
             </button>
           </div>
         </SidebarBody>
@@ -1414,7 +1505,13 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden relative">
         {/* Top Bar */}
-        <div className="border-b px-4 py-3 flex items-center justify-between" style={{ backgroundColor: theme.background.secondary, borderColor: theme.border.secondary }}>
+        <div
+          className="border-b px-4 py-3 flex items-center justify-between"
+          style={{
+            backgroundColor: theme.background.secondary,
+            borderColor: theme.border.secondary,
+          }}
+        >
           <div className="flex-1">
             {/* Sync Notification */}
             {syncNotification && (
@@ -1432,10 +1529,16 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
 
           {/* Month Display - Center */}
           <div className="flex-1 text-center">
-            <p className="text-xs uppercase tracking-[0.3em]" style={{ color: theme.text.tertiary }}>
+            <p
+              className="text-xs uppercase tracking-[0.3em]"
+              style={{ color: theme.text.tertiary }}
+            >
               Transaction Month
             </p>
-            <p className="text-lg font-bold" style={{ color: theme.text.primary }}>
+            <p
+              className="text-lg font-bold"
+              style={{ color: theme.text.primary }}
+            >
               {month.toUpperCase()}
             </p>
           </div>
@@ -1445,202 +1548,209 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
 
         {/* Content Area */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
-        {error && (
-          <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-200">
-            {error}
-          </div>
-        )}
+          {error && (
+            <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-200">
+              {error}
+            </div>
+          )}
 
-        {infoMessage && !error && !isLoading && (
-          <div className="rounded-xl border border-border-secondary bg-background-card p-4 text-sm text-text-primary">
-            {infoMessage}
-          </div>
-        )}
+          {infoMessage && !error && !isLoading && (
+            <div className="rounded-xl border border-border-secondary bg-background-card p-4 text-sm text-text-primary">
+              {infoMessage}
+            </div>
+          )}
 
-        {/* Sync Notification Bubble */}
-        {syncNotification && (
-          <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-right-5 duration-300">
-            <div
-              className={`rounded-lg px-4 py-3 shadow-lg border ${
-                syncNotification.type === "success"
-                  ? "bg-green-500 text-white border-green-400"
-                  : "bg-red-500 text-white border-red-400"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">
-                  {syncNotification.message}
-                </span>
+          {/* Sync Notification Bubble */}
+          {syncNotification && (
+            <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-right-5 duration-300">
+              <div
+                className={`rounded-lg px-4 py-3 shadow-lg border ${
+                  syncNotification.type === "success"
+                    ? "bg-green-500 text-white border-green-400"
+                    : "bg-red-500 text-white border-red-400"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">
+                    {syncNotification.message}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Stats Cards - Only show when chart is ready */}
-        {chartReady && (
-          <div className="mb-6">
-            <StatsCards
-              totalSpend={filteredTotalSpend}
-              categoryCount={filteredCategorySummary.length}
-              topCategory={
-                filteredCategorySummary[0] || {
-                  name: "N/A",
-                  value: 0,
-                  color: "#4fd1c5",
+          {/* Stats Cards - Only show when chart is ready */}
+          {chartReady && (
+            <div className="mb-6">
+              <StatsCards
+                totalSpend={filteredTotalSpend}
+                categoryCount={filteredCategorySummary.length}
+                topCategory={
+                  filteredCategorySummary[0] || {
+                    name: "N/A",
+                    value: 0,
+                    color: "#4fd1c5",
+                  }
                 }
-              }
-              transactionCount={dataValue.nodes.filter((n) => n.isleaf).length}
-              avgTransaction={
-                dataValue.nodes.filter((n) => n.isleaf).length > 0
-                  ? filteredTotalSpend /
-                    dataValue.nodes.filter((n) => n.isleaf).length
-                  : 0
-              }
-            />
-          </div>
-        )}
+                transactionCount={
+                  dataValue.nodes.filter((n) => n.isleaf).length
+                }
+                avgTransaction={
+                  dataValue.nodes.filter((n) => n.isleaf).length > 0
+                    ? filteredTotalSpend /
+                      dataValue.nodes.filter((n) => n.isleaf).length
+                    : 0
+                }
+              />
+            </div>
+          )}
 
-        {/* Main Content Area */}
-        {chartReady ? (
-          <>
-            {viewMode === "treemap" && (
-              <>
-                <TreeMapChart
-                  key={`treemap-${dataValue.nodes.length}-${dataValue.links.length}`}
-                  nodes={dataValue.nodes}
-                  links={dataValue.links}
-                  onEditTransaction={handleEditTransaction}
-                  onEditFromCategory={handleEditFromCategory}
-                  returnToCategory={returnToCategory}
-                  insights={insights}
-                  excludedCategories={EXCLUDED_CATEGORIES}
-                />
-              </>
-            )}
+          {/* Main Content Area */}
+          {chartReady ? (
+            <>
+              {viewMode === "treemap" && (
+                <>
+                  <TreeMapChart
+                    key={`treemap-${dataValue.nodes.length}-${dataValue.links.length}`}
+                    nodes={dataValue.nodes}
+                    links={dataValue.links}
+                    onEditTransaction={handleEditTransaction}
+                    onEditFromCategory={handleEditFromCategory}
+                    returnToCategory={returnToCategory}
+                    insights={insights}
+                    excludedCategories={EXCLUDED_CATEGORIES}
+                  />
+                </>
+              )}
 
-            {viewMode === "calendar" && (
-              <>
-                {/* Helper Text */}
-                <div className="rounded-xl border border-border-secondary bg-background-card p-4 text-sm text-text-secondary">
-                  <p className="text-sm text-text-secondary leading-relaxed">
-                    📅 <strong>Calendar View:</strong> See your expenses organized
-                    by date. Click on any day to view all transactions for that date.
-                    Perfect for tracking daily spending patterns.
+              {viewMode === "calendar" && (
+                <>
+                  {/* Helper Text */}
+                  <div className="rounded-xl border border-border-secondary bg-background-card p-4 text-sm text-text-secondary">
+                    <p className="text-sm text-text-secondary leading-relaxed">
+                      📅 <strong>Calendar View:</strong> See your expenses
+                      organized by date. Click on any day to view all
+                      transactions for that date. Perfect for tracking daily
+                      spending patterns.
+                    </p>
+                  </div>
+
+                  {/* CalendarView receives data from storage adapter via dataValue state */}
+                  {/* Data is fetched using fetchSankeyData which handles both local and Firebase storage */}
+                  <CalendarView
+                    nodes={dataValue.nodes}
+                    links={dataValue.links}
+                    month={month}
+                    onEditTransaction={handleEditTransaction}
+                  />
+                </>
+              )}
+
+              {viewMode === "table" && (
+                <>
+                  {/* Helper Text */}
+                  <div className="rounded-xl border border-border-secondary bg-background-card p-4 text-sm text-text-secondary">
+                    <p className="text-sm text-text-secondary leading-relaxed">
+                      📋 <strong>Table View:</strong> Browse all transactions in
+                      an Excel-style format. Use search and filters to find
+                      specific transactions, or export to CSV.
+                    </p>
+                  </div>
+
+                  <TransactionTable
+                    nodes={dataValue.nodes}
+                    links={dataValue.links}
+                    onEditTransaction={handleEditTransaction}
+                  />
+                </>
+              )}
+
+              {viewMode === "editor" && (
+                <>
+                  <SwipeableTransactionEditor
+                    nodes={dataValue.nodes}
+                    links={dataValue.links}
+                    onUpdateTransaction={handleTransactionUpdate}
+                  />
+
+                  {/* Helper Text */}
+                  <div className="rounded-xl border border-green-500/40 bg-green-500/10 p-4">
+                    <p className="text-sm text-green-200 leading-relaxed">
+                      ✏️ <strong>Transaction Editor:</strong> Swipe through your
+                      transactions one by one. Edit names, amounts, and
+                      categories with a beautiful card-based interface. Perfect
+                      for fine-tuning your data.
+                    </p>
+                  </div>
+                </>
+              )}
+            </>
+          ) : isLoading ? (
+            <div className="flex h-[500px] items-center justify-center rounded-3xl border border-border-secondary bg-background-card">
+              <div className="flex flex-col items-center gap-6 text-center">
+                {/* Enhanced Loading Spinner */}
+                <div className="relative">
+                  <div className="w-20 h-20 border-4 border-border-primary border-t-primary-500 rounded-full animate-spin"></div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-12 h-12 border-2 border-border-secondary border-t-secondary-500 rounded-full animate-spin"></div>
+                  </div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-6 h-6 border border-border-secondary border-t-accent-500 rounded-full animate-spin"></div>
+                  </div>
+                </div>
+
+                {/* Loading Text */}
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-text-primary">
+                    Loading Your Data
+                  </h3>
+                  <p className="text-text-tertiary text-sm">
+                    {getStorageMode() === "local"
+                      ? "🔍 Looking for your data locally..."
+                      : "🔍 Looking for your data in Firebase..."}
                   </p>
                 </div>
 
-                <CalendarView
-                  nodes={dataValue.nodes}
-                  links={dataValue.links}
-                  month={month}
-                  onEditTransaction={handleEditTransaction}
-                />
-              </>
-            )}
-
-            {viewMode === "table" && (
-              <>
-                {/* Helper Text */}
-                <div className="rounded-xl border border-border-secondary bg-background-card p-4 text-sm text-text-secondary">
-                  <p className="text-sm text-text-secondary leading-relaxed">
-                    📋 <strong>Table View:</strong> Browse all transactions in
-                    an Excel-style format. Use search and filters to find
-                    specific transactions, or export to CSV.
-                  </p>
+                {/* Animated Dots */}
+                <div className="flex space-x-2">
+                  <div className="w-3 h-3 bg-primary-500 rounded-full animate-bounce"></div>
+                  <div
+                    className="w-3 h-3 bg-secondary-500 rounded-full animate-bounce"
+                    style={{ animationDelay: "0.1s" }}
+                  ></div>
+                  <div
+                    className="w-3 h-3 bg-accent-500 rounded-full animate-bounce"
+                    style={{ animationDelay: "0.2s" }}
+                  ></div>
                 </div>
 
-                <TransactionTable
-                  nodes={dataValue.nodes}
-                  links={dataValue.links}
-                  onEditTransaction={handleEditTransaction}
-                />
-              </>
-            )}
-
-            {viewMode === "editor" && (
-              <>
-                <SwipeableTransactionEditor
-                  nodes={dataValue.nodes}
-                  links={dataValue.links}
-                  onUpdateTransaction={handleTransactionUpdate}
-                />
-
-                {/* Helper Text */}
-                <div className="rounded-xl border border-green-500/40 bg-green-500/10 p-4">
-                  <p className="text-sm text-green-200 leading-relaxed">
-                    ✏️ <strong>Transaction Editor:</strong> Swipe through your
-                    transactions one by one. Edit names, amounts, and categories
-                    with a beautiful card-based interface. Perfect for
-                    fine-tuning your data.
-                  </p>
-                </div>
-              </>
-            )}
-          </>
-        ) : isLoading ? (
-          <div className="flex h-[500px] items-center justify-center rounded-3xl border border-border-secondary bg-background-card">
-            <div className="flex flex-col items-center gap-6 text-center">
-              {/* Enhanced Loading Spinner */}
-              <div className="relative">
-                <div className="w-20 h-20 border-4 border-border-primary border-t-primary-500 rounded-full animate-spin"></div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-12 h-12 border-2 border-border-secondary border-t-secondary-500 rounded-full animate-spin"></div>
-                </div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-6 h-6 border border-border-secondary border-t-accent-500 rounded-full animate-spin"></div>
-                </div>
-              </div>
-
-              {/* Loading Text */}
-              <div className="space-y-2">
-                <h3 className="text-lg font-semibold text-text-primary">
-                  Processing Your Data
-                </h3>
-                <p className="text-text-tertiary text-sm">
-                  AI is analyzing and categorizing your transactions...
-                </p>
-              </div>
-
-              {/* Animated Dots */}
-              <div className="flex space-x-2">
-                <div className="w-3 h-3 bg-primary-500 rounded-full animate-bounce"></div>
-                <div
-                  className="w-3 h-3 bg-secondary-500 rounded-full animate-bounce"
-                  style={{ animationDelay: "0.1s" }}
-                ></div>
-                <div
-                  className="w-3 h-3 bg-accent-500 rounded-full animate-bounce"
-                  style={{ animationDelay: "0.2s" }}
-                ></div>
-              </div>
-
-              {/* Progress Steps */}
-              <div className="text-xs text-text-tertiary space-y-1">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-primary-500 rounded-full"></div>
-                  <span>Fetching transaction data</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-secondary-500 rounded-full animate-pulse"></div>
-                  <span>AI categorization in progress</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-border-secondary rounded-full"></div>
-                  <span>Building visualization</span>
+                {/* Progress Steps */}
+                <div className="text-xs text-text-tertiary space-y-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-primary-500 rounded-full"></div>
+                    <span>Fetching transaction data</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-secondary-500 rounded-full animate-pulse"></div>
+                    <span>AI categorization in progress</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-border-secondary rounded-full"></div>
+                    <span>Building visualization</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ) : (
-          <div className="flex h-[500px] items-center justify-center rounded-3xl border border-border-secondary bg-background-card text-center text-text-secondary">
-            {infoMessage ?? "No data available yet."}
-          </div>
-        )}
+          ) : (
+            <div className="flex h-[500px] items-center justify-center rounded-3xl border border-border-secondary bg-background-card text-center text-text-secondary">
+              {infoMessage ?? "No data available yet."}
+            </div>
+          )}
 
-        {/* Uploaded Files Panel */}
-        {chartReady && session?.user?.email && month && (
-          <UploadedFilesPanel userEmail={session.user.email} month={month} />
-        )}
+          {/* Uploaded Files Panel */}
+          {chartReady && session?.user?.email && month && (
+            <UploadedFilesPanel userEmail={session.user.email} month={month} />
+          )}
         </main>
 
         {/* Floating Action Buttons - Bottom Right */}
@@ -1649,18 +1759,23 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
             type="button"
             onClick={() => setIsAddModalOpen(true)}
             className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold shadow-lg transition-transform hover:scale-95 active:scale-90"
-            style={{ backgroundColor: theme.primary[500], color: theme.text.inverse }}
+            style={{
+              backgroundColor: theme.primary[500],
+              color: theme.text.inverse,
+            }}
           >
             <FiPlus size={18} />
             Add Transaction
           </button>
           <button
             type="button"
-            onClick={sendDataToFirebase}
+            onClick={saveData}
             disabled={syncDisabled}
             className={`inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold shadow-lg transition-transform hover:scale-95 active:scale-90 disabled:cursor-not-allowed disabled:opacity-50`}
             style={{
-              backgroundColor: hasUnsavedChanges ? "#ef4444" : theme.accent[500],
+              backgroundColor: hasUnsavedChanges
+                ? "#ef4444"
+                : theme.accent[500],
               color: theme.text.inverse,
             }}
           >
@@ -1677,7 +1792,9 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
                   </span>
                 )}
-                Sync to Cloud
+                {getStorageMode() === "local"
+                  ? "Save to Local"
+                  : "Sync to Cloud"}
               </>
             )}
           </button>
@@ -1685,36 +1802,34 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
       </div>
 
       {/* Modals */}
-      {isModalOpen &&
-        nodeIndex !== null &&
-        clickedNode !== null && (
-          <InputModal
-            clickedNode={clickedNode}
-            initialParentName={
-              parentIndex !== null
-                ? dataValue.nodes.find((n) => n.index === parentIndex)?.name ||
-                  clickedNode.category ||
-                  ""
-                : clickedNode.category || ""
+      {isModalOpen && nodeIndex !== null && clickedNode !== null && (
+        <InputModal
+          clickedNode={clickedNode}
+          initialParentName={
+            parentIndex !== null
+              ? dataValue.nodes.find((n) => n.index === parentIndex)?.name ||
+                clickedNode.originalName ||
+                ""
+              : clickedNode.originalName || ""
+          }
+          initialPrice={(
+            dataValue.nodes.find((n) => n.index === nodeIndex)?.value ??
+            dataValue.nodes.find((n) => n.index === nodeIndex)?.cost ??
+            0
+          ).toString()}
+          onSubmit={handleModalSubmit}
+          onClose={() => {
+            setIsModalOpen(false);
+            // If we were editing from a category panel, return to that category
+            if (editingFromCategory !== null) {
+              setReturnToCategory(editingFromCategory);
+              setEditingFromCategory(null);
             }
-            initialPrice={(
-              dataValue.nodes.find((n) => n.index === nodeIndex)?.value ??
-              dataValue.nodes.find((n) => n.index === nodeIndex)?.cost ??
-              0
-            ).toString()}
-            onSubmit={handleModalSubmit}
-            onClose={() => {
-              setIsModalOpen(false);
-              // If we were editing from a category panel, return to that category
-              if (editingFromCategory !== null) {
-                setReturnToCategory(editingFromCategory);
-                setEditingFromCategory(null);
-              }
-            }}
-            onDelete={handleDeleteTransaction}
-            parentOptions={parentOptions}
-          />
-        )}
+          }}
+          onDelete={handleDeleteTransaction}
+          parentOptions={parentOptions}
+        />
+      )}
 
       {isAddModalOpen && (
         <AddTransactionModal
@@ -1737,3 +1852,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
 };
 
 export default SankeyChartComponent;
+function setIsViewTrendsLoading(arg0: boolean) {
+  throw new Error("Function not implemented.");
+}
+
