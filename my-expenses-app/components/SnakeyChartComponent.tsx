@@ -281,9 +281,8 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
     return newMap;
   };
 
-  // To update the data in Firebase
+  // To update the data in storage
   const saveData = async () => {
-    const storageMode = getStorageMode();
     const storageName = getStorageModeDisplayName();
 
     setHasUnsavedChanges(false); // Clear unsaved changes flag
@@ -1363,7 +1362,7 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
         />
       ),
       onClick: () => {
-        setIsViewTrendsLoading(true);
+        // Navigation handled by href="/trends"
       },
     },
     {
@@ -1852,7 +1851,3 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
 };
 
 export default SankeyChartComponent;
-function setIsViewTrendsLoading(arg0: boolean) {
-  throw new Error("Function not implemented.");
-}
-

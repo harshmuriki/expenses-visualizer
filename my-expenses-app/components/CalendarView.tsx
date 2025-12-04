@@ -120,7 +120,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 monthYearCounts.set(key, (monthYearCounts.get(key) || 0) + 1);
               }
             }
-          } catch (e) {
+          } catch {
             // Ignore parsing errors
           }
         }
