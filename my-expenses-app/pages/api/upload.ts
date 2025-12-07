@@ -6,7 +6,6 @@ import formidable, { Fields, Files } from "formidable";
 import csv from "csv-parser";
 import { CSVRow, Map, SankeyNode } from "@/app/types/types";
 import { uploadSankeyData } from "@/lib/storageAdapter";
-import { syncTransactionsForItem } from "@/lib/transactionSync";
 // import { storeUploadedFile } from "@/lib/fileStorage";
 import { Document } from "@/components/process";
 import { OpenAI } from "openai";
@@ -57,39 +56,6 @@ If you cannot determine a specific bank, return "Unknown Bank".`,
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
-  }
-
-  if (req.headers["content-type"]?.includes("application/json")) {
-    const payload = await readJsonBody(req);
-    if (payload?.source === "aggregator") {
-      const { userId, itemId, month } = payload;
-      if (
-        !userId ||
-        typeof userId !== "string" ||
-        !itemId ||
-        typeof itemId !== "string"
-      ) {
-        return res
-          .status(400)
-          .json({ error: "userId and itemId are required" });
-      }
-
-      try {
-        const result = await syncTransactionsForItem({
-          userId,
-          itemId,
-          month: typeof month === "string" ? month : undefined,
-        });
-        return res.status(result.success ? 200 : 400).json(result);
-      } catch (error) {
-        console.error("Aggregator sync failed", error);
-        return res
-          .status(500)
-          .json({ error: "Failed to sync aggregator transactions" });
-      }
-    }
-
-    return res.status(400).json({ error: "Unsupported JSON payload" });
   }
 
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -160,93 +126,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     }
   });
 };
-
-// Async processing function that runs in background
-// const processCsvFilesAsync = async (
-//   files: formidable.File[],
-//   useremail: string,
-//   month: string,
-//   processingId: string
-// ) => {
-//   try {
-//     if (DEBUG_ENABLED) console.time(`[processCsvFilesAsync] ${processingId}`);
-//     if (DEBUG_ENABLED)
-//       console.log("[process] start", {
-//         files: files.length,
-//         useremail,
-//         month,
-//         processingId,
-//       });
-
-//     // Update status to processing
-//     await updateProcessingStatus(
-//       processingId,
-//       "processing",
-//       "Processing CSV files..."
-//     );
-
-//     const result = await handleCombinedCsvFiles(files, useremail, month);
-
-//     // Update status to completed
-//     await updateProcessingStatus(
-//       processingId,
-//       "completed",
-//       "Processing completed successfully!",
-//       result
-//     );
-
-//     if (DEBUG_ENABLED) console.log("[process] completed", { processingId });
-//     if (DEBUG_ENABLED)
-//       console.timeEnd(`[processCsvFilesAsync] ${processingId}`);
-//   } catch (error) {
-//     console.error(`❌ Async processing failed for ${processingId}:`, error);
-
-//     // Update status to failed
-//     await updateProcessingStatus(
-//       processingId,
-//       "failed",
-//       "Processing failed",
-//       null,
-//       error instanceof Error ? error.message : "Unknown error"
-//     );
-//   }
-// };
-
-// Function to update processing status in Firestore
-// const updateProcessingStatus = async (
-//   processingId: string,
-//   status: "processing" | "completed" | "failed",
-//   message: string,
-//   result?: Record<string, unknown>,
-//   error?: string
-// ) => {
-//   try {
-//     const { doc, setDoc } = await import("firebase/firestore");
-//     const { db } = await import("@/components/firebaseConfig");
-
-//     const statusDocRef = doc(db, "processing_status", processingId);
-
-//     // Build the document data, excluding undefined values
-//     const docData: Record<string, unknown> = {
-//       status,
-//       message,
-//       timestamp: new Date().toISOString(),
-//       updatedAt: Date.now(),
-//     };
-
-//     // Only add result and error if they are defined
-//     if (result !== undefined) {
-//       docData.result = result;
-//     }
-//     if (error !== undefined) {
-//       docData.error = error;
-//     }
-
-//     await setDoc(statusDocRef, docData);
-//   } catch (error) {
-//     console.error("Failed to update processing status:", error);
-//   }
-// };
 
 // New function to handle combined CSV files
 const handleCombinedCsvFiles = async (
@@ -329,12 +208,7 @@ const handleCombinedCsvFiles = async (
 
     if (DEBUG_ENABLED) console.time("ai-categorization");
 
-    const document = new Document(
-      allRows,
-      [],
-      null,
-      parentTagsArray
-    );
+    const document = new Document(allRows, [], null, parentTagsArray);
 
     await document.convertDocToItems();
     const { output, parentChildMap } = document.convertData();
@@ -410,7 +284,9 @@ const handleCombinedCsvFiles = async (
     if (DEBUG_ENABLED) console.time("storage-save");
     const { getStorageMode } = await import("@/lib/storageConfig");
     const storageMode = getStorageMode();
-    console.log(`📦 Saving data with storage mode: ${storageMode} (from NEXT_PUBLIC_STORAGE_MODE)`);
+    console.log(
+      `📦 Saving data with storage mode: ${storageMode} (from NEXT_PUBLIC_STORAGE_MODE)`
+    );
     await uploadSankeyData({
       nodes: sankeyNodes,
       parentChildMap: parentChildMap as Map,

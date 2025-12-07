@@ -7,11 +7,13 @@ import { FiCloud, FiHardDrive, FiInfo } from "react-icons/fi";
 interface StorageModeToggleProps {
   showLabel?: boolean;
   size?: "sm" | "md" | "lg";
+  onModeChange?: (mode: StorageMode) => void;
 }
 
 export const StorageModeToggle: React.FC<StorageModeToggleProps> = ({
   showLabel = true,
   size = "md",
+  onModeChange,
 }) => {
   const [mode, setMode] = useState<StorageMode>(getStorageMode());
   const [showTooltip, setShowTooltip] = useState(false);
@@ -22,15 +24,8 @@ export const StorageModeToggle: React.FC<StorageModeToggleProps> = ({
 
   const handleToggle = () => {
     const newMode: StorageMode = mode === "local" ? "firebase" : "local";
-
-    alert(
-      `⚠️ Storage Mode Configuration\n\n` +
-      `To switch to ${newMode === "local" ? "Local Storage" : "Firebase"}, you need to:\n\n` +
-      `1. Open .env file\n` +
-      `2. Set: NEXT_PUBLIC_STORAGE_MODE=${newMode}\n` +
-      `3. Restart the dev server (npm run dev)\n\n` +
-      `Current mode is controlled by the .env file.`
-    );
+    setMode(newMode);
+    onModeChange?.(newMode);
   };
 
   const sizeClasses = {

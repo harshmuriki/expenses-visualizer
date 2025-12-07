@@ -48,6 +48,8 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isLLMSettingsOpen, setIsLLMSettingsOpen] = useState(false);
+  const [localDirectoryHandle, setLocalDirectoryHandle] = useState<any>(null);
+  const [isLocalSyncing, setIsLocalSyncing] = useState(false);
   const [parentIndex, setParentIndex] = useState<number | null>(null);
   const [nodeIndex, setNodeIndex] = useState<number | null>(null);
   const [clickedNode, setNode] = useState<SankeyNode | null>(null);
@@ -350,6 +352,101 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
     } catch (error) {
       console.error("Error saving data:", error);
       showNotification(`❌ Failed to save data to ${storageName}`, "error");
+    }
+  };
+
+  // Build a consistent filename for local month backups
+  const buildLocalFileName = () => {
+    const safeMonth = (month || "unknown").replace(/[^a-z0-9-_]/gi, "_");
+    return `expenses-${safeMonth}.json`;
+  };
+
+  // Pick (or reuse) a directory handle and ensure read/write permission
+  const getOrPickDirectoryHandle = async () => {
+    const directoryPicker = (typeof window !== "undefined" &&
+      (window as any).showDirectoryPicker) as (() => Promise<any>) | undefined;
+
+    if (!directoryPicker) {
+      showNotification(
+        "Local folder access is not supported in this browser.",
+        "error"
+      );
+      return null;
+    }
+
+    const directoryHandle = localDirectoryHandle ?? (await directoryPicker());
+    if (!directoryHandle) {
+      return null;
+    }
+
+    if (directoryHandle.requestPermission) {
+      const permission = await directoryHandle.requestPermission({
+        mode: "readwrite",
+      });
+      if (permission === "denied") {
+        showNotification("Permission denied for the selected folder.", "error");
+        return null;
+      }
+    }
+
+    setLocalDirectoryHandle(directoryHandle);
+    return directoryHandle;
+  };
+
+  // Save the current month's data into a local file
+  const handleLocalSync = async () => {
+    if (typeof window === "undefined") return;
+
+    setIsLocalSyncing(true);
+    try {
+      const directoryHandle = await getOrPickDirectoryHandle();
+
+      if (!directoryHandle) {
+        showNotification("No folder selected.", "error");
+        return;
+      }
+
+      const fileName = buildLocalFileName();
+      const fileHandle = await directoryHandle.getFileHandle(fileName, {
+        create: true,
+      });
+
+      if (fileHandle.requestPermission) {
+        const filePermission = await fileHandle.requestPermission({
+          mode: "readwrite",
+        });
+        if (filePermission === "denied") {
+          showNotification("Permission denied to write the file.", "error");
+          return;
+        }
+      }
+
+      const writable = await fileHandle.createWritable();
+      const payload = {
+        month,
+        userEmail: user?.email ?? "",
+        savedAt: new Date().toISOString(),
+        nodes: dataValue.nodes,
+        parentChildMap: updateParentChildMap(),
+        metaTotals,
+        version: 1,
+      };
+      await writable.write(JSON.stringify(payload, null, 2));
+      await writable.close();
+
+      showNotification(
+        `✅ Saved month data to ${fileName} in the selected folder.`,
+        "success"
+      );
+    } catch (error: any) {
+      if (error?.name === "AbortError") {
+        showNotification("Folder selection canceled.", "error");
+      } else {
+        console.error("Error saving locally:", error);
+        showNotification("❌ Failed to save file locally.", "error");
+      }
+    } finally {
+      setIsLocalSyncing(false);
     }
   };
 
@@ -1794,6 +1891,28 @@ const SankeyChartComponent: React.FC<SnakeyChartComponentProps> = ({}) => {
                 {getStorageMode() === "local"
                   ? "Save to Local"
                   : "Sync to Cloud"}
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={handleLocalSync}
+            disabled={isLocalSyncing}
+            className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold shadow-lg transition-transform hover:scale-95 active:scale-90 disabled:cursor-not-allowed disabled:opacity-50"
+            style={{
+              backgroundColor: theme.secondary[500],
+              color: theme.text.inverse,
+            }}
+          >
+            {isLocalSyncing ? (
+              <>
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-transparent" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <FiUpload size={18} />
+                Sync to Local
               </>
             )}
           </button>

@@ -75,7 +75,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     const monthLower = month.toLowerCase().trim();
     // Try to find month in the mapping
     let monthNum = MONTH_NAMES[monthLower];
-    
+
     // If not found, try to extract from strings like "January 2025" or "jan 2025"
     if (monthNum === undefined) {
       const parts = monthLower.split(/\s+/);
@@ -86,16 +86,18 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         }
       }
     }
-    
+
     // Try to extract year from month string (e.g., "January 2025")
     const yearMatch = month.match(/\b(20\d{2})\b/);
-    let year = yearMatch ? parseInt(yearMatch[1], 10) : new Date().getFullYear();
-    
+    let year = yearMatch
+      ? parseInt(yearMatch[1], 10)
+      : new Date().getFullYear();
+
     // If month prop doesn't parse to a real month, try to detect from transaction dates
     if (monthNum === undefined && nodes.length > 0) {
       // Find the most common month/year from transaction dates
       const monthYearCounts = new Map<string, number>();
-      
+
       nodes.forEach((node) => {
         if (node.isleaf && node.date) {
           try {
@@ -104,7 +106,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             if (parts.length === 3) {
               let parsedMonth: number;
               let parsedYear: number;
-              
+
               if (parts[0].length === 4) {
                 // YYYY-MM-DD format
                 parsedYear = parseInt(parts[0]);
@@ -114,7 +116,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 parsedMonth = parseInt(parts[0]) - 1;
                 parsedYear = parseInt(parts[2]);
               }
-              
+
               if (!isNaN(parsedMonth) && !isNaN(parsedYear)) {
                 const key = `${parsedYear}-${parsedMonth}`;
                 monthYearCounts.set(key, (monthYearCounts.get(key) || 0) + 1);
@@ -125,7 +127,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           }
         }
       });
-      
+
       // Find the most common month/year
       if (monthYearCounts.size > 0) {
         let maxCount = 0;
@@ -136,25 +138,21 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             mostCommon = key;
           }
         });
-        
+
         if (mostCommon) {
-          const [detectedYear, detectedMonth] = mostCommon.split("-").map(Number);
+          const [detectedYear, detectedMonth] = mostCommon
+            .split("-")
+            .map(Number);
           monthNum = detectedMonth;
           year = detectedYear;
-          console.log(`[CalendarView] Detected month/year from transactions:`, {
-            month: monthNum,
-            year,
-            transactionCount: maxCount,
-            originalMonthProp: month,
-          });
         }
       }
     }
-    
+
     // Default to current month if still not found
     const monthNumber = monthNum ?? new Date().getMonth();
     const finalYear = year ?? new Date().getFullYear();
-    
+
     return { monthNumber, year: finalYear };
   }, [month, nodes]);
 
@@ -182,7 +180,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     setViewDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
   };
 
-  // Filter to only leaf nodes (transactions)
   const transactions = useMemo(() => {
     const filtered = nodes.filter((node) => {
       // Check if it's a leaf node (transaction)
@@ -191,25 +188,32 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       const hasCost = node.cost && node.cost > 0;
       // Exclude root node (index 0)
       const isNotRoot = node.index !== 0;
-      
+
       return isLeaf && hasCost && isNotRoot;
     });
-    
+
     // Debug: Log transaction count and sample dates
     if (filtered.length > 0) {
       console.log(`[CalendarView] Found ${filtered.length} transactions`, {
-        sampleDates: filtered.slice(0, 3).map(t => ({ name: t.name, date: t.date, isleaf: t.isleaf })),
+        sampleDates: filtered
+          .slice(0, 3)
+          .map((t) => ({ name: t.name, date: t.date, isleaf: t.isleaf })),
         totalNodes: nodes.length,
       });
     } else {
       console.warn(`[CalendarView] No transactions found`, {
         totalNodes: nodes.length,
-        nodesWithIsleaf: nodes.filter(n => n.isleaf === true).length,
-        nodesWithCost: nodes.filter(n => n.cost && n.cost > 0).length,
-        sampleNodes: nodes.slice(0, 5).map(n => ({ name: n.name, isleaf: n.isleaf, cost: n.cost, index: n.index })),
+        nodesWithIsleaf: nodes.filter((n) => n.isleaf === true).length,
+        nodesWithCost: nodes.filter((n) => n.cost && n.cost > 0).length,
+        sampleNodes: nodes.slice(0, 5).map((n) => ({
+          name: n.name,
+          isleaf: n.isleaf,
+          cost: n.cost,
+          index: n.index,
+        })),
       });
     }
-    
+
     return filtered;
   }, [nodes]);
 
@@ -221,18 +225,21 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
     transactions.forEach((transaction) => {
       if (!transaction.date) {
-        console.warn(`[CalendarView] Transaction missing date:`, transaction.name);
+        console.warn(
+          `[CalendarView] Transaction missing date:`,
+          transaction.name
+        );
         return;
       }
 
       try {
         // Try multiple date parsing strategies
         let transactionDate: Date | null = null;
-        
+
         // Strategy 1: Direct Date constructor
         const dateStr = String(transaction.date).trim();
         transactionDate = new Date(dateStr);
-        
+
         // Strategy 2: If invalid, try parsing common formats
         if (isNaN(transactionDate.getTime())) {
           // Try MM/DD/YYYY or YYYY-MM-DD
@@ -240,7 +247,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           if (parts.length === 3) {
             if (parts[0].length === 4) {
               // YYYY-MM-DD format
-              transactionDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+              transactionDate = new Date(
+                parseInt(parts[0]),
+                parseInt(parts[1]) - 1,
+                parseInt(parts[2])
+              );
             } else {
               // MM/DD/YYYY format (most common in the data)
               const month = parseInt(parts[0]) - 1; // Month is 0-indexed
@@ -250,11 +261,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             }
           }
         }
-        
+
         // Only process if we have a valid date
         if (transactionDate && !isNaN(transactionDate.getTime())) {
           parsedCount++;
-          
+
           // Only include transactions from the currently viewed month
           if (
             transactionDate.getMonth() === viewMonthNumber &&
@@ -268,10 +279,19 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             grouped.get(day)!.push(transaction);
           }
         } else {
-          console.warn(`[CalendarView] Failed to parse date:`, transaction.date, `for transaction:`, transaction.name);
+          console.warn(
+            `[CalendarView] Failed to parse date:`,
+            transaction.date,
+            `for transaction:`,
+            transaction.name
+          );
         }
       } catch (error) {
-        console.warn("[CalendarView] Invalid date format:", transaction.date, error);
+        console.warn(
+          "[CalendarView] Invalid date format:",
+          transaction.date,
+          error
+        );
       }
     });
 
@@ -309,10 +329,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     // Add days of current month
     for (let day = 1; day <= daysInMonth; day++) {
       const dayTransactions = transactionsByDate.get(day) || [];
-      const total = dayTransactions.reduce(
-        (sum, t) => sum + (t.cost || 0),
-        0
-      );
+      const total = dayTransactions.reduce((sum, t) => sum + (t.cost || 0), 0);
 
       days.push({
         date: day,
@@ -332,7 +349,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         if (!t.date) return false;
         try {
           const d = new Date(t.date);
-          return d.getMonth() === viewMonthNumber && d.getFullYear() === viewYear;
+          return (
+            d.getMonth() === viewMonthNumber && d.getFullYear() === viewYear
+          );
         } catch {
           return false;
         }
@@ -350,9 +369,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
   const selectedDayData = useMemo(() => {
     if (selectedDay === null) return null;
-    return calendarDays.find(
-      (d) => d.date === selectedDay && d.isCurrentMonth
-    );
+    return calendarDays.find((d) => d.date === selectedDay && d.isCurrentMonth);
   }, [selectedDay, calendarDays]);
 
   // Handle ESC key to close modal
@@ -386,8 +403,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 {MONTH_NAMES_FULL[viewMonthNumber]} {viewYear}
               </h2>
               <p className="text-sm text-text-secondary mt-1">
-                {transactions.length} transactions • {formatCurrency(monthTotal)}{" "}
-                total
+                {transactions.length} transactions •{" "}
+                {formatCurrency(monthTotal)} total
               </p>
             </div>
             <button
@@ -464,14 +481,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                             {dayData.transactions.length !== 1 ? "s" : ""}
                           </div>
                           <div className="space-y-0.5">
-                            {dayData.transactions.slice(0, 2).map((transaction) => (
-                              <div
-                                key={transaction.index}
-                                className="truncate text-[10px] text-text-secondary"
-                              >
-                                • {transaction.name}
-                              </div>
-                            ))}
+                            {dayData.transactions
+                              .slice(0, 2)
+                              .map((transaction) => (
+                                <div
+                                  key={transaction.index}
+                                  className="truncate text-[10px] text-text-secondary"
+                                >
+                                  • {transaction.name}
+                                </div>
+                              ))}
                             {dayData.transactions.length > 2 && (
                               <div className="text-[10px] text-text-tertiary">
                                 +{dayData.transactions.length - 2} more
@@ -507,13 +526,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       {isModalOpen && selectedDayData && (
         <div
           className="glass-backdrop fixed inset-0 z-[9999] flex items-center justify-center p-4"
-          style={{ 
-            position: 'fixed',
+          style={{
+            position: "fixed",
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
-            overflow: 'auto'
+            overflow: "auto",
           }}
           onClick={() => {
             setIsModalOpen(false);
@@ -523,9 +542,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           <div
             className="glass-modal w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col relative"
             style={{
-              position: 'relative',
-              margin: 'auto',
-              zIndex: 10000
+              position: "relative",
+              margin: "auto",
+              zIndex: 10000,
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -553,62 +572,62 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               </button>
             </div>
 
-            <div 
+            <div
               className="p-6 overflow-y-auto space-y-2 flex-1"
-              style={{ maxHeight: 'calc(90vh - 120px)' }}
+              style={{ maxHeight: "calc(90vh - 120px)" }}
             >
               {selectedDayData.transactions.length > 0 ? (
                 selectedDayData.transactions
                   .sort((a, b) => (b.cost || 0) - (a.cost || 0))
                   .map((transaction) => {
-                  const parentLink = links.find(
-                    (link) => link.target === transaction.index
-                  );
-                  const category = parentLink
-                    ? nodes.find((n) => n.index === parentLink.source)?.name
-                    : "Uncategorized";
+                    const parentLink = links.find(
+                      (link) => link.target === transaction.index
+                    );
+                    const category = parentLink
+                      ? nodes.find((n) => n.index === parentLink.source)?.name
+                      : "Uncategorized";
 
-                  return (
-                    <button
-                      key={transaction.index}
-                      onClick={() => {
-                        if (onEditTransaction) {
-                          onEditTransaction(transaction.index);
-                        }
-                        setIsModalOpen(false);
-                        setSelectedDay(null);
-                      }}
-                      className="w-full flex items-center justify-between gap-3 rounded-2xl border border-border-secondary bg-background-secondary/60 px-4 py-3 text-left transition hover:border-primary-500 hover:bg-background-tertiary/60"
-                    >
-                      <div className="flex-1">
-                        <p className="font-semibold text-text-primary">
-                          {transaction.name}
-                        </p>
-                        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-text-secondary">
-                          <span className="px-2 py-0.5 rounded-full bg-background-card border border-border-secondary">
-                            {category}
-                          </span>
-                          {transaction.location &&
-                            transaction.location !== "None" && (
-                              <span>📍 {transaction.location}</span>
-                            )}
-                          {transaction.bank &&
-                            transaction.bank !== "Unknown Bank" && (
-                              <span>💳 {transaction.bank}</span>
-                            )}
+                    return (
+                      <button
+                        key={transaction.index}
+                        onClick={() => {
+                          if (onEditTransaction) {
+                            onEditTransaction(transaction.index);
+                          }
+                          setIsModalOpen(false);
+                          setSelectedDay(null);
+                        }}
+                        className="w-full flex items-center justify-between gap-3 rounded-2xl border border-border-secondary bg-background-secondary/60 px-4 py-3 text-left transition hover:border-primary-500 hover:bg-background-tertiary/60"
+                      >
+                        <div className="flex-1">
+                          <p className="font-semibold text-text-primary">
+                            {transaction.name}
+                          </p>
+                          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-text-secondary">
+                            <span className="px-2 py-0.5 rounded-full bg-background-card border border-border-secondary">
+                              {category}
+                            </span>
+                            {transaction.location &&
+                              transaction.location !== "None" && (
+                                <span>📍 {transaction.location}</span>
+                              )}
+                            {transaction.bank &&
+                              transaction.bank !== "Unknown Bank" && (
+                                <span>💳 {transaction.bank}</span>
+                              )}
+                          </div>
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-text-primary">
-                          {formatCurrency(transaction.cost || 0)}
-                        </p>
-                        <p className="text-xs text-text-tertiary">
-                          Tap to edit
-                        </p>
-                      </div>
-                    </button>
-                  );
-                })
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-text-primary">
+                            {formatCurrency(transaction.cost || 0)}
+                          </p>
+                          <p className="text-xs text-text-tertiary">
+                            Tap to edit
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })
               ) : (
                 <div className="text-center text-text-tertiary py-8">
                   No transactions recorded for this day.

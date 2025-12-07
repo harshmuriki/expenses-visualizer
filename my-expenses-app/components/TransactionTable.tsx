@@ -36,7 +36,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   onEditTransaction,
 }) => {
   const { themeName, theme } = useTheme();
-  const isLightTheme = themeName === 'cherryBlossom' || themeName === 'nordic';
+  const isLightTheme = themeName === "cherryBlossom" || themeName === "nordic";
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<SortField>("cost");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
@@ -324,7 +324,9 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   );
 
   const getStatusInfo = (transaction: SankeyNode) => {
-    const transactionWithStatus = transaction as SankeyNode & { status?: string };
+    const transactionWithStatus = transaction as SankeyNode & {
+      status?: string;
+    };
     const status =
       (typeof transactionWithStatus.status === "string"
         ? transactionWithStatus.status
@@ -825,7 +827,9 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                   className="w-full px-6 py-4 flex flex-wrap items-center gap-4 text-left transition hover:bg-white/5/10 hover:bg-background-secondary/40"
                 >
                   <div
-                    className={`flex h-12 w-12 items-center justify-center rounded-2xl text-base font-semibold uppercase shadow-lg ${isLightTheme ? 'text-white' : 'text-white'}`}
+                    className={`flex h-12 w-12 items-center justify-center rounded-2xl text-base font-semibold uppercase shadow-lg ${
+                      isLightTheme ? "text-white" : "text-white"
+                    }`}
                     style={getAvatarStyles(transaction.category)}
                   >
                     {(transaction.name || "P")[0]}

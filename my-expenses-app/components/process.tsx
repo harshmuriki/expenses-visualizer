@@ -698,7 +698,7 @@ export class Document {
         Array.isArray(transaction.category) ? transaction.category : null,
         transaction.date,
         transaction.merchant_name || transaction.name,
-        "Plaid" // Bank source for Plaid transactions
+        "Bank" // Bank source for aggregator transactions
       );
     });
     return doc;

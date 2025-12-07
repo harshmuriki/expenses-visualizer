@@ -70,7 +70,7 @@ function WelcomeComponent() {
         {
             icon: <FiUploadCloud className="w-12 h-12" />,
             title: "Upload & Connect",
-            description: "Drop your bank statements (CSV/PDF) or connect via Plaid",
+            description: "Drop your bank statements (CSV/PDF) for automatic processing",
             highlight: "Supports major banks"
         },
         {

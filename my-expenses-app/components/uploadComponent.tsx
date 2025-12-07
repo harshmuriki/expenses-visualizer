@@ -4,39 +4,8 @@ import React, { useState, useEffect } from "react";
 import { debugLog, timeStart, timeEnd } from "@/lib/debug";
 import { UploadComponentProps } from "@/app/types/types";
 import { useRouter } from "next/navigation";
-import { getUserMonths } from "@/lib/storageAdapter";
+import { getUserMonths, uploadTransactionsBatch } from "@/lib/storageAdapter";
 import "../styles/loading-animations.css";
-
-type LinkSuccessMetadata = {
-  institution?: {
-    name?: string;
-  };
-};
-
-type LinkExitMetadata = {
-  display_message?: string;
-  error_message?: string;
-};
-
-declare global {
-  interface PlaidLinkHandler {
-    open: () => void;
-    exit: () => void;
-    destroy: () => void;
-  }
-
-  interface PlaidLinkConfig {
-    token: string;
-    onSuccess: (publicToken: string, metadata: LinkSuccessMetadata) => void;
-    onExit?: (error: LinkExitMetadata | null) => void;
-  }
-
-  interface Window {
-    Plaid?: {
-      create: (config: PlaidLinkConfig) => PlaidLinkHandler;
-    };
-  }
-}
 
 const UploadComponent: React.FC<UploadComponentProps> = ({
   onUploadSuccess,
@@ -45,15 +14,43 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
   const [files, setFiles] = useState<FileList | null>(null);
   const [month, setMonth] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
-  // PLAID STATE VARIABLES - TEMPORARILY DISABLED
-  // const [isLinking, setIsLinking] = useState(false);
-  // const [isSyncing, setIsSyncing] = useState(false);
-  // const [linkToken, setLinkToken] = useState<string | null>(null);
-  // const [linkError, setLinkError] = useState<string | null>(null);
-  // const [lastSyncMessage, setLastSyncMessage] = useState<string | null>(null);
-  // const [isPlaidReady, setIsPlaidReady] = useState(false);
+  const [isLoadingLocal, setIsLoadingLocal] = useState(false);
   const router = useRouter();
   const [months, setMonths] = useState<string[]>([]);
+
+  // Helpers for local month backup file
+  const buildLocalFileName = (inputMonth: string) => {
+    const safeMonth = (inputMonth || "unknown").replace(/[^a-z0-9-_]/gi, "_");
+    return `expenses-${safeMonth}.json`;
+  };
+
+  const normalizeParentChildMap = (
+    input: Record<string | number, number[]>
+  ): Record<number, number[]> => {
+    const normalized: Record<number, number[]> = {};
+    if (!input) return normalized;
+
+    Object.entries(input).forEach(([key, value]) => {
+      const numKey = Number(key);
+      if (Number.isNaN(numKey) || !Array.isArray(value)) return;
+      normalized[numKey] = value
+        .map((v) => Number(v))
+        .filter((v) => !Number.isNaN(v));
+    });
+    return normalized;
+  };
+
+  const getOrPickDirectoryHandle = async () => {
+    const directoryPicker = (typeof window !== "undefined" &&
+      (window as any).showDirectoryPicker) as (() => Promise<any>) | undefined;
+
+    if (!directoryPicker) {
+      alert("Local folder access is not supported in this browser.");
+      return null;
+    }
+
+    return directoryPicker();
+  };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -123,156 +120,161 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
     }
   };
 
-  // PLAID SCRIPT LOADING - TEMPORARILY DISABLED
-  // useEffect(() => {
-  //   if (typeof window === "undefined") {
-  //     return;
-  //   }
+  // Load a saved month JSON (from Sync to Local) directly into storage and open chart
+  const handleLoadFromLocal = async () => {
+    if (typeof window === "undefined") return;
 
-  //   if (window.Plaid) {
-  //     setIsPlaidReady(true);
-  //     return;
-  //   }
+    if (!month) {
+      alert("Enter the month name to load (e.g., january or 2023-01).");
+      return;
+    }
 
-  //   const script = document.createElement("script");
-  //   script.src = "https://cdn.plaid.com/link/v2/stable/link-initialize.js";
-  //   script.async = true;
-  //   script.onload = () => setIsPlaidReady(true);
-  //   script.onerror = () => setLinkError("Unable to load aggregator widget");
-  //   document.body.appendChild(script);
+    setIsLoadingLocal(true);
+    try {
+      const directoryHandle = await getOrPickDirectoryHandle();
+      if (!directoryHandle) {
+        return;
+      }
 
-  //   return () => {
-  //     document.body.removeChild(script);
-  //   };
-  // }, []);
+      const fileName = buildLocalFileName(month);
+      let fileHandle: any;
+      try {
+        fileHandle = await directoryHandle.getFileHandle(fileName, {
+          create: false,
+        });
+      } catch (err) {
+        alert(`Could not find ${fileName} in the selected folder.`);
+        return;
+      }
 
-  // PLAID FUNCTIONS - TEMPORARILY DISABLED
-  // const fetchLinkToken = useCallback(async () => {
-  //   const response = await fetch("/api/plaid/create-link-token", {
-  //     method: "POST",
-  //     headers: { "Content-Type": "application/json" },
-  //     body: JSON.stringify({ userId: useremail }),
-  //   });
+      if (fileHandle.requestPermission) {
+        const filePermission = await fileHandle.requestPermission({
+          mode: "readwrite",
+        });
+        if (filePermission === "denied") {
+          alert("Permission denied to read the file.");
+          return;
+        }
+      }
 
-  //   if (!response.ok) {
-  //     throw new Error("Failed to create link token");
-  //   }
+      const file = await fileHandle.getFile();
+      const text = await file.text();
 
-  //   const data = await response.json();
-  //   if (typeof data.link_token !== "string") {
-  //     throw new Error("Aggregator did not return a link token");
-  //   }
+      let parsed: any;
+      try {
+        parsed = JSON.parse(text);
+      } catch (err) {
+        alert("Local file is not valid JSON.");
+        return;
+      }
 
-  //   setLinkToken(data.link_token);
-  //   return data.link_token as string;
-  // }, [useremail]);
+      const nodes = parsed?.nodes;
+      if (!Array.isArray(nodes)) {
+        alert("Local file missing required data for nodes.");
+        return;
+      }
 
-  // PLAID MAIN FUNCTION - TEMPORARILY DISABLED
-  // const openAggregatorLink = useCallback(async () => {
-  //   setLinkError(null);
+      const targetMonth = parsed?.month || month;
+      const userEmail = parsed?.userEmail || useremail;
+      const parentChildMap = normalizeParentChildMap(parsed?.parentChildMap);
+      const metaTotals = parsed?.metaTotals ?? null;
 
-  //   try {
-  //     if (!isPlaidReady || typeof window === "undefined" || !window.Plaid) {
-  //       throw new Error("Aggregator widget is not ready yet");
-  //     }
+      const batchData: Array<{
+        useremail: string;
+        month: string;
+        transaction: string | null;
+        index: number | null;
+        cost: number | null;
+        isleaf: boolean | null;
+        isMap: boolean;
+        key: string | null;
+        values: number[] | null;
+        visible: boolean;
+        date?: string | null;
+        location?: string | null;
+        bank?: string | null;
+        raw_str?: string | null;
+        originalName?: string | null;
+      }> = [];
 
-  //     const token = linkToken ?? (await fetchLinkToken());
-  //     setIsLinking(true);
+      nodes.forEach((node: any) => {
+        if (node?.index === 0) return; // skip root
 
-  //     await new Promise<void>((resolve) => {
-  //       const handler = window.Plaid!.create({
-  //         token,
-  //         onSuccess: async (
-  //           public_token: string,
-  //           metadata: LinkSuccessMetadata
-  //         ) => {
-  //           try {
-  //             const exchangeResponse = await fetch(
-  //               "/api/plaid/exchange-public-token",
-  //               {
-  //                 method: "POST",
-  //                 headers: { "Content-Type": "application/json" },
-  //                 body: JSON.stringify({
-  //                   public_token,
-  //                   userId: useremail,
-  //                   institution: metadata?.institution?.name,
-  //                 }),
-  //               }
-  //             );
+        const safeTransactionName =
+          (node?.name || "").trim() || "Unnamed Transaction";
+        const safeCost = typeof node?.cost === "number" ? node.cost : 0;
+        const safeIndex = typeof node?.index === "number" ? node.index : 0;
+        const isLeaf =
+          !Object.prototype.hasOwnProperty.call(parentChildMap, safeIndex) &&
+          safeIndex !== 0;
+        const nowIso = new Date().toISOString();
 
-  //             const exchangeJson = await exchangeResponse.json();
-  //             if (!exchangeResponse.ok || !exchangeJson.success) {
-  //               throw new Error(
-  //                 exchangeJson.error || "Failed to exchange public token"
-  //               );
-  //             }
+        batchData.push({
+          useremail: userEmail,
+          month: targetMonth,
+          transaction: safeTransactionName,
+          originalName: node?.originalName,
+          index: safeIndex,
+          cost: safeCost,
+          isleaf: isLeaf,
+          isMap: false,
+          key: null,
+          values: null,
+          visible: node?.visible ?? true,
+          date: isLeaf ? node?.date ?? nowIso : nowIso,
+          location: node?.location ?? "None",
+          bank: node?.bank ?? "Unknown Bank",
+          raw_str: node?.raw_str || "None",
+        });
+      });
 
-  //             const itemId = exchangeJson.itemId as string;
-  //             setIsSyncing(true);
-  //             const syncResponse = await fetch("/api/plaid/sync-transactions", {
-  //               method: "POST",
-  //               headers: { "Content-Type": "application/json" },
-  //               body: JSON.stringify({ userId: useremail, itemId }),
-  //             });
+      for (const [key, values] of Object.entries(parentChildMap)) {
+        batchData.push({
+          useremail: userEmail,
+          month: targetMonth,
+          transaction: null,
+          index: null,
+          cost: null,
+          isleaf: null,
+          isMap: true,
+          key,
+          values: values as number[],
+          visible: true,
+        });
+      }
 
-  //             const syncJson = await syncResponse.json();
-  //             if (!syncResponse.ok || !syncJson.success) {
-  //               throw new Error(
-  //                 syncJson.error || "Failed to sync transactions"
-  //               );
-  //             }
+      // Meta totals saved as a special map entry for compatibility
+      if (metaTotals) {
+        batchData.push({
+          useremail: userEmail,
+          month: targetMonth,
+          transaction: "meta",
+          index: null,
+          cost: null,
+          isleaf: null,
+          isMap: false,
+          key: null,
+          values: null,
+          visible: true,
+          date: new Date().toISOString(),
+          location: null,
+          bank: null,
+          raw_str: null,
+        });
+      }
 
-  //             const syncedMonth: string =
-  //               syncJson.month ?? new Date().toISOString().slice(0, 7);
-  //             setLastSyncMessage(
-  //               `Synced ${
-  //                 syncJson.syncedTransactions ?? 0
-  //               } transactions for ${syncedMonth}.`
-  //             );
-  //             onUploadSuccess();
-  //             router.push(`/chart?month=${encodeURIComponent(syncedMonth)}`);
-  //           } catch (error) {
-  //             console.error("Aggregator flow failed", error);
-  //             setLinkError(
-  //               error instanceof Error
-  //                 ? error.message
-  //                 : "Unexpected error connecting account"
-  //             );
-  //           } finally {
-  //             setIsSyncing(false);
-  //             handler.destroy();
-  //             resolve();
-  //           }
-  //         },
-  //         onExit: (err: LinkExitMetadata | null) => {
-  //           handler.destroy();
-  //           if (err?.display_message || err?.error_message) {
-  //             setLinkError(err.display_message || err.error_message);
-  //           }
-  //           resolve();
-  //         },
-  //       });
-
-  //       handler.open();
-  //     });
-  //   } catch (error) {
-  //     console.error("Failed to open aggregator widget", error);
-  //     setLinkError(
-  //       error instanceof Error
-  //         ? error.message
-  //         : "Unable to start account connection"
-  //     );
-  //   } finally {
-  //     setIsLinking(false);
-  //   }
-  // }, [
-  //   fetchLinkToken,
-  //   isPlaidReady,
-  //   linkToken,
-  //   onUploadSuccess,
-  //   router,
-  //   useremail,
-  // ]);
+      await uploadTransactionsBatch(batchData);
+      onUploadSuccess();
+      alert(`Loaded ${fileName} successfully. Redirecting to chart...`);
+      setMonth(targetMonth);
+      router.push(`/chart?month=${encodeURIComponent(targetMonth)}`);
+    } catch (error) {
+      console.error("Error loading local file:", error);
+      alert("Failed to load from local file.");
+    } finally {
+      setIsLoadingLocal(false);
+    }
+  };
 
   useEffect(() => {
     const fetchUserMonths = async () => {
@@ -293,34 +295,6 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
 
   return (
     <div className="flex flex-col items-center justify-center space-y-4 p-6">
-      {/* PLALD SIGN-IN TEMPORARILY DISABLED */}
-      {/* <div className="w-full space-y-3 rounded-xl border border-border-primary/50 bg-background-primary/50 p-5 backdrop-blur-sm">
-        <h3 className="text-lg font-semibold text-text-primary">Connect accounts</h3>
-        <p className="text-sm text-text-secondary">
-          Link a bank or card account securely to automatically import
-          transactions.
-        </p>
-        <button
-          onClick={openAggregatorLink}
-          disabled={isLinking || isSyncing || !isPlaidReady}
-          className={`w-full rounded-lg px-4 py-2.5 font-semibold transition-all transform ${
-            isLinking || isSyncing || !isPlaidReady
-              ? "bg-background-tertiary text-text-tertiary cursor-not-allowed"
-              : "bg-gradient-to-r from-accent-500 to-secondary-500 hover:from-accent-600 hover:to-secondary-600 text-text-primary shadow-lg hover:scale-105"
-          }`}
-        >
-          {isLinking
-            ? "Launching secure link..."
-            : isSyncing
-            ? "Syncing transactions..."
-            : "Connect financial account"}
-        </button>
-        {linkError && <p className="text-sm text-red-400">{linkError}</p>}
-        {lastSyncMessage && (
-          <p className="text-sm text-accent-500">{lastSyncMessage}</p>
-        )}
-      </div> */}
-
       <label className="flex flex-col items-center w-full">
         <span className="mb-2 font-semibold text-text-primary">
           Upload Multiple CSV Files
@@ -370,33 +344,58 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
         )}
       </div>
 
-      <button
-        onClick={handleUpload}
-        disabled={isUploading}
-        className={`px-6 py-3 rounded-lg transition duration-300 font-semibold transform ${
-          isUploading
-            ? "glass-button opacity-50 cursor-not-allowed"
-            : "glass-button-primary hover:scale-105"
-        }`}
-      >
-        {/* Enhanced loading state */}
-        {isUploading ? (
-          <div className="flex items-center justify-center">
-            <div className="relative mr-3">
-              <div className="w-5 h-5 border-2 border-text-tertiary border-t-primary-500 rounded-full animate-spin"></div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-2 h-2 bg-secondary-500 rounded-full animate-pulse"></div>
+      <div className="flex flex-col sm:flex-row gap-3 w-full">
+        <button
+          onClick={handleUpload}
+          disabled={isUploading || isLoadingLocal}
+          className={`flex-1 px-6 py-3 rounded-lg transition duration-300 font-semibold transform ${
+            isUploading
+              ? "glass-button opacity-50 cursor-not-allowed"
+              : "glass-button-primary hover:scale-105"
+          }`}
+        >
+          {isUploading ? (
+            <div className="flex items-center justify-center">
+              <div className="relative mr-3">
+                <div className="w-5 h-5 border-2 border-text-tertiary border-t-primary-500 rounded-full animate-spin"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-2 h-2 bg-secondary-500 rounded-full animate-pulse"></div>
+                </div>
               </div>
+              <span>Uploading...</span>
             </div>
-            <span>Uploading...</span>
-          </div>
-        ) : (
-          "Upload Files"
-        )}
-      </button>
+          ) : (
+            "Upload Files"
+          )}
+        </button>
+
+        <button
+          onClick={handleLoadFromLocal}
+          disabled={isLoadingLocal || isUploading}
+          className={`flex-1 px-6 py-3 rounded-lg transition duration-300 font-semibold transform ${
+            isLoadingLocal
+              ? "glass-button opacity-50 cursor-not-allowed"
+              : "glass-button-secondary hover:scale-105"
+          }`}
+        >
+          {isLoadingLocal ? (
+            <div className="flex items-center justify-center">
+              <div className="relative mr-3">
+                <div className="w-5 h-5 border-2 border-text-tertiary border-t-secondary-500 rounded-full animate-spin"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-2 h-2 bg-primary-500 rounded-full animate-pulse"></div>
+                </div>
+              </div>
+              <span>Loading from Local...</span>
+            </div>
+          ) : (
+            "Load from Local"
+          )}
+        </button>
+      </div>
 
       {/* Enhanced Previous Months Section */}
-      <div className="flex flex-col w-full">
+      {/* <div className="flex flex-col w-full">
         <div className="flex items-center justify-between mb-4">
           <label className="text-lg font-semibold text-text-primary">
             Previous Months
@@ -442,7 +441,7 @@ const UploadComponent: React.FC<UploadComponentProps> = ({
             ))}
           </div>
         )}
-      </div>
+      </div> */}
     </div>
   );
 };
